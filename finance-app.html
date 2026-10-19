@@ -77,6 +77,7 @@ td.num,th.num{text-align:right;white-space:nowrap}
 .badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600}
 .b-received,.b-paid{background:#dcfce7;color:#166534}
 .b-partial,.b-pending{background:#fef3c7;color:#92400e}
+.b-incPartial{background:#fef3c7;color:#92400e}.b-incFull{background:#dcfce7;color:#166534}
 .b-unpaid{background:#e2e8f0;color:#475569}
 .b-draft{background:#e2e8f0;color:#475569}
 .b-overdue{background:#fee2e2;color:#991b1b}
@@ -178,7 +179,11 @@ const fdate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-GB',{day
 const allahOf = net => Math.max(0, net) * ALLAH_RATE;
 const mineOf = net => net > 0 ? net * (1 - ALLAH_RATE) : net;
 
-function mkIncome(o){ return {id:uid(), description:'', category:'Services', ...o}; }
+/* `amount` = money actually received (all calculations use it); `total` = full expected amount */
+function mkIncome(o){ const e = {id:uid(), description:'', category:'Services', ...o}; if (!(e.total >= e.amount)) e.total = e.amount; return e; }
+const incTotal = e => Math.max(e.total || 0, e.amount);
+const incRemaining = e => incTotal(e) - e.amount;
+const incStatus = e => incRemaining(e) > 0 ? 'incPartial' : 'incFull';
 function resetData(){
   if (!confirm('Delete ALL data (income, expenses, invoices, charity)? This cannot be undone.')) return;
   income = []; invoices = []; charity = []; expenses = []; save(); render(); toast('All data cleared');
@@ -209,7 +214,7 @@ function invStatus(i){
   if (i.expectedBy && today() > i.expectedBy) return 'overdue';
   return rec > 0 ? 'partial' : 'unpaid';
 }
-const STATUS_LABEL = {unpaid:'Unpaid', partial:'Partially Paid', paid:'Paid in Full', overdue:'Overdue'};
+const STATUS_LABEL = {incPartial:'Partially Received', incFull:'Fully Received', unpaid:'Unpaid', partial:'Partially Paid', paid:'Paid in Full', overdue:'Overdue'};
 function totals(){
   const rec = received(), cm = monthKey(today());
   const totalIn = sum(rec, e => e.amount), totalExp = sum(expenses, e => e.amount);
@@ -338,28 +343,30 @@ function vIncome(t){
   const opt = (arr, cur, f = x => x) => arr.map(x => `<option value="${esc(x)}" ${cur === x ? 'selected' : ''}>${esc(f(x))}</option>`).join('');
   return `
   <div class="card">
-    <div class="hint">This ledger lists only money actually received. Payments recorded on invoices appear here automatically; invoiced or expected amounts do not.</div>
+    <div class="hint">Every calculation uses the <b>received</b> amount only. Payments recorded on invoices appear here automatically; the unreceived remainder is shown but never counted as income.</div>
     <div class="filters">
       <select onchange="fi.month=this.value;render()"><option value="">All months</option>${opt(months, fi.month, monthLabel)}</select>
       <select onchange="fi.client=this.value;render()"><option value="">All clients</option>${opt(clients, fi.client)}</select>
       <select onchange="fi.category=this.value;render()"><option value="">All categories</option>${opt(cats, fi.category)}</select>
     </div>
-    <div class="muted" style="margin-bottom:10px">Showing ${list.length} entries · Total received <b>${fmt(sum(list, e => e.amount))}</b></div>
+    <div class="muted" style="margin-bottom:10px">Showing ${list.length} entries · Total received <b>${fmt(sum(list, e => e.amount))}</b> · still to receive <b>${fmt(sum(list, incRemaining))}</b> <span class="muted">(not counted as income)</span></div>
     <div class="tablewrap"><table>
-      <thead><tr><th>Date</th><th>Client</th><th>Description</th><th>Category</th><th>Source</th><th class="num">Amount received</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th>Client</th><th>Description</th><th>Category</th><th>Source</th><th class="num">Total / Received</th><th class="num">Remaining</th><th>Status</th><th></th></tr></thead>
       <tbody>${list.map(e => `<tr>
         <td>${fdate(e.date)}</td><td><b>${esc(e.client)}</b></td><td>${esc(e.description)}</td><td>${esc(e.category)}</td>
-        <td>${e.invoiceId ? 'Invoice ' + esc(e.invoiceNo || '') : 'Direct'}</td><td class="num"><b>${fmt(e.amount)}</b></td>
-        <td class="num">${e.invoiceId ? '<span class="muted">edit on invoice</span>' : `<button class="btn sm danger" onclick="delIncome('${e.id}')">✕</button>`}</td>
-      </tr>`).join('') || '<tr><td colspan="7" class="empty">No money received yet</td></tr>'}</tbody>
+        <td>${e.invoiceId ? 'Invoice ' + esc(e.invoiceNo || '') : 'Direct'}</td><td class="num" style="white-space:normal">${fmt(incTotal(e))} total / <b style="color:var(--green)">${fmt(e.amount)} received</b></td>
+        <td class="num">${incRemaining(e) > 0 ? `<b style="color:var(--amber)">${fmt(incRemaining(e))}</b>` : '—'}</td><td>${badge(incStatus(e))}</td>
+        <td class="num">${e.invoiceId ? '<span class="muted">edit on invoice</span>' : `${incRemaining(e) > 0 ? `<button class="btn sm" onclick="receiveForm('${e.id}')">+ Receive</button> ` : ''}<button class="btn sm danger" onclick="delIncome('${e.id}')">✕</button>`}</td>
+      </tr>`).join('') || '<tr><td colspan="9" class="empty">No money received yet</td></tr>'}</tbody>
     </table></div>
   </div>`;
 }
 function incomeForm(){
-  openModal(`<h2>Add Income Received</h2><form onsubmit="saveIncome(event)">
-    <div class="hint">For money received outside an invoice. Only enter cash actually in hand — invoice payments are recorded from the Invoices page.</div>
-    <div class="row2"><div class="field"><label>Amount received (₨)</label><input name="amount" type="number" min="1" step="any" required></div>
-    <div class="field"><label>Date received</label><input name="date" type="date" value="${today()}" required></div></div>
+  openModal(`<h2>Add Income</h2><form onsubmit="saveIncome(event)">
+    <div class="hint">Only <b>Amount Received</b> counts toward net profit, My Share and Allah's Share. The total is for tracking what is still to come.</div>
+    <div class="row2"><div class="field"><label>Total Amount (₨)</label><input name="total" type="number" min="1" step="any" required></div>
+    <div class="field"><label>Amount Received (₨)</label><input name="amount" type="number" min="0" step="any" required></div></div>
+    <div class="field"><label>Date</label><input name="date" type="date" value="${today()}" required></div>
     <div class="field"><label>Client / Source</label><input name="client" required></div>
     <div class="field"><label>Category</label><select name="category">${['Services','Retainer','Design','Development','Marketing','Consulting','Other'].map(c => `<option>${c}</option>`).join('')}</select></div>
     <div class="field"><label>Description</label><input name="description"></div>
@@ -367,8 +374,23 @@ function incomeForm(){
 }
 function saveIncome(e){
   e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
-  income.push(mkIncome({amount:+f.amount, client:f.client.trim(), date:f.date, description:f.description.trim(), category:f.category}));
-  save(); closeModal(); render(); toast('Income added');
+  const total = +f.total, amount = +f.amount;
+  if (!(total > 0) || f.amount === '' || !(amount >= 0)) { alert('Enter both Total Amount and Amount Received.'); return; }
+  if (amount > total) { alert('Amount Received cannot be more than Total Amount.'); return; }
+  income.push(mkIncome({total, amount, client:f.client.trim(), date:f.date, description:f.description.trim(), category:f.category}));
+  save(); closeModal(); render(); toast(amount < total ? 'Saved as partially received' : 'Saved as fully received');
+}
+function receiveForm(id){
+  const e = income.find(x => x.id === id); if (!e) return;
+  openModal(`<h2>Receive more · ${esc(e.client)}</h2>
+    <div class="hint">Total ${fmt(incTotal(e))} · received ${fmt(e.amount)} · remaining <b>${fmt(incRemaining(e))}</b></div>
+    <form onsubmit="saveReceive(event,'${id}')"><div class="field"><label>Additional amount received (₨)</label><input name="more" type="number" min="1" max="${incRemaining(e)}" step="any" required></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Add</button></div></form>`);
+}
+function saveReceive(ev, id){
+  ev.preventDefault(); const e = income.find(x => x.id === id); const more = +new FormData(ev.target).get('more');
+  if (!e || !(more > 0) || more > incRemaining(e)) { alert('Cannot receive more than the remaining amount.'); return; }
+  e.total = incTotal(e); e.amount += more; save(); closeModal(); render(); toast('Received ' + fmt(more));
 }
 function delIncome(id){ if (confirm('Delete this income entry?')) { income = income.filter(x => x.id !== id); save(); render(); } }
 
