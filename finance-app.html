@@ -179,10 +179,12 @@ const fdate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-GB',{day
 const allahOf = net => Math.max(0, net) * ALLAH_RATE;
 const mineOf = net => net > 0 ? net * (1 - ALLAH_RATE) : net;
 
-/* `amount` = money actually received (all calculations use it); `total` = full expected amount */
-function mkIncome(o){ const e = {id:uid(), description:'', category:'Services', ...o}; if (!(e.total >= e.amount)) e.total = e.amount; return e; }
-const incTotal = e => Math.max(e.total || 0, e.amount);
-const incRemaining = e => incTotal(e) - e.amount;
+/* Income entry: `received_amount` = money actually in hand (ALL calculations use it);
+   `total_amount` = full amount invoiced/expected (display and remaining only) */
+function mkIncome(o){ const e = {id:uid(), description:'', category:'Services', ...o}; if (!(e.total_amount >= e.received_amount)) e.total_amount = e.received_amount; return e; }
+const incTotal = e => e.total_amount;
+const incRemaining = e => e.total_amount - e.received_amount;
+const incLabel = e => `${fmt(e.total_amount)} total / <b style="color:var(--green)">${fmt(e.received_amount)} received</b>`;
 const incStatus = e => incRemaining(e) > 0 ? 'incPartial' : 'incFull';
 function resetData(){
   if (!confirm('Delete ALL data (income, expenses, invoices, charity)? This cannot be undone.')) return;
@@ -199,6 +201,10 @@ function init(){
   }
   income = load(K.inc); invoices = load(K.inv); charity = load(K.ch); expenses = load(K.exp);
   [income, invoices, charity, expenses] = [income, invoices, charity, expenses].map(a => Array.isArray(a) ? a : []);
+  // migrate older entries ({amount, total}) to {received_amount, total_amount}
+  let migrated = false;
+  income.forEach(e => { if (e.received_amount === undefined) { e.received_amount = e.amount; e.total_amount = Math.max(e.total || 0, e.amount); delete e.amount; delete e.total; migrated = true; } });
+  if (migrated) save();
 }
 
 /* ========= Derived values ========= */
@@ -217,8 +223,8 @@ function invStatus(i){
 const STATUS_LABEL = {incPartial:'Partially Received', incFull:'Fully Received', unpaid:'Unpaid', partial:'Partially Paid', paid:'Paid in Full', overdue:'Overdue'};
 function totals(){
   const rec = received(), cm = monthKey(today());
-  const totalIn = sum(rec, e => e.amount), totalExp = sum(expenses, e => e.amount);
-  const monthIn = sum(rec.filter(e => monthKey(e.date) === cm), e => e.amount);
+  const totalIn = sum(rec, e => e.received_amount), totalExp = sum(expenses, e => e.amount);
+  const monthIn = sum(rec.filter(e => monthKey(e.date) === cm), e => e.received_amount);
   const monthExp = sum(expenses.filter(e => monthKey(e.date) === cm), e => e.amount);
   const net = totalIn - totalExp;
   const allahTotal = allahOf(net), given = sum(charity, c => c.amount);
@@ -315,7 +321,7 @@ function vDashboard(t){
     <div class="card"><h3>Received vs Expenses – Last 6 Months</h3><div class="chart-box"><canvas id="cDash"></canvas></div></div>
     <div class="card"><h3>Recent Money Received</h3>${recent.map(e => `
       <div class="tx"><div><div class="t1">${esc(e.client)}</div><div class="t2">${fdate(e.date)} · ${esc(e.description || e.category)}</div></div>
-      <div class="amt">${fmt(e.amount)}</div></div>`).join('') || '<div class="empty">No money received yet</div>'}
+      <div class="amt" style="font-weight:500;font-size:12px">${incLabel(e)}</div></div>`).join('') || '<div class="empty">No money received yet</div>'}
     </div>
   </div>`;
 }
@@ -327,7 +333,7 @@ function lastMonths(n){
 function afterDashboard(){
   const ms = lastMonths(6), rec = received();
   chart('cDash', {type:'bar', data:{labels:ms.map(monthLabel), datasets:[
-    {label:'Received', data:ms.map(m => sum(rec.filter(e => monthKey(e.date) === m), e => e.amount)), backgroundColor:'#0f766e', borderRadius:5},
+    {label:'Received', data:ms.map(m => sum(rec.filter(e => monthKey(e.date) === m), e => e.received_amount)), backgroundColor:'#0f766e', borderRadius:5},
     {label:'Expenses', data:ms.map(m => sum(expenses.filter(e => monthKey(e.date) === m), e => e.amount)), backgroundColor:'#94a3b8', borderRadius:5}
   ]}, options:{...chartOpts, scales:{x:{grid:{display:false}}, y:{ticks:{callback:axisFmt}}}}});
 }
@@ -349,12 +355,12 @@ function vIncome(t){
       <select onchange="fi.client=this.value;render()"><option value="">All clients</option>${opt(clients, fi.client)}</select>
       <select onchange="fi.category=this.value;render()"><option value="">All categories</option>${opt(cats, fi.category)}</select>
     </div>
-    <div class="muted" style="margin-bottom:10px">Showing ${list.length} entries · Total received <b>${fmt(sum(list, e => e.amount))}</b> · still to receive <b>${fmt(sum(list, incRemaining))}</b> <span class="muted">(not counted as income)</span></div>
+    <div class="muted" style="margin-bottom:10px">Showing ${list.length} entries · Total received <b>${fmt(sum(list, e => e.received_amount))}</b> · still to receive <b>${fmt(sum(list, incRemaining))}</b> <span class="muted">(not counted as income)</span></div>
     <div class="tablewrap"><table>
       <thead><tr><th>Date</th><th>Client</th><th>Description</th><th>Category</th><th>Source</th><th class="num">Total / Received</th><th class="num">Remaining</th><th>Status</th><th></th></tr></thead>
       <tbody>${list.map(e => `<tr>
         <td>${fdate(e.date)}</td><td><b>${esc(e.client)}</b></td><td>${esc(e.description)}</td><td>${esc(e.category)}</td>
-        <td>${e.invoiceId ? 'Invoice ' + esc(e.invoiceNo || '') : 'Direct'}</td><td class="num" style="white-space:normal">${fmt(incTotal(e))} total / <b style="color:var(--green)">${fmt(e.amount)} received</b></td>
+        <td>${e.invoiceId ? 'Invoice ' + esc(e.invoiceNo || '') : 'Direct'}</td><td class="num" style="white-space:normal">${incLabel(e)}</td>
         <td class="num">${incRemaining(e) > 0 ? `<b style="color:var(--amber)">${fmt(incRemaining(e))}</b>` : '—'}</td><td>${badge(incStatus(e))}</td>
         <td class="num">${e.invoiceId ? '<span class="muted">edit on invoice</span>' : `${incRemaining(e) > 0 ? `<button class="btn sm" onclick="receiveForm('${e.id}')">+ Receive</button> ` : ''}<button class="btn sm danger" onclick="delIncome('${e.id}')">✕</button>`}</td>
       </tr>`).join('') || '<tr><td colspan="9" class="empty">No money received yet</td></tr>'}</tbody>
@@ -364,8 +370,8 @@ function vIncome(t){
 function incomeForm(){
   openModal(`<h2>Add Income</h2><form onsubmit="saveIncome(event)">
     <div class="hint">Only <b>Amount Received</b> counts toward net profit, My Share and Allah's Share. The total is for tracking what is still to come.</div>
-    <div class="row2"><div class="field"><label>Total Amount (₨)</label><input name="total" type="number" min="1" step="any" required></div>
-    <div class="field"><label>Amount Received (₨)</label><input name="amount" type="number" min="0" step="any" required></div></div>
+    <div class="field"><label>Total Amount (Invoiced)</label><input id="income_total_amount" name="total_amount" type="number" min="1" step="any" placeholder="Full amount expected from client" required></div>
+    <div class="field"><label>Amount Received</label><input id="income_received_amount" name="received_amount" type="number" min="0" step="any" placeholder="What you have actually received" required></div>
     <div class="field"><label>Date</label><input name="date" type="date" value="${today()}" required></div>
     <div class="field"><label>Client / Source</label><input name="client" required></div>
     <div class="field"><label>Category</label><select name="category">${['Services','Retainer','Design','Development','Marketing','Consulting','Other'].map(c => `<option>${c}</option>`).join('')}</select></div>
@@ -374,23 +380,23 @@ function incomeForm(){
 }
 function saveIncome(e){
   e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
-  const total = +f.total, amount = +f.amount;
-  if (!(total > 0) || f.amount === '' || !(amount >= 0)) { alert('Enter both Total Amount and Amount Received.'); return; }
-  if (amount > total) { alert('Amount Received cannot be more than Total Amount.'); return; }
-  income.push(mkIncome({total, amount, client:f.client.trim(), date:f.date, description:f.description.trim(), category:f.category}));
-  save(); closeModal(); render(); toast(amount < total ? 'Saved as partially received' : 'Saved as fully received');
+  const total = +f.total_amount, received = +f.received_amount;
+  if (!(total > 0) || f.received_amount === '' || !(received >= 0)) { alert('Enter both Total Amount and Amount Received.'); return; }
+  if (received > total) { alert('Amount Received cannot be more than Total Amount.'); return; }
+  income.push(mkIncome({total_amount:total, received_amount:received, client:f.client.trim(), date:f.date, description:f.description.trim(), category:f.category}));
+  save(); closeModal(); render(); toast(received < total ? 'Saved as partially received' : 'Saved as fully received');
 }
 function receiveForm(id){
   const e = income.find(x => x.id === id); if (!e) return;
   openModal(`<h2>Receive more · ${esc(e.client)}</h2>
-    <div class="hint">Total ${fmt(incTotal(e))} · received ${fmt(e.amount)} · remaining <b>${fmt(incRemaining(e))}</b></div>
+    <div class="hint">Total ${fmt(incTotal(e))} · received ${fmt(e.received_amount)} · remaining <b>${fmt(incRemaining(e))}</b></div>
     <form onsubmit="saveReceive(event,'${id}')"><div class="field"><label>Additional amount received (₨)</label><input name="more" type="number" min="1" max="${incRemaining(e)}" step="any" required></div>
     <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Add</button></div></form>`);
 }
 function saveReceive(ev, id){
   ev.preventDefault(); const e = income.find(x => x.id === id); const more = +new FormData(ev.target).get('more');
   if (!e || !(more > 0) || more > incRemaining(e)) { alert('Cannot receive more than the remaining amount.'); return; }
-  e.total = incTotal(e); e.amount += more; save(); closeModal(); render(); toast('Received ' + fmt(more));
+  e.received_amount += more; save(); closeModal(); render(); toast('Received ' + fmt(more));
 }
 function delIncome(id){ if (confirm('Delete this income entry?')) { income = income.filter(x => x.id !== id); save(); render(); } }
 
@@ -482,7 +488,7 @@ function saveInvoice(e){
 function addPayment(inv, amount, date, note){
   const pid = uid();
   inv.payments.push({id:pid, amount, date, note});
-  income.push(mkIncome({amount, client:inv.client, date, description:'Invoice ' + inv.number + ' – ' + inv.service + (note ? ' (' + note + ')' : ''), category:'Services', invoiceId:inv.id, invoiceNo:inv.number, paymentId:pid}));
+  income.push(mkIncome({total_amount:amount, received_amount:amount, client:inv.client, date, description:'Invoice ' + inv.number + ' – ' + inv.service + (note ? ' (' + note + ')' : ''), category:'Services', invoiceId:inv.id, invoiceNo:inv.number, paymentId:pid}));
 }
 function paymentModal(id){
   const i = invoices.find(x => x.id === id); if (!i) return;
@@ -575,15 +581,15 @@ function monthRows(){
   const rec = received();
   const keys = [...new Set([...rec.map(e => monthKey(e.date)), ...expenses.map(e => monthKey(e.date))])].sort();
   return keys.map(m => {
-    const inc = sum(rec.filter(e => monthKey(e.date) === m), e => e.amount), exp = sum(expenses.filter(e => monthKey(e.date) === m), e => e.amount);
+    const inc = sum(rec.filter(e => monthKey(e.date) === m), e => e.received_amount), exp = sum(expenses.filter(e => monthKey(e.date) === m), e => e.amount);
     return {m, inc, exp, net:inc - exp, mine:mineOf(inc - exp), allah:allahOf(inc - exp)};
   });
 }
 function vReports(){
   const rec = received(), rows = monthRows();
-  const byClient = {}; rec.forEach(e => byClient[e.client] = (byClient[e.client] || 0) + e.amount);
+  const byClient = {}; rec.forEach(e => byClient[e.client] = (byClient[e.client] || 0) + e.received_amount);
   const top = Object.entries(byClient).sort((a,b) => b[1] - a[1]).slice(0,6);
-  const totalIn = sum(rec, e => e.amount) || 1;
+  const totalIn = sum(rec, e => e.received_amount) || 1;
   return `
   <div class="grid g2" style="margin-bottom:16px">
     <div class="card"><h3>Monthly Income vs Expenses</h3><div class="chart-box"><canvas id="cMonthly"></canvas></div></div>
