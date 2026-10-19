@@ -59,6 +59,14 @@ main{margin-left:240px;flex:1;padding:26px 30px 50px;min-width:0}
 .bar>div{height:100%;background:linear-gradient(90deg,#fde68a,#f59e0b);border-radius:99px;transition:width .6s}
 .bar.light{background:#e8e4cc}
 .bar.light>div{background:linear-gradient(90deg,#16a34a,#b8860b)}
+/* formula */
+.flow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap}
+.fbox{flex:1;min-width:130px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.fbox span{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.fbox b{font-size:19px;display:block;margin-top:4px}
+.fbox.net{background:#ecfeff;border-color:#99f6e4}.fbox.mine{background:#f0fdfa}
+.fbox.allah{background:linear-gradient(135deg,#fefce8,#dcfce7);border-color:#d4a017}.fbox.allah b{color:#8f6808}
+.fop{align-self:center;font-size:22px;font-weight:700;color:var(--muted)}
 /* table */
 .tablewrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
@@ -115,6 +123,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
   <nav class="nav" id="nav">
     <button data-view="dashboard">📊 Dashboard</button>
     <button data-view="income">💰 Income / Cash Flow</button>
+    <button data-view="expenses">💸 Expenses</button>
     <button data-view="invoices">🧾 Invoices</button>
     <button data-view="allah" class="allah">🤲 Allah's Share</button>
     <button data-view="reports">📈 Reports</button>
@@ -143,16 +152,17 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
 <script>
 /* ========= Config & storage ========= */
 const ALLAH_RATE = 0.10;
-const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses'};
+const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses', exp:'expenses'};
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } };
 const save = () => {
   try {
     localStorage.setItem(K.inc, JSON.stringify(income));
     localStorage.setItem(K.inv, JSON.stringify(invoices));
     localStorage.setItem(K.ch, JSON.stringify(charity));
+    localStorage.setItem(K.exp, JSON.stringify(expenses));
   } catch(e){ toast('Could not save to localStorage'); }
 };
-let income, invoices, charity;
+let income, invoices, charity, expenses;
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 const today = () => new Date().toISOString().slice(0,10);
@@ -163,12 +173,21 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const monthKey = d => d.slice(0,7);
 const monthLabel = k => new Date(k + '-01T00:00:00').toLocaleDateString('en-US',{month:'short',year:'numeric'});
 const fdate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-const split = amount => { const a = Math.round(amount * ALLAH_RATE * 100) / 100; return {allah:a, mine:Math.round((amount - a)*100)/100}; };
+/* Shares are based on NET PROFIT (received income − expenses); never negative for charity */
+const allahOf = net => Math.max(0, net) * ALLAH_RATE;
+const mineOf = net => net > 0 ? net * (1 - ALLAH_RATE) : net;
 
-function mkIncome(o){ const s = split(o.amount); return {id:uid(), status:'received', description:'', category:'Services', ...o, allahShare:s.allah, myShare:s.mine}; }
+function mkIncome(o){ return {id:uid(), status:'received', description:'', category:'Services', ...o}; }
+function seedExpenses(){
+  const rows = [[170,'Salaries','Team salaries – Apr',120000],[165,'Software','Adobe & hosting subscriptions',25000],[140,'Salaries','Team salaries – May',120000],
+    [135,'Office','Co-working rent',30000],[110,'Salaries','Team salaries – Jun',120000],[105,'Advertising','Ad spend for client campaigns',45000],
+    [80,'Salaries','Team salaries – Jul',130000],[75,'Software','Adobe & hosting subscriptions',25000],[50,'Salaries','Team salaries – Aug',130000],
+    [45,'Office','Co-working rent',30000],[22,'Salaries','Team salaries – Sep',130000],[12,'Advertising','Ad spend for client campaigns',60000],[5,'Utilities','Internet & electricity',18000]];
+  return rows.map(r => ({id:uid(), date:daysAgo(r[0]), category:r[1], description:r[2], amount:r[3]}));
+}
 
 function seed(){
-  income = []; invoices = []; charity = [];
+  income = []; invoices = []; charity = []; expenses = seedExpenses();
   const clients = ['Nexa Traders','BlueOrbit Tech','Karachi Eats','Lahore Fashion Hub','Zenith Real Estate','Alpha Logistics'];
   const rows = [
     [175,185000,0,'Social media management','Retainer'],[160,95000,1,'Brand identity design','Design'],
@@ -199,8 +218,9 @@ function seed(){
   save();
 }
 function init(){
-  income = load(K.inc); invoices = load(K.inv); charity = load(K.ch);
+  income = load(K.inc); invoices = load(K.inv); charity = load(K.ch); expenses = load(K.exp);
   if (!Array.isArray(income) || !Array.isArray(invoices) || !Array.isArray(charity)) seed();
+  else if (!Array.isArray(expenses)) { expenses = seedExpenses(); save(); }
 }
 function resetData(){ if (confirm('Replace all data with sample data?')) { seed(); render(); toast('Sample data restored'); } }
 
@@ -210,13 +230,14 @@ const sum = (arr, f) => arr.reduce((t, x) => t + f(x), 0);
 const invStatus = i => (i.status === 'sent' && i.due < today()) ? 'overdue' : i.status;
 function totals(){
   const rec = received(), cm = monthKey(today());
-  const month = rec.filter(e => monthKey(e.date) === cm);
-  const totalIn = sum(rec, e => e.amount);
-  const allahTotal = sum(rec, e => e.allahShare);
-  const given = sum(charity, c => c.amount);
+  const totalIn = sum(rec, e => e.amount), totalExp = sum(expenses, e => e.amount);
+  const monthIn = sum(rec.filter(e => monthKey(e.date) === cm), e => e.amount);
+  const monthExp = sum(expenses.filter(e => monthKey(e.date) === cm), e => e.amount);
+  const net = totalIn - totalExp;
+  const allahTotal = allahOf(net), given = sum(charity, c => c.amount);
   return {
-    totalIn, monthIn: sum(month, e => e.amount),
-    mine: sum(rec, e => e.myShare), allahTotal, given, remaining: allahTotal - given,
+    totalIn, totalExp, net, monthIn, monthExp, monthNet: monthIn - monthExp,
+    mine: mineOf(net), allahTotal, given, remaining: allahTotal - given,
     pct: allahTotal > 0 ? Math.min(100, given / allahTotal * 100) : 0,
     outstanding: sum(invoices.filter(i => ['sent','overdue'].includes(invStatus(i))), i => i.amount),
     pending: sum(income.filter(e => e.status === 'pending'), e => e.amount)
@@ -240,9 +261,10 @@ const axisFmt = v => v >= 1e6 ? (v/1e6) + 'M' : v >= 1e3 ? (v/1e3) + 'k' : v;
 let view = 'dashboard';
 const meta = {
   dashboard:['Dashboard','Overview of your agency finances'],
-  income:['Income / Cash Flow','Every entry is automatically split 90% / 10%'],
+  income:['Income / Cash Flow','Received income, before expenses'],
+  expenses:['Expenses','Business costs — deducted before the 90% / 10% split'],
   invoices:['Invoices','Create, send and track client invoices'],
-  allah:["Allah's Share Tracker",'10% of every received payment — set aside for charity (sadaqah)'],
+  allah:["Allah's Share Tracker",'10% of net profit (income − expenses) — set aside for charity (sadaqah)'],
   reports:['Reports','Monthly breakdown, cumulative charity and top clients'],
 };
 
@@ -254,27 +276,40 @@ function render(){
   $('topActions').innerHTML = {
     dashboard:'<button class="btn" onclick="incomeForm()">+ Add Income</button>',
     income:'<button class="btn" onclick="incomeForm()">+ Add Income</button>',
+    expenses:'<button class="btn" onclick="expenseForm()">+ Add Expense</button>',
     invoices:'<button class="btn" onclick="invoiceForm()">+ New Invoice</button>',
     allah:'<button class="btn gold" onclick="charityForm()">+ Record Giving</button>',
     reports:''
   }[view];
-  $('sideAllah').innerHTML = `🤲 <b>Allah's share</b><br>Set aside: ${fmt(t.allahTotal)}<br>Remaining: ${fmt(t.remaining)}`;
-  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, invoices:vInvoices, allah:vAllah, reports:vReports}[view](t);
+  $('sideAllah').innerHTML = `🤲 <b>Allah's share</b><br>Set aside (10% of net): ${fmt(t.allahTotal)}<br>Remaining: ${fmt(t.remaining)}`;
+  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports}[view](t);
   ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah}[view] || (()=>{}))(t);
 }
 
 function vDashboard(t){
   const recent = [...income].sort((a,b) => b.date.localeCompare(a.date)).slice(0,6);
+  const neg = t.net <= 0;
   return `
+  <div class="card formula" style="margin-bottom:16px">
+    <h3>How your money is split</h3>
+    <div class="flow">
+      <div class="fbox"><span>Income received</span><b>${fmt(t.totalIn)}</b></div><div class="fop">−</div>
+      <div class="fbox"><span>Expenses</span><b>${fmt(t.totalExp)}</b></div><div class="fop">=</div>
+      <div class="fbox net"><span>Net Profit</span><b>${fmt(t.net)}</b></div><div class="fop">→</div>
+      <div class="fbox mine"><span>My Share (90%)</span><b>${fmt(t.mine)}</b></div><div class="fop">+</div>
+      <div class="fbox allah"><span>🤲 Allah's Share (10%)</span><b>${fmt(t.allahTotal)}</b></div>
+    </div>
+    ${neg ? '<div class="hint" style="margin:12px 0 0">Net profit is zero or negative, so nothing is owed to Allah\'s share right now.</div>' : ''}
+  </div>
   <div class="grid g4" style="margin-bottom:16px">
     <div class="card stat teal"><div class="label">Total Income (All Time)</div><div class="value">${fmt(t.totalIn)}</div><div class="sub">Received payments only</div></div>
-    <div class="card stat navy"><div class="label">This Month</div><div class="value">${fmt(t.monthIn)}</div><div class="sub">${monthLabel(monthKey(today()))}</div></div>
-    <div class="card stat teal"><div class="label">My Share (90%)</div><div class="value">${fmt(t.mine)}</div><div class="sub">Available to the business</div></div>
+    <div class="card stat navy"><div class="label">This Month</div><div class="value">${fmt(t.monthIn)}</div><div class="sub">Expenses ${fmt(t.monthExp)} · Net ${fmt(t.monthNet)}</div></div>
+    <div class="card stat teal"><div class="label">My Share (90% of net)</div><div class="value">${fmt(t.mine)}</div><div class="sub">After expenses &amp; charity</div></div>
     <div class="card stat amber"><div class="label">Outstanding Invoices</div><div class="value">${fmt(t.outstanding)}</div><div class="sub">Pending income: ${fmt(t.pending)}</div></div>
   </div>
   <div class="card allah-card" style="margin-bottom:16px">
     <div class="grid g3" style="gap:20px">
-      <div><div class="label">🤲 Allah's Share (10%) — Set Aside</div><div class="value" style="font-size:30px">${fmt(t.allahTotal)}</div></div>
+      <div><div class="label">🤲 Allah's Share (10% of net) — Set Aside</div><div class="value" style="font-size:30px">${fmt(t.allahTotal)}</div></div>
       <div><div class="label">Given So Far</div><div class="value" style="font-size:30px">${fmt(t.given)}</div></div>
       <div><div class="label">Still To Give</div><div class="value" style="font-size:30px">${fmt(t.remaining)}</div></div>
     </div>
@@ -282,10 +317,10 @@ function vDashboard(t){
     <div class="sub" style="margin-top:8px">${t.pct.toFixed(1)}% of what is owed has been given in Allah's way</div>
   </div>
   <div class="grid g-main">
-    <div class="card"><h3>Income – Last 6 Months</h3><div class="chart-box"><canvas id="cDash"></canvas></div></div>
+    <div class="card"><h3>Income vs Expenses – Last 6 Months</h3><div class="chart-box"><canvas id="cDash"></canvas></div></div>
     <div class="card"><h3>Recent Transactions</h3>${recent.map(e => `
       <div class="tx"><div><div class="t1">${esc(e.client)}</div><div class="t2">${fdate(e.date)} · ${badge(e.status)}</div></div>
-      <div class="amt">${fmt(e.amount)}<small>🤲 ${fmt(e.allahShare)}</small></div></div>`).join('') || '<div class="empty">No transactions</div>'}
+      <div class="amt">${fmt(e.amount)}</div></div>`).join('') || '<div class="empty">No transactions</div>'}
     </div>
   </div>`;
 }
@@ -297,9 +332,9 @@ function lastMonths(n){
 function afterDashboard(){
   const ms = lastMonths(6), rec = received();
   chart('cDash', {type:'bar', data:{labels:ms.map(monthLabel), datasets:[
-    {label:'My share (90%)', data:ms.map(m => sum(rec.filter(e => monthKey(e.date) === m), e => e.myShare)), backgroundColor:'#0f766e', borderRadius:5},
-    {label:"Allah's share (10%)", data:ms.map(m => sum(rec.filter(e => monthKey(e.date) === m), e => e.allahShare)), backgroundColor:'#d4a017', borderRadius:5}
-  ]}, options:{...chartOpts, scales:{x:{stacked:true,grid:{display:false}}, y:{stacked:true, ticks:{callback:axisFmt}}}}});
+    {label:'Income', data:ms.map(m => sum(rec.filter(e => monthKey(e.date) === m), e => e.amount)), backgroundColor:'#0f766e', borderRadius:5},
+    {label:'Expenses', data:ms.map(m => sum(expenses.filter(e => monthKey(e.date) === m), e => e.amount)), backgroundColor:'#94a3b8', borderRadius:5}
+  ]}, options:{...chartOpts, scales:{x:{grid:{display:false}}, y:{ticks:{callback:axisFmt}}}}});
 }
 
 /* ----- Income ----- */
@@ -320,36 +355,66 @@ function vIncome(t){
       <select onchange="fi.category=this.value;render()"><option value="">All categories</option>${opt(cats, fi.category)}</select>
       <select onchange="fi.status=this.value;render()"><option value="">Any status</option>${opt(['received','pending'], fi.status)}</select>
     </div>
-    <div class="muted" style="margin-bottom:10px">Showing ${list.length} entries · Received total <b>${fmt(tot)}</b> · Allah's share <b class="gold-txt">${fmt(split(tot).allah)}</b></div>
+    <div class="muted" style="margin-bottom:10px">Showing ${list.length} entries · Received total <b>${fmt(tot)}</b></div>
     <div class="tablewrap"><table>
-      <thead><tr><th>Date</th><th>Client</th><th>Description</th><th>Category</th><th>Status</th><th class="num">Amount</th><th class="num">Me (90%)</th><th class="num">Allah (10%)</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th>Client</th><th>Description</th><th>Category</th><th>Status</th><th class="num">Amount</th><th></th></tr></thead>
       <tbody>${list.map(e => `<tr>
         <td>${fdate(e.date)}</td><td><b>${esc(e.client)}</b></td><td>${esc(e.description)}</td><td>${esc(e.category)}</td>
-        <td>${badge(e.status)}</td><td class="num"><b>${fmt(e.amount)}</b></td><td class="num">${fmt(e.myShare)}</td><td class="num gold-txt">${fmt(e.allahShare)}</td>
+        <td>${badge(e.status)}</td><td class="num"><b>${fmt(e.amount)}</b></td>
         <td class="num">${e.status === 'pending' ? `<button class="btn sm" onclick="markReceived('${e.id}')">Mark received</button> ` : ''}${e.invoiceId ? '<span class="muted">via invoice</span>' : `<button class="btn sm danger" onclick="delIncome('${e.id}')">✕</button>`}</td>
-      </tr>`).join('') || '<tr><td colspan="9" class="empty">No entries match</td></tr>'}</tbody>
+      </tr>`).join('') || '<tr><td colspan="7" class="empty">No entries match</td></tr>'}</tbody>
     </table></div>
   </div>`;
 }
 function incomeForm(){
   openModal(`<h2>Add Income</h2><form onsubmit="saveIncome(event)">
-    <div class="row2"><div class="field"><label>Amount (₨)</label><input name="amount" type="number" min="1" step="any" required oninput="splitHint(this.value)"></div>
+    <div class="row2"><div class="field"><label>Amount (₨)</label><input name="amount" type="number" min="1" step="any" required></div>
     <div class="field"><label>Date</label><input name="date" type="date" value="${today()}" required></div></div>
-    <div class="hint" id="splitHint">10% (Allah's share) will be set aside automatically.</div>
+    <div class="hint">Allah's 10% is taken from <b>net profit</b> (income − expenses), not from this amount alone.</div>
     <div class="field"><label>Client / Source</label><input name="client" required></div>
     <div class="row2"><div class="field"><label>Category</label><select name="category">${['Services','Retainer','Design','Development','Marketing','Consulting','Other'].map(c => `<option>${c}</option>`).join('')}</select></div>
     <div class="field"><label>Status</label><select name="status"><option value="received">Received</option><option value="pending">Pending</option></select></div></div>
     <div class="field"><label>Description</label><input name="description"></div>
     <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save</button></div></form>`);
 }
-function splitHint(v){ const s = split(+v || 0); $('splitHint').innerHTML = `Me (90%): <b>${fmt(s.mine)}</b> · 🤲 Allah's share (10%): <b>${fmt(s.allah)}</b>`; }
 function saveIncome(e){
   e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
   income.push(mkIncome({amount:+f.amount, client:f.client.trim(), date:f.date, description:f.description.trim(), category:f.category, status:f.status}));
-  save(); closeModal(); render(); toast('Income added · 10% set aside for Allah');
+  save(); closeModal(); render(); toast('Income added');
 }
 function markReceived(id){ const e = income.find(x => x.id === id); if (e) { e.status = 'received'; save(); render(); toast('Marked as received'); } }
 function delIncome(id){ if (confirm('Delete this income entry?')) { income = income.filter(x => x.id !== id); save(); render(); } }
+
+/* ----- Expenses ----- */
+function vExpenses(t){
+  const list = [...expenses].sort((a,b) => b.date.localeCompare(a.date));
+  const byCat = {}; expenses.forEach(e => byCat[e.category] = (byCat[e.category] || 0) + e.amount);
+  return `
+  <div class="grid g3" style="margin-bottom:16px">
+    <div class="card stat navy"><div class="label">Total Expenses</div><div class="value">${fmt(t.totalExp)}</div></div>
+    <div class="card stat amber"><div class="label">This Month</div><div class="value">${fmt(t.monthExp)}</div></div>
+    <div class="card stat teal"><div class="label">Net Profit (Income − Expenses)</div><div class="value">${fmt(t.net)}</div><div class="sub">Base for the 90% / 10% split</div></div>
+  </div>
+  <div class="card"><div class="muted" style="margin-bottom:10px">${Object.entries(byCat).sort((a,b) => b[1]-a[1]).map(([c,v]) => `${esc(c)}: <b>${fmt(v)}</b>`).join(' · ')}</div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Date</th><th>Category</th><th>Description</th><th class="num">Amount</th><th></th></tr></thead>
+    <tbody>${list.map(e => `<tr><td>${fdate(e.date)}</td><td>${esc(e.category)}</td><td>${esc(e.description)}</td><td class="num"><b>${fmt(e.amount)}</b></td><td class="num"><button class="btn sm danger" onclick="delExpense('${e.id}')">✕</button></td></tr>`).join('') || '<tr><td colspan="5" class="empty">No expenses recorded</td></tr>'}</tbody>
+  </table></div></div>`;
+}
+function expenseForm(){
+  openModal(`<h2>Add Expense</h2><form onsubmit="saveExpense(event)">
+    <div class="row2"><div class="field"><label>Amount (₨)</label><input name="amount" type="number" min="1" step="any" required></div>
+    <div class="field"><label>Date</label><input name="date" type="date" value="${today()}" required></div></div>
+    <div class="field"><label>Category</label><select name="category">${['Salaries','Software','Office','Advertising','Utilities','Travel','Other'].map(c => `<option>${c}</option>`).join('')}</select></div>
+    <div class="field"><label>Description</label><input name="description" required></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save</button></div></form>`);
+}
+function saveExpense(e){
+  e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
+  expenses.push({id:uid(), amount:+f.amount, date:f.date, category:f.category, description:f.description.trim()});
+  save(); closeModal(); render(); toast('Expense added · net profit and shares updated');
+}
+function delExpense(id){ if (confirm('Delete this expense?')) { expenses = expenses.filter(x => x.id !== id); save(); render(); } }
 
 /* ----- Invoices ----- */
 const finv = {q:'', status:''};
@@ -402,7 +467,7 @@ function setInv(id, st){
     i.paidDate = today();
     if (!income.some(e => e.invoiceId === i.id))
       income.push(mkIncome({amount:i.amount, client:i.client, date:today(), description:'Invoice ' + i.number + ' – ' + i.service, category:'Services', invoiceId:i.id}));
-    toast('Paid → added to income · ' + fmt(split(i.amount).allah) + " set aside for Allah");
+    toast('Paid → added to income');
   } else if (wasPaid && st !== 'paid') {
     income = income.filter(e => e.invoiceId !== i.id); delete i.paidDate; toast('Reverted · income entry removed');
   } else toast('Invoice updated');
@@ -419,10 +484,11 @@ function vAllah(t){
   const list = [...charity].sort((a,b) => b.date.localeCompare(a.date));
   return `
   <div class="card allah-card" style="margin-bottom:16px">
-    <div class="label">Total owed in Allah's way (10% of received income)</div>
+    <div class="label">Total owed in Allah's way (10% of net profit)</div>
     <div class="value" style="font-size:36px">${fmt(t.allahTotal)}</div>
     <div class="bar"><div style="width:${t.pct}%"></div></div>
     <div class="sub" style="margin-top:8px">${t.pct.toFixed(1)}% given · ${fmt(t.given)} of ${fmt(t.allahTotal)}</div>
+    <div class="sub" style="margin-top:6px">${fmt(t.totalIn)} income − ${fmt(t.totalExp)} expenses = ${fmt(t.net)} net profit × 10%${t.net <= 0 ? ' (net profit is zero or negative → ₨ 0)' : ''}</div>
   </div>
   <div class="grid g3" style="margin-bottom:16px">
     <div class="card stat" style="border-top:4px solid var(--gold)"><div class="label">Accumulated</div><div class="value gold-txt">${fmt(t.allahTotal)}</div></div>
@@ -458,16 +524,22 @@ function saveCharity(e){
 function delCharity(id){ if (confirm('Delete this record?')) { charity = charity.filter(c => c.id !== id); save(); render(); } }
 
 /* ----- Reports ----- */
-function vReports(){
+function monthRows(){
   const rec = received();
-  const keys = [...new Set(rec.map(e => monthKey(e.date)))].sort();
-  const rows = keys.map(m => { const l = rec.filter(e => monthKey(e.date) === m); return {m, n:l.length, tot:sum(l, e => e.amount), mine:sum(l, e => e.myShare), allah:sum(l, e => e.allahShare)}; });
+  const keys = [...new Set([...rec.map(e => monthKey(e.date)), ...expenses.map(e => monthKey(e.date))])].sort();
+  return keys.map(m => {
+    const inc = sum(rec.filter(e => monthKey(e.date) === m), e => e.amount), exp = sum(expenses.filter(e => monthKey(e.date) === m), e => e.amount);
+    return {m, inc, exp, net:inc - exp, mine:mineOf(inc - exp), allah:allahOf(inc - exp)};
+  });
+}
+function vReports(){
+  const rec = received(), rows = monthRows();
   const byClient = {}; rec.forEach(e => byClient[e.client] = (byClient[e.client] || 0) + e.amount);
   const top = Object.entries(byClient).sort((a,b) => b[1] - a[1]).slice(0,6);
   const totalIn = sum(rec, e => e.amount) || 1;
   return `
   <div class="grid g2" style="margin-bottom:16px">
-    <div class="card"><h3>Monthly Income</h3><div class="chart-box"><canvas id="cMonthly"></canvas></div></div>
+    <div class="card"><h3>Monthly Income vs Expenses</h3><div class="chart-box"><canvas id="cMonthly"></canvas></div></div>
     <div class="card"><h3>Cumulative Allah's Share vs Given</h3><div class="chart-box"><canvas id="cCum"></canvas></div></div>
   </div>
   <div class="grid g2">
@@ -475,20 +547,21 @@ function vReports(){
       <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><span><b>${i+1}. ${esc(c)}</b></span><span>${fmt(v)} <span class="muted">(${(v/totalIn*100).toFixed(0)}%)</span></span></div>
       <div class="bar light" style="height:8px"><div style="width:${v/top[0][1]*100}%;background:var(--teal)"></div></div></div>`).join('') || '<div class="empty">No data</div>'}</div>
     <div class="card"><h3>Monthly Breakdown</h3><div class="tablewrap"><table>
-      <thead><tr><th>Month</th><th class="num">Entries</th><th class="num">Income</th><th class="num">Me</th><th class="num">Allah</th></tr></thead>
-      <tbody>${[...rows].reverse().map(r => `<tr><td>${monthLabel(r.m)}</td><td class="num">${r.n}</td><td class="num"><b>${fmt(r.tot)}</b></td><td class="num">${fmt(r.mine)}</td><td class="num gold-txt">${fmt(r.allah)}</td></tr>`).join('')}</tbody>
+      <thead><tr><th>Month</th><th class="num">Income</th><th class="num">Expenses</th><th class="num">Net</th><th class="num">Me 90%</th><th class="num">Allah 10%</th></tr></thead>
+      <tbody>${[...rows].reverse().map(r => `<tr><td>${monthLabel(r.m)}</td><td class="num">${fmt(r.inc)}</td><td class="num">${fmt(r.exp)}</td><td class="num"><b>${fmt(r.net)}</b></td><td class="num">${fmt(r.mine)}</td><td class="num gold-txt">${fmt(r.allah)}</td></tr>`).join('')}</tbody>
     </table></div></div>
   </div>`;
 }
 function afterReports(){
-  const rec = received();
-  const ms = [...new Set([...rec.map(e => monthKey(e.date)), ...charity.map(c => monthKey(c.date))])].sort();
-  chart('cMonthly', {type:'line', data:{labels:ms.map(monthLabel), datasets:[{label:'Income', data:ms.map(m => sum(rec.filter(e => monthKey(e.date) === m), e => e.amount)), borderColor:'#0f766e', backgroundColor:'rgba(15,118,110,.15)', fill:true, tension:.35}]}, options:{...chartOpts, scales:{y:{ticks:{callback:axisFmt}}}}});
-  let a = 0, g = 0;
-  const cumA = [], cumG = [];
-  ms.forEach(m => { a += sum(rec.filter(e => monthKey(e.date) === m), e => e.allahShare); g += sum(charity.filter(c => monthKey(c.date) === m), c => c.amount); cumA.push(a); cumG.push(g); });
+  const rows = monthRows(), ms = [...new Set([...rows.map(r => r.m), ...charity.map(c => monthKey(c.date))])].sort();
+  const get = m => rows.find(r => r.m === m) || {inc:0, exp:0, net:0};
+  chart('cMonthly', {type:'bar', data:{labels:ms.map(monthLabel), datasets:[
+    {label:'Income', data:ms.map(m => get(m).inc), backgroundColor:'#0f766e', borderRadius:4},
+    {label:'Expenses', data:ms.map(m => get(m).exp), backgroundColor:'#94a3b8', borderRadius:4}]}, options:{...chartOpts, scales:{y:{ticks:{callback:axisFmt}}}}});
+  let net = 0, g = 0; const cumA = [], cumG = [];
+  ms.forEach(m => { net += get(m).net; g += sum(charity.filter(c => monthKey(c.date) === m), c => c.amount); cumA.push(allahOf(net)); cumG.push(g); });
   chart('cCum', {type:'line', data:{labels:ms.map(monthLabel), datasets:[
-    {label:"Allah's share accumulated", data:cumA, borderColor:'#d4a017', backgroundColor:'rgba(212,160,23,.15)', fill:true, tension:.3},
+    {label:"Allah's share (10% of cumulative net)", data:cumA, borderColor:'#d4a017', backgroundColor:'rgba(212,160,23,.15)', fill:true, tension:.3},
     {label:'Given', data:cumG, borderColor:'#15803d', tension:.3}]}, options:{...chartOpts, scales:{y:{ticks:{callback:axisFmt}}}}});
 }
 
