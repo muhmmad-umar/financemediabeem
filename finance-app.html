@@ -65,6 +65,20 @@ main{margin-left:240px;flex:1;padding:26px 30px 50px;min-width:0}
 .inv-nums b{font-size:14px}
 .inv-actions{display:flex;gap:6px;flex-wrap:wrap}
 .modal.wide{max-width:860px;padding:14px;background:#e9eef3}
+.nav-sep{margin:14px 12px 6px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#475569}
+.nav button.personal{color:#c4b5fd}.nav button.personal:hover{background:#2a2250;color:#fff}
+.nav button.personal.active{background:linear-gradient(135deg,#6d28d9,#8b5cf6);color:#fff}
+.btn.pv{background:#7c3aed}.btn.pv:hover{background:#6d28d9}
+.pbanner{background:linear-gradient(135deg,#ede9fe,#f5f3ff);border:1px solid #c4b5fd;color:#5b21b6;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:14px}
+.psub{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.psub button{border:1px solid #ddd6fe;background:#fff;color:#6d28d9;padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600}
+.psub button.on{background:#7c3aed;color:#fff;border-color:#7c3aed}
+.ppanel{border-top:5px solid #7c3aed}
+.ppanel .trk-row b{font-size:19px}
+.catbar{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px}
+.catbar .nm{width:120px;flex:none;font-weight:600}.catbar .tr{flex:1;height:10px;background:#f1f5f9;border-radius:99px;overflow:hidden}
+.catbar .tr>div{height:100%;border-radius:99px}.catbar .vl{width:150px;text-align:right;flex:none;white-space:nowrap}
+@media(max-width:520px){.catbar{flex-wrap:wrap}.catbar .vl{width:auto;margin-left:auto}}
 /* date filter bar */
 .fbar{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin-bottom:18px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
 .fpills{display:flex;gap:6px;flex-wrap:wrap}
@@ -194,6 +208,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
     <button data-view="invoices">🧾 Invoices</button>
     <button data-view="allah" class="allah">🤲 Allah's Share</button>
     <button data-view="reports">📈 Reports</button>
+    <div class="nav-sep">Personal</div>
+    <button data-view="personal" class="personal">👤 Personal Finance</button>
   </nav>
 </aside>
 <div class="scrim" id="scrim"></div>
@@ -216,7 +232,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
 <script>
 /* ========= Config & storage ========= */
 const ALLAH_RATE = 0.10;
-const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses', exp:'expenses'};
+const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses', exp:'expenses',
+  pe:'personal_expenses', pi:'personal_income', pw:'personal_withdrawals'};
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } };
 const save = () => {
   syncIncome();
@@ -225,9 +242,13 @@ const save = () => {
     localStorage.setItem(K.inv, JSON.stringify(invoices));
     localStorage.setItem(K.ch, JSON.stringify(charity));
     localStorage.setItem(K.exp, JSON.stringify(expenses));
+    localStorage.setItem(K.pe, JSON.stringify(personalExp));
+    localStorage.setItem(K.pi, JSON.stringify(personalInc));
+    localStorage.setItem(K.pw, JSON.stringify(personalWd));
   } catch(e){ toast('Could not save to localStorage'); }
 };
 let income, invoices, charity, expenses;
+let personalExp = [], personalInc = [], personalWd = [];   // Personal Finance: separate world, never used by agency maths
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -284,12 +305,13 @@ const DATA_VERSION = '4';
 function init(){
   let ver = null; try { ver = localStorage.getItem('data_version'); } catch(e){}
   if (!ver) {   // first run: start completely empty, clearing any pre-loaded data
-    income = []; invoices = []; charity = []; expenses = [];
+    income = []; invoices = []; charity = []; expenses = []; personalExp = []; personalInc = []; personalWd = [];
     save(); try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
     return;
   }
   income = load(K.inc); invoices = load(K.inv); charity = load(K.ch); expenses = load(K.exp);
   [income, invoices, charity, expenses] = [income, invoices, charity, expenses].map(a => Array.isArray(a) ? a : []);
+  [personalExp, personalInc, personalWd] = [load(K.pe), load(K.pi), load(K.pw)].map(a => Array.isArray(a) ? a : []);
   if (ver !== DATA_VERSION) {   // merge the old separate income entries + invoices into single invoice records
     const direct = income.filter(e => !e.invoiceId);
     invoices.forEach(i => {
@@ -384,6 +406,7 @@ const meta = {
   expenses:['Expenses','Business costs — deducted before the 90% / 10% split'],
   invoices:['Invoices','Every income entry is an invoice — only payments received count as income'],
   allah:["Allah's Share Tracker","10% of net profit (income − expenses) — tracked until fully paid"],
+  personal:['Personal Finance','Your own money — completely separate from the agency'],
   reports:['Reports',"Monthly breakdown, cumulative Allah's Share and top clients"],
 };
 
@@ -399,10 +422,11 @@ function render(){
     expenses:'<button class="btn" onclick="expenseForm()">+ Add Expense</button>',
     invoices:'<button class="btn" onclick="invoiceForm()">+ New Invoice</button>',
     allah:'<button class="btn gold" onclick="charityForm()">Record Allah\'s Share Payment</button>',
-    reports:''
+    reports:'',
+    personal:personalActions()
   }[view];
-  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports}[view](t);
-  ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah}[view] || (()=>{}))(t);
+  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal}[view](t);
+  ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah, personal:afterPersonal}[view] || (()=>{}))(t);
 }
 
 function formulaCard(t){
@@ -821,6 +845,144 @@ function afterReports(){
   chart('cCum', {type:'line', data:{labels:ms.map(monthLabel), datasets:[
     {label:"Allah's Share owed (10% of cumulative net)", data:cumA, borderColor:'#d4a017', backgroundColor:'rgba(212,160,23,.15)', fill:true, tension:.3},
     {label:'Paid', data:cumG, borderColor:'#15803d', tension:.3}]}, options:{...chartOpts, scales:{y:{ticks:{callback:axisFmt}}}}});
+}
+
+/* ========= Personal Finance (isolated: own data, own keys, own maths) ========= */
+const P_CATS = ['Food','Transport','Shopping','Rent','Utilities','Entertainment','Health','Family','Miscellaneous'];
+const P_COLORS = {Food:'#f59e0b', Transport:'#3b82f6', Shopping:'#ec4899', Rent:'#8b5cf6', Utilities:'#14b8a6', Entertainment:'#f43f5e', Health:'#22c55e', Family:'#f97316', Miscellaneous:'#64748b'};
+const P_METHODS = ['Cash','Card','Bank Transfer'];
+let personalTab = 'overview';
+const pf = {q:'', cat:''};
+const pExpIn = () => personalExp.filter(e => inRange(e.date));
+const pIncIn = () => personalInc.filter(e => inRange(e.date));
+const pWdIn = () => personalWd.filter(e => inRange(e.date));
+function ptotals(){
+  const ex = pExpIn(), inc = pIncIn(), wd = pWdIn();
+  const w = sum(wd, x => x.amount), o = sum(inc, x => x.amount), e = sum(ex, x => x.amount);
+  const byCat = {}; ex.forEach(x => byCat[x.category] = (byCat[x.category] || 0) + x.amount);
+  return {w, o, e, bal:w + o - e, byCat,
+    balAll: sum(personalWd, x => x.amount) + sum(personalInc, x => x.amount) - sum(personalExp, x => x.amount)};
+}
+const setPTab = t => { personalTab = t; render(); };
+function personalActions(){
+  const b = (fn, l) => `<button class="btn pv" onclick="${fn}()">${l}</button>`;
+  if (personalTab === 'expenses') return b('pExpenseForm', '+ Personal Expense');
+  if (personalTab === 'income') return b('pIncomeForm', '+ Personal Income');
+  if (personalTab === 'withdrawals') return b('pWithdrawForm', '+ Agency Withdrawal');
+  return b('pExpenseForm', '+ Expense') + ' ' + b('pWithdrawForm', '+ Withdrawal') + ' ' + b('pIncomeForm', '+ Other Income');
+}
+function vPersonal(){
+  const tabs = [['overview','Overview'],['expenses','Personal Expenses'],['income','Other Personal Income'],['withdrawals','Agency Withdrawals']];
+  const body = {overview:pOverview, expenses:pExpenses, income:pIncome, withdrawals:pWithdrawals}[personalTab]();
+  return `<div class="pbanner">👤 PERSONAL — this section is completely separate from your agency. It never changes agency Net Profit, My Share or Allah's Share.</div>
+    <div class="psub">${tabs.map(([k,l]) => `<button class="${personalTab === k ? 'on' : ''}" onclick="setPTab('${k}')">${l}</button>`).join('')}</div>${body}`;
+}
+function pOverview(){
+  const t = ptotals(), cats = Object.entries(t.byCat).sort((a,b) => b[1] - a[1]), recent = [...pExpIn()].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 5);
+  return `
+  <div class="card ppanel" style="margin-bottom:16px">
+    <h3>👤 Personal Balance · ${periodLabel()}</h3>
+    <div class="trk-row"><span>My Agency Withdrawals:</span><b>${fmt(t.w)}</b></div>
+    <div class="trk-row"><span>Other Personal Income:</span><b>${fmt(t.o)}</b></div>
+    <div class="trk-row"><span>Total Personal Expenses:</span><b style="color:var(--red)">${fmt(t.e)}</b></div>
+    <div class="trk-row last"><span><b>Personal Balance:</b> <span class="muted">(Withdrawals + Other Income − Expenses)</span></span><b style="color:${t.bal < 0 ? 'var(--red)' : '#6d28d9'}">${fmt(t.bal)}</b></div>
+    ${period.mode !== 'all' ? `<div class="sub" style="margin-top:8px">All-time Personal Balance: <b>${fmt(t.balAll)}</b></div>` : ''}
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>Where did my money go?</h3>
+      ${cats.length ? `<div class="chart-box" style="height:240px;margin-bottom:14px"><canvas id="cPersonal"></canvas></div>` : ''}
+      ${cats.map(([c,v]) => `<div class="catbar"><span class="nm"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${P_COLORS[c] || '#64748b'};margin-right:6px"></span>${esc(c)}</span>
+        <div class="tr"><div style="width:${v / cats[0][1] * 100}%;background:${P_COLORS[c] || '#64748b'}"></div></div><span class="vl"><b>${fmt(v)}</b> <span class="muted">${(v / t.e * 100).toFixed(0)}%</span></span></div>`).join('') || '<div class="empty">No personal expenses in this period</div>'}
+    </div>
+    <div class="card"><h3>Latest personal spending</h3>${recent.map(e => `<div class="tx"><div><div class="t1">${esc(e.category)} · ${fmt(e.amount)}</div><div class="t2">${fdate(e.date)} · ${esc(e.method)}${e.note ? ' — ' + esc(e.note) : ''}</div></div></div>`).join('') || '<div class="empty">Nothing recorded in this period</div>'}</div>
+  </div>`;
+}
+function pExpenses(){
+  const q = pf.q.toLowerCase();
+  const list = pExpIn().filter(e => (!pf.cat || e.category === pf.cat) && (!q || (e.note + e.category + e.method + e.amount).toLowerCase().includes(q))).sort((a,b) => b.date.localeCompare(a.date));
+  return `<div class="card">
+    <div class="filters">
+      <input placeholder="Search notes, category, method…" value="${esc(pf.q)}" oninput="pf.q=this.value;renderKeep(this)">
+      <select onchange="pf.cat=this.value;render()"><option value="">All categories</option>${P_CATS.map(c => `<option ${pf.cat === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
+    </div>
+    <div class="muted" style="margin-bottom:10px">${list.length} personal expenses · total <b>${fmt(sum(list, e => e.amount))}</b></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Date</th><th>Category</th><th>Description / Note</th><th>Paid by</th><th class="num">Amount</th><th></th></tr></thead>
+      <tbody>${list.map(e => `<tr><td>${fdate(e.date)}</td><td><span class="badge" style="background:${P_COLORS[e.category] || '#64748b'}22;color:${P_COLORS[e.category] || '#64748b'}">${esc(e.category)}</span></td><td style="white-space:normal;min-width:220px">${esc(e.note) || '<span class="muted">—</span>'}</td><td>${esc(e.method)}</td><td class="num"><b>${fmt(e.amount)}</b></td><td class="num"><button class="btn sm danger" onclick="pDel('pe','${e.id}')">✕</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">No personal expenses found for this period</td></tr>'}</tbody>
+    </table></div></div>`;
+}
+function pIncome(){
+  const list = [...pIncIn()].sort((a,b) => b.date.localeCompare(a.date));
+  return `<div class="card"><div class="muted" style="margin-bottom:10px">Personal income from outside the agency (freelance, rental, gifts…) · total <b>${fmt(sum(list, e => e.amount))}</b></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Date</th><th>Source</th><th>Notes</th><th class="num">Amount</th><th></th></tr></thead>
+      <tbody>${list.map(e => `<tr><td>${fdate(e.date)}</td><td><b>${esc(e.source)}</b></td><td style="white-space:normal">${esc(e.note)}</td><td class="num"><b>${fmt(e.amount)}</b></td><td class="num"><button class="btn sm danger" onclick="pDel('pi','${e.id}')">✕</button></td></tr>`).join('') || '<tr><td colspan="5" class="empty">No other personal income in this period</td></tr>'}</tbody>
+    </table></div></div>`;
+}
+function pWithdrawals(){
+  const list = [...pWdIn()].sort((a,b) => b.date.localeCompare(a.date));
+  return `<div class="card"><div class="hint" style="background:#f5f3ff;border-color:#ddd6fe;color:#5b21b6">Record each time you take your 90% share out of the agency. This only feeds your Personal Balance — it does not change any agency number.</div>
+    <div class="muted" style="margin-bottom:10px">Total withdrawn from agency · <b>${fmt(sum(list, e => e.amount))}</b></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Date</th><th>Note</th><th class="num">Amount</th><th></th></tr></thead>
+      <tbody>${list.map(e => `<tr><td>${fdate(e.date)}</td><td style="white-space:normal">${esc(e.note)}</td><td class="num"><b>${fmt(e.amount)}</b></td><td class="num"><button class="btn sm danger" onclick="pDel('pw','${e.id}')">✕</button></td></tr>`).join('') || '<tr><td colspan="4" class="empty">No withdrawals in this period</td></tr>'}</tbody>
+    </table></div></div>`;
+}
+function afterPersonal(){
+  if (personalTab !== 'overview') return;
+  const cats = Object.entries(ptotals().byCat).sort((a,b) => b[1] - a[1]);
+  if (cats.length) chart('cPersonal', {type:'doughnut', data:{labels:cats.map(c => c[0]), datasets:[{data:cats.map(c => c[1]), backgroundColor:cats.map(c => P_COLORS[c[0]] || '#64748b'), borderWidth:0}]}, options:{...chartOpts, cutout:'60%'}});
+}
+function pForm(title, fields, fn){
+  openModal(`<h2>${title}</h2><div class="hint" style="background:#f5f3ff;border-color:#ddd6fe;color:#5b21b6">👤 Personal — not included in any agency numbers.</div>
+    <form onsubmit="${fn}(event)">${fields}<div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn pv">Save</button></div></form>`);
+}
+function pExpenseForm(){
+  pForm('Add Personal Expense', `
+    <div class="row2"><div class="field"><label>Amount (₨)</label><input name="amount" type="number" min="1" step="any" required></div>
+    <div class="field"><label>Date</label><input name="date" type="date" value="${today()}" required></div></div>
+    <div class="row2"><div class="field"><label>Category</label><select name="category">${P_CATS.map(c => `<option>${c}</option>`).join('')}</select></div>
+    <div class="field"><label>Payment method</label><select name="method">${P_METHODS.map(c => `<option>${c}</option>`).join('')}</select></div></div>
+    <div class="field"><label>Description / Note</label><textarea name="note" rows="4" placeholder="Where, on what, with whom — e.g. Bought groceries for family; Paid rent for October; Dinner with client"></textarea></div>`, 'savePExpense');
+}
+function savePExpense(e){
+  e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
+  if (!(+f.amount > 0)) { alert('Enter an amount.'); return; }
+  personalExp.push({id:uid(), amount:+f.amount, category:f.category, date:f.date, method:f.method, note:(f.note || '').trim()});
+  save(); closeModal(); render(); toast('Personal expense saved');
+}
+function pIncomeForm(){
+  pForm('Add Other Personal Income', `
+    <div class="row2"><div class="field"><label>Amount (₨)</label><input name="amount" type="number" min="1" step="any" required></div>
+    <div class="field"><label>Date</label><input name="date" type="date" value="${today()}" required></div></div>
+    <div class="field"><label>Source</label><input name="source" placeholder="e.g. Freelance, rental, gift" required></div>
+    <div class="field"><label>Notes</label><textarea name="note" rows="2"></textarea></div>`, 'savePIncome');
+}
+function savePIncome(e){
+  e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
+  if (!(+f.amount > 0)) { alert('Enter an amount.'); return; }
+  personalInc.push({id:uid(), amount:+f.amount, source:f.source.trim(), date:f.date, note:(f.note || '').trim()});
+  save(); closeModal(); render(); toast('Personal income saved');
+}
+function pWithdrawForm(){
+  pForm('Record Agency Withdrawal', `
+    <div class="hint">The part of your 90% share you have taken out from the agency.</div>
+    <div class="row2"><div class="field"><label>Amount withdrawn (₨)</label><input name="amount" type="number" min="1" step="any" required></div>
+    <div class="field"><label>Date</label><input name="date" type="date" value="${today()}" required></div></div>
+    <div class="field"><label>Note (optional)</label><textarea name="note" rows="2"></textarea></div>`, 'savePWithdraw');
+}
+function savePWithdraw(e){
+  e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
+  if (!(+f.amount > 0)) { alert('Enter an amount.'); return; }
+  personalWd.push({id:uid(), amount:+f.amount, date:f.date, note:(f.note || '').trim()});
+  save(); closeModal(); render(); toast('Withdrawal recorded');
+}
+function pDel(kind, id){
+  if (!confirm('Delete this personal entry?')) return;
+  if (kind === 'pe') personalExp = personalExp.filter(x => x.id !== id);
+  if (kind === 'pi') personalInc = personalInc.filter(x => x.id !== id);
+  if (kind === 'pw') personalWd = personalWd.filter(x => x.id !== id);
+  save(); render();
 }
 
 /* ========= Wiring ========= */
