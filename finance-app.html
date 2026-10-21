@@ -89,6 +89,20 @@ main{margin-left:240px;flex:1;padding:26px 30px 50px;min-width:0}
 .fcustom{display:flex;gap:12px;flex-wrap:wrap;width:100%}
 .fcustom label{font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:8px}
 .fcustom input{width:auto}
+.badge{white-space:nowrap}
+.b-obl{background:#ccfbf1;color:#0f766e}.b-vol{background:#fef3c7;color:#92400e;border:1px solid #f4d36b}
+.vol-txt{color:#b7791f;font-weight:600}
+.trk-hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+.trk-row.vol{background:linear-gradient(90deg,#fffbeb,#fef3c7);border-radius:10px;padding:12px 14px;border:1px solid #f4d36b;color:#92400e}
+.trk-row.vol small{display:block;font-size:11px;font-weight:500;color:#a16207;margin-top:2px}
+.trk-row.vol b{color:#b45309}
+.trk-row.total b{font-size:22px;color:#14532d}.trk-row.total span{font-weight:700}
+.ptype{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.ptype label{position:relative;display:block;border:2px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;transition:.15s}
+.ptype label input{position:absolute;opacity:0;pointer-events:none}
+.ptype label span{font-weight:600;display:block}.ptype label small{display:block;font-weight:500;color:var(--muted);font-size:12px;margin-top:2px}
+.ptype label.on{border-color:#0f766e;background:#f0fdfa}
+.ptype label:nth-child(2).on{border-color:#d4a017;background:#fffbeb}
 /* allah's share tracker */
 .tracker{--c:var(--red)}.tracker.amber{--c:var(--amber)}.tracker.green{--c:var(--green)}
 .tracker{border-top:5px solid var(--c)}
@@ -291,6 +305,7 @@ const incLabel = e => `${fmt(e.total_amount)} total / <b style="color:var(--gree
 /* every payment actually received, dated when it came in */
 const rcv = () => received().filter(e => inRange(e.date));
 const expensesIn = () => expenses.filter(e => inRange(e.date));
+const cType = c => c.type === 'voluntary' ? 'voluntary' : 'obligated';   // payments without a type are obligated
 const charityIn = () => charity.filter(c => inRange(c.date));
 const invoicesIn = () => invoices.filter(i => inRange(i.date));
 /* ledger rows for the period: invoices that received a payment in range, or were created in range with no payment yet */
@@ -311,6 +326,7 @@ function init(){
   }
   income = load(K.inc); invoices = load(K.inv); charity = load(K.ch); expenses = load(K.exp);
   [income, invoices, charity, expenses] = [income, invoices, charity, expenses].map(a => Array.isArray(a) ? a : []);
+  charity.forEach(c => { if (c.type !== 'voluntary') c.type = 'obligated'; });
   [personalExp, personalInc, personalWd] = [load(K.pe), load(K.pi), load(K.pw)].map(a => Array.isArray(a) ? a : []);
   if (ver !== DATA_VERSION) {   // merge the old separate income entries + invoices into single invoice records
     const direct = income.filter(e => !e.invoiceId);
@@ -372,15 +388,17 @@ function totals(){
   const rec = rcv(), invs = invoicesIn();
   const totalIn = sum(rec, e => e.received_amount), totalExp = sum(expensesIn(), e => e.amount);
   const net = totalIn - totalExp;
-  const allahTotal = allahOf(net), given = sum(charityIn(), c => c.amount);
+  const allahTotal = allahOf(net), chIn = charityIn();
+  const given = sum(chIn.filter(c => cType(c) === 'obligated'), c => c.amount);   // only obligated payments reduce what is owed
+  const voluntary = sum(chIn.filter(c => cType(c) === 'voluntary'), c => c.amount);
   const netAll = sum(received(), e => e.received_amount) - sum(expenses, e => e.amount);
   return {
     invoiced: sum(invs, i => i.total_amount),
     outstanding: sum(invs, invRemaining),
     overdueAmt: sum(invs.filter(i => invStatus(i) === 'overdue'), invRemaining),
     totalIn, totalExp, net,
-    mine: mineOf(net), allahTotal, given, remaining: allahTotal - given,
-    allRemaining: allahOf(netAll) - sum(charity, c => c.amount),
+    mine: mineOf(net), allahTotal, given, voluntary, totalGiven: given + voluntary, remaining: allahTotal - given,
+    allRemaining: allahOf(netAll) - sum(charity.filter(c => cType(c) === 'obligated'), c => c.amount),
     pct: allahTotal > 0 ? Math.min(100, given / allahTotal * 100) : 0
   };
 }
@@ -460,11 +478,11 @@ function vDashboard(t){
   <div class="card allah-card" style="margin-bottom:16px">
     <div class="grid g3" style="gap:20px">
       <div><div class="label">🤲 Allah's Share Owed (10% of net)</div><div class="value" style="font-size:30px">${fmt(t.allahTotal)}</div></div>
-      <div><div class="label">Total Paid in Allah's Share</div><div class="value" style="font-size:30px">${fmt(t.given)}</div></div>
-      <div><div class="label">Remaining to Pay</div><div class="value" style="font-size:30px">${fmt(Math.max(0, t.remaining))}</div></div>
+      <div><div class="label">Paid (Obligated)</div><div class="value" style="font-size:30px">${fmt(t.given)}</div></div>
+      <div><div class="label">Remaining Obligation</div><div class="value" style="font-size:30px">${fmt(Math.max(0, t.remaining))}</div></div>
     </div>
     <div class="bar"><div style="width:${t.pct}%"></div></div>
-    <div class="sub" style="margin-top:8px">Based on ${fmt(t.totalIn)} received so far · ${t.pct.toFixed(1)}% of Allah's Share paid${t.remaining <= 0 ? ' · All Clear ✓' : ''}</div>
+    <div class="sub" style="margin-top:8px">Based on ${fmt(t.totalIn)} received so far · ${t.pct.toFixed(1)}% of Allah's Share paid${t.remaining <= 0 ? ' · All Clear ✓' : ''}${t.voluntary > 0 ? ' · ✨ Extra given voluntarily: ' + fmt(t.voluntary) : ''}</div>
   </div>
   <div class="grid g-main">
     <div class="card"><h3>Received vs Expenses · ${periodLabel()}</h3><div class="chart-box"><canvas id="cDash"></canvas></div></div>
@@ -754,11 +772,13 @@ function delInv(id){
 /* ----- Allah's Share tracker ----- */
 /* state: red = nothing paid yet, amber = partly paid, green = fully paid (remaining ≤ 0) */
 function allahState(t){ return t.remaining <= 0 ? 'green' : t.given <= 0 ? 'red' : 'amber'; }
+const af = {type:''};
 function vAllah(t){
-  const list = [...charityIn()].sort((a,b) => b.date.localeCompare(a.date));
+  const list = [...charityIn()].filter(c => !af.type || cType(c) === af.type).sort((a,b) => b.date.localeCompare(a.date));
   const st = allahState(t), clear = t.remaining <= 0;
   const pct = t.allahTotal > 0 ? Math.min(100, t.given / t.allahTotal * 100) : (clear ? 100 : 0);
   const over = t.given - t.allahTotal;
+  const FL = {'':'Total shown (all payments)', obligated:'Total shown (obligated)', voluntary:'Total shown (voluntary)'};
   return `
   <div class="card tracker ${st}" style="margin-bottom:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
@@ -766,22 +786,28 @@ function vAllah(t){
       ${clear ? '<span class="badge b-paid" style="font-size:13px;padding:5px 14px">All Clear ✓</span>' : ''}
     </div>
     <div class="trk-row"><span>Total Owed (10% of Net Profit) · ${periodLabel()}:</span><b>${fmt(t.allahTotal)}</b></div>
-    <div class="trk-row"><span>Total Paid in Allah's Share:</span><b style="color:var(--green)">${fmt(t.given)}</b></div>
-    <div class="trk-row last"><span>Remaining Balance:</span><b class="trk-rem">${fmt(Math.max(0, t.remaining))}</b></div>
+    <div class="trk-row"><span>Paid (Obligated):</span><b style="color:var(--green)">${fmt(t.given)}</b></div>
+    <div class="trk-row last"><span>Remaining Obligation:</span><b class="trk-rem">${fmt(Math.max(0, t.remaining))}</b></div>
     <div class="trk-bar"><div style="width:${pct}%"></div></div>
-    <div class="sub" style="margin-top:8px">${pct.toFixed(1)}% of Allah's Share fulfilled · based on ${fmt(t.totalIn)} received so far</div>
+    <div class="sub" style="margin-top:8px">${pct.toFixed(1)}% of the obligation fulfilled (obligated payments only) · based on ${fmt(t.totalIn)} received so far</div>
     <div class="sub" style="margin-top:4px">${fmt(t.totalIn)} received − ${fmt(t.totalExp)} expenses = ${fmt(t.net)} net profit × 10%${t.net <= 0 ? ' (net profit is zero or negative → ₨ 0 owed)' : ''}</div>
-    ${period.mode !== 'all' ? `<div class="sub" style="margin-top:4px">All-time Remaining Balance: <b>${fmt(Math.max(0, t.allRemaining))}</b>${t.allRemaining <= 0 ? ' · All Clear ✓' : ''}</div>` : ''}
-    ${over > 0 ? `<div class="sub" style="margin-top:4px">You have paid ${fmt(over)} more than is currently owed.</div>` : ''}
+    ${period.mode !== 'all' ? `<div class="sub" style="margin-top:4px">All-time Remaining Obligation: <b>${fmt(Math.max(0, t.allRemaining))}</b>${t.allRemaining <= 0 ? ' · All Clear ✓' : ''}</div>` : ''}
+    ${over > 0 ? `<div class="sub" style="margin-top:4px">Obligated payments exceed what is currently owed by ${fmt(over)}.</div>` : ''}
+    <hr class="trk-hr">
+    <div class="trk-row vol last"><span>✨ Extra Given Voluntarily:<small>Given beyond obligation — from the heart</small></span><b>${fmt(t.voluntary)}</b></div>
+    <hr class="trk-hr">
+    <div class="trk-row last total"><span>Total Given in Allah's Way:</span><b>${fmt(t.totalGiven)}</b></div>
     <div class="quote">“And whatever you spend in good, it will be repaid to you in full.” <span>— Al-Baqarah 2:272</span></div>
   </div>
   <div class="grid g-main">
-    <div class="card"><h3>Payment History</h3><div class="tablewrap"><table>
-      <thead><tr><th>Date</th><th>Given To / Cause</th><th class="num">Amount</th><th>Notes</th><th></th></tr></thead>
-      <tbody>${list.map(c => `<tr><td>${fdate(c.date)}</td><td><b>${esc(c.cause)}</b></td><td class="num gold-txt">${fmt(c.amount)}</td><td>${esc(c.notes)}</td><td class="num"><button class="btn sm danger" onclick="delCharity('${c.id}')">✕</button></td></tr>`).join('') || '<tr><td colspan="5" class="empty">No Allah\'s Share payments in this period</td></tr>'}</tbody>
-      <tfoot><tr><td colspan="2"><b>Running total paid · ${periodLabel()}</b></td><td class="num gold-txt"><b>${fmt(t.given)}</b></td><td colspan="2"></td></tr></tfoot>
+    <div class="card"><h3>Payment History</h3>
+      <div class="psub" style="margin-bottom:12px">${[['','All'],['obligated','Obligated Only'],['voluntary','Voluntary Only']].map(([k,l]) => `<button class="${af.type === k ? 'on' : ''}" onclick="af.type='${k}';render()">${l}</button>`).join('')}</div>
+      <div class="tablewrap"><table>
+      <thead><tr><th>Date</th><th>Type</th><th>Given To / Cause</th><th class="num">Amount</th><th>Notes</th><th></th></tr></thead>
+      <tbody>${list.map(c => `<tr><td>${fdate(c.date)}</td><td>${cType(c) === 'voluntary' ? '<span class="badge b-vol">✨ Voluntary</span>' : '<span class="badge b-obl">Obligated</span>'}</td><td><b>${esc(c.cause)}</b></td><td class="num ${cType(c) === 'voluntary' ? 'vol-txt' : 'gold-txt'}">${fmt(c.amount)}</td><td>${esc(c.notes)}</td><td class="num"><button class="btn sm danger" onclick="delCharity('${c.id}')">✕</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">No Allah\'s Share payments found for this period</td></tr>'}</tbody>
+      <tfoot><tr><td colspan="3"><b>${FL[af.type]} · ${periodLabel()}</b></td><td class="num gold-txt"><b>${fmt(sum(list, c => c.amount))}</b></td><td colspan="2"></td></tr></tfoot>
     </table></div></div>
-    <div class="card"><h3>Paid vs Remaining</h3><div class="chart-box"><canvas id="cAllah"></canvas></div></div>
+    <div class="card"><h3>Obligated Paid vs Remaining</h3><div class="chart-box"><canvas id="cAllah"></canvas></div></div>
   </div>`;
 }
 function afterAllah(t){
@@ -790,18 +816,29 @@ function afterAllah(t){
 function charityForm(){
   const t = totals();
   openModal(`<h2>Record Allah's Share Payment</h2><form onsubmit="saveCharity(event)">
-    <div class="hint">Remaining Balance: <b>${fmt(Math.max(0, t.remaining))}</b> of ${fmt(t.allahTotal)} owed</div>
+    <div class="ptype">
+      <label class="on"><input type="radio" name="type" value="obligated" checked onchange="typeChanged(this)"><span>⬤ Obligated<small>Against my 10%</small></span></label>
+      <label><input type="radio" name="type" value="voluntary" onchange="typeChanged(this)"><span>⬤ Voluntary<small>Extra, from the heart</small></span></label>
+    </div>
+    <div class="hint" id="typeNote">Remaining Obligation: <b>${fmt(Math.max(0, t.remaining))}</b> of ${fmt(t.allahTotal)} owed</div>
     <div class="row2"><div class="field"><label>Amount Paid (₨)</label><input name="amount" type="number" min="1" step="any" required></div>
     <div class="field"><label>Date</label><input name="date" type="date" value="${today()}" required></div></div>
     <div class="field"><label>Given To / Cause</label><input name="cause" placeholder="e.g. Masjid, orphan, poor family" required></div>
     <div class="field"><label>Notes (optional)</label><textarea name="notes" rows="2"></textarea></div>
     <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn gold">Save Payment</button></div></form>`);
+  window._allahRem = Math.max(0, t.remaining); window._allahOwed = t.allahTotal;
+}
+function typeChanged(el){
+  const vol = el.value === 'voluntary';
+  el.closest('.ptype').querySelectorAll('label').forEach(l => l.classList.toggle('on', l.querySelector('input').checked));
+  $('typeNote').innerHTML = vol ? '✨ This will not reduce your remaining obligation.' : `Remaining Obligation: <b>${fmt(window._allahRem)}</b> of ${fmt(window._allahOwed)} owed`;
 }
 function saveCharity(e){
   e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
   if (!(+f.amount > 0)) { alert('Enter the amount paid.'); return; }
-  charity.push({id:uid(), amount:+f.amount, cause:f.cause.trim(), date:f.date, notes:(f.notes || '').trim()});
-  save(); closeModal(); render(); toast("Allah's Share payment recorded — may Allah accept it 🤲");
+  const type = f.type === 'voluntary' ? 'voluntary' : 'obligated';
+  charity.push({id:uid(), type, amount:+f.amount, cause:f.cause.trim(), date:f.date, notes:(f.notes || '').trim()});
+  save(); closeModal(); render(); toast(type === 'voluntary' ? "Voluntary payment recorded ✨ — may Allah accept it" : "Allah's Share payment recorded — may Allah accept it 🤲");
 }
 function delCharity(id){ if (confirm("Delete this Allah's Share payment?")) { charity = charity.filter(c => c.id !== id); save(); render(); } }
 
@@ -835,7 +872,7 @@ function vReports(){
   </div>`;
 }
 function afterReports(){
-  const rows = monthRows(), ch = charityIn(), ms = [...new Set([...rows.map(r => r.m), ...ch.map(c => monthKey(c.date))])].sort();
+  const rows = monthRows(), ch = charityIn().filter(c => cType(c) === 'obligated'), ms = [...new Set([...rows.map(r => r.m), ...ch.map(c => monthKey(c.date))])].sort();
   const get = m => rows.find(r => r.m === m) || {inc:0, exp:0, net:0};
   chart('cMonthly', {type:'bar', data:{labels:ms.map(monthLabel), datasets:[
     {label:'Received', data:ms.map(m => get(m).inc), backgroundColor:'#0f766e', borderRadius:4},
