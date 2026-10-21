@@ -103,6 +103,8 @@ main{margin-left:240px;flex:1;padding:26px 30px 50px;min-width:0}
 .ptype label span{font-weight:600;display:block}.ptype label small{display:block;font-weight:500;color:var(--muted);font-size:12px;margin-top:2px}
 .ptype label.on{border-color:#0f766e;background:#f0fdfa}
 .ptype label:nth-child(2).on{border-color:#d4a017;background:#fffbeb}
+.dash-vol{background:rgba(255,255,255,.12);border:1px solid rgba(255,229,138,.45);border-radius:12px;padding:12px 14px}
+.dash-vol .value{color:#ffe58a}.dash-vol.total{background:rgba(255,255,255,.2)}
 /* allah's share tracker */
 .tracker{--c:var(--red)}.tracker.amber{--c:var(--amber)}.tracker.green{--c:var(--green)}
 .tracker{border-top:5px solid var(--c)}
@@ -482,7 +484,11 @@ function vDashboard(t){
       <div><div class="label">Remaining Obligation</div><div class="value" style="font-size:30px">${fmt(Math.max(0, t.remaining))}</div></div>
     </div>
     <div class="bar"><div style="width:${t.pct}%"></div></div>
-    <div class="sub" style="margin-top:8px">Based on ${fmt(t.totalIn)} received so far · ${t.pct.toFixed(1)}% of Allah's Share paid${t.remaining <= 0 ? ' · All Clear ✓' : ''}${t.voluntary > 0 ? ' · ✨ Extra given voluntarily: ' + fmt(t.voluntary) : ''}</div>
+    <div class="grid g2" style="gap:14px;margin-top:16px">
+      <div class="dash-vol"><div class="label">✨ Extra Given Voluntarily</div><div class="value" style="font-size:24px">${fmt(t.voluntary)}</div><div class="sub">Given beyond obligation — from the heart</div></div>
+      <div class="dash-vol total"><div class="label">Total Given in Allah's Way</div><div class="value" style="font-size:24px">${fmt(t.totalGiven)}</div><div class="sub">Obligated + voluntary</div></div>
+    </div>
+    <div class="sub" style="margin-top:12px">Based on ${fmt(t.totalIn)} received so far · ${t.pct.toFixed(1)}% of Allah's Share paid${t.remaining <= 0 ? ' · All Clear ✓' : ''}</div>
   </div>
   <div class="grid g-main">
     <div class="card"><h3>Received vs Expenses · ${periodLabel()}</h3><div class="chart-box"><canvas id="cDash"></canvas></div></div>
