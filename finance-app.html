@@ -313,6 +313,8 @@ main:not(.cu) .fab{display:none}
 .ptype label span{font-weight:600;display:block}.ptype label small{display:block;font-weight:500;color:var(--muted);font-size:12px;margin-top:2px}
 .ptype label.on{border-color:#0f766e;background:#f0fdfa}
 .ptype label:nth-child(2).on{border-color:#d4a017;background:#fffbeb}
+.ptype.ct label.on{border-color:#64748b;background:#f1f5f9}.ptype.ct label:nth-child(2).on{border-color:#16a34a;background:#f0fdf4}
+.ptype.ct label span:before{content:'○ ';color:#94a3b8}.ptype.ct label.on span:before{content:'⬤ ';color:#16a34a}.ptype.ct label:first-child.on span:before{color:#64748b}
 .dash-vol{background:rgba(255,255,255,.12);border:1px solid rgba(255,229,138,.45);border-radius:12px;padding:12px 14px}
 .dash-vol .value{color:#ffe58a}.dash-vol.total{background:rgba(255,255,255,.2)}
 /* allah's share tracker */
@@ -590,6 +592,7 @@ function init(){
   const ra = load(K.ra);
   if (Array.isArray(ra)) recurring = ra;
   else { recurring = []; [...invoices].sort((a, b) => a.date.localeCompare(b.date)).forEach(recOnInvoice); save(); }   // first time: build reminders from existing invoices
+  clients.forEach(c => { if (!c.clientType) c.clientType = recFind(c.company) ? 'retainer' : 'onetime'; });   // before client types: clients with a reminder were effectively retainers
   syncIncome();
 }
 
@@ -656,7 +659,25 @@ const recFind = name => recurring.find(r => ckey(r.client_name) === ckey(name));
 const recStatus = r => r.next_alert_date < today() ? 'overdue' : r.next_alert_date === today() ? 'due' : 'upcoming';
 const recDue = () => recurring.filter(r => r.active && r.next_alert_date <= today());
 /* every new invoice (re)schedules that client's next reminder: issue date + frequency, so an existing alert clears automatically */
+/* client type: 'onetime' (no recurring reminder) or 'retainer' (30-day reminder) */
+const CT_LABEL = {onetime:'One-Time', retainer:'Retainer'};
+const clientByName = n => clients.find(c => ckey(c.company) === ckey(n));
+const clientTypeBadge = t => `<span class="badge ${t === 'retainer' ? 'b-paid' : 'b-draft'}">${CT_LABEL[t] || 'One-Time'}</span>`;
+const clientTypeOf = name => (clientByName(name) || {}).clientType || 'retainer';   // legacy clients with reminders behave as retainers
+const invType = i => i.clientType || clientTypeOf(i.client);
+/* switching a client's type switches its reminder: retainer → ON from today, one-time → OFF */
+function applyClientType(c, type){
+  c.clientType = type;
+  if (type === 'retainer') {
+    if (!recFind(c.company)) {
+      const last = clientInvoices(c).sort((a, b) => b.date.localeCompare(a.date))[0];
+      recurring.push({client_name:c.company, frequency_days:30, last_invoice_date:last ? last.date : today(), next_alert_date:addDays(today(), 30), active:true, last_amount:last ? last.total_amount : (+c.retainer || 0)});
+    }
+  } else recurring = recurring.filter(r => ckey(r.client_name) !== ckey(c.company));
+}
+function toastSeq(msgs){ msgs.forEach((m, i) => setTimeout(() => toast(m), i * 1900)); }
 function recOnInvoice(inv){
+  if (invType(inv) !== 'retainer') return;   // one-time clients never get a recurring reminder
   let r = recFind(inv.client);
   if (!r) { r = {client_name:inv.client.trim(), frequency_days:30, last_invoice_date:'', next_alert_date:'', active:true, last_amount:0}; recurring.push(r); }
   if (!r.last_invoice_date || inv.date >= r.last_invoice_date) {
@@ -720,7 +741,7 @@ function remindersPanel(){
     </div>
     <div class="rem-grid">${list.map(r => { const e = encAttr(r.client_name), st = recStatus(r); return `
       <div class="rem-card ${st}">
-        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="rem-title">Time to invoice <b>${esc(r.client_name)}</b> again</div>${recBadge(r)}</div>
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="rem-title">Time to invoice <b>${esc(r.client_name)}</b> again<div style="margin-top:4px">${clientTypeBadge(clientTypeOf(r.client_name))}</div></div>${recBadge(r)}</div>
         <div class="rem-rows"><div><span>Original invoice date</span><b>${fdate(r.last_invoice_date)}</b></div><div><span>Alert due date</span><b>${fdate(r.next_alert_date)}</b></div><div><span>Last invoice amount</span><b>${fmt(r.last_amount)}</b></div></div>
         <div class="inv-actions"><button class="btn sm" onclick="createFromAlert('${e}')">Create Invoice</button><button class="btn sm ghost" onclick="dismissAlert('${e}')">Dismiss</button></div>
       </div>`; }).join('') || '<div class="empty" style="grid-column:1/-1">No active reminders yet — one is scheduled automatically whenever you create an invoice.</div>'}</div>
@@ -731,7 +752,7 @@ function recurringPanel(){
   return `<div class="card" style="margin-top:16px"><h3>🔁 Recurring Alerts</h3>
     <div class="tablewrap"><table>
       <thead><tr><th>Client</th><th>Frequency</th><th>Next alert</th><th>Status</th><th class="num">Actions</th></tr></thead>
-      <tbody>${list.map(r => { const e = encAttr(r.client_name); return `<tr><td><b>${esc(r.client_name)}</b><div class="muted" style="font-size:12px">Last invoice ${fdate(r.last_invoice_date)} · ${fmt(r.last_amount)}</div></td>
+      <tbody>${list.map(r => { const e = encAttr(r.client_name); return `<tr><td><b>${esc(r.client_name)}</b> ${clientTypeBadge(clientTypeOf(r.client_name))}<div class="muted" style="font-size:12px">Last invoice ${fdate(r.last_invoice_date)} · ${fmt(r.last_amount)}</div></td>
         <td>Every ${r.frequency_days} days</td><td>${fdate(r.next_alert_date)} ${r.active ? recBadge(r) : ''}</td>
         <td><button class="btn sm ${r.active ? '' : 'ghost'}" onclick="toggleAlert('${e}')">${r.active ? 'Active' : 'Paused'}</button></td>
         <td class="num"><button class="btn sm ghost" onclick="editAlert('${e}')">Edit</button> <button class="btn sm danger" onclick="removeAlert('${e}')">Remove</button></td></tr>`; }).join('') || '<tr><td colspan="5" class="empty">No recurring reminders yet</td></tr>'}</tbody>
@@ -964,13 +985,19 @@ function vIncome(t){   // 'Received in period' = payments dated in range (same f
 }
 
 const CATEGORIES = ['Services','Retainer','Design','Development','Marketing','Consulting','Other'];
+function ctChanged(el){ el.closest('.ptype').querySelectorAll('label').forEach(l => l.classList.toggle('on', l.querySelector('input').checked)); }
+function ctSync(input){ const c = clientByName(input.value); if (!c) return; const r = document.querySelector('#modal input[name=clientType][value=' + (c.clientType || 'onetime') + ']'); if (r) { r.checked = true; ctChanged(r); } }
 function incomeForm(pre = {}){
+  const ct = pre.clientType || (clientByName(pre.client || '') || {}).clientType || 'onetime';
   openModal(`<h2>${pre.fromAlert ? 'New Invoice · ' + esc(pre.client) : 'Add Income'}</h2><form onsubmit="saveIncome(event)">
+    <div class="field"><label>Client Type</label><div class="ptype ct">
+      <label class="${ct === 'onetime' ? 'on' : ''}"><input type="radio" name="clientType" value="onetime" ${ct === 'onetime' ? 'checked' : ''} onchange="ctChanged(this)"><span>One-Time Client<small>No recurring reminder</small></span></label>
+      <label class="${ct === 'retainer' ? 'on' : ''}"><input type="radio" name="clientType" value="retainer" ${ct === 'retainer' ? 'checked' : ''} onchange="ctChanged(this)"><span>Monthly Retainer<small>30-day invoice reminder</small></span></label></div></div>
     ${pre.fromAlert ? '<div class="hint">Pre-filled from your recurring reminder — the amount is the last invoice and can be edited. Saving schedules the next reminder.</div>' : ''}
     <div class="hint">Saving creates the invoice automatically. Only <b>Amount Received</b> counts toward net profit, My Share and Allah's Share.</div>
     <div class="field"><label>Total Amount (Invoiced)</label><input id="income_total_amount" name="total_amount" type="number" min="1" step="any" placeholder="Full amount expected from client" value="${pre.total || ''}" required></div>
     <div class="field"><label>Amount Received</label><input id="income_received_amount" name="received_amount" type="number" min="0" step="any" placeholder="What you have actually received" value="${pre.received ?? ''}" required></div>
-    <div class="row2"><div class="field"><label>Client Name</label><input name="client" list="clientList" value="${esc(pre.client || '')}" required><datalist id="clientList">${clients.map(c => `<option value="${esc(c.company)}">`).join('')}</datalist></div>
+    <div class="row2"><div class="field"><label>Client Name</label><input name="client" list="clientList" value="${esc(pre.client || '')}" required oninput="ctSync(this)" onchange="ctSync(this)"><datalist id="clientList">${clients.map(c => `<option value="${esc(c.company)}">`).join('')}</datalist></div>
     <div class="field"><label>Date</label><input name="date" type="date" value="${today()}" required></div></div>
     <div class="field"><label>Service Description</label><input name="service" required></div>
     <div class="row2"><div class="field"><label>Category</label><select name="category">${CATEGORIES.map(c => `<option>${c}</option>`).join('')}</select></div>
@@ -986,8 +1013,20 @@ function saveIncome(e){
   if (rec > total) { alert('Amount Received cannot be more than Total Amount.'); return; }
   const inv = {id:uid(), client:f.client.trim(), service:f.service.trim(), category:f.category, date:f.date, expectedBy:f.expectedBy || '', notes:(f.notes || '').trim(), total_amount:total, payments:[]};
   if (rec > 0) addPayment(inv, rec, f.date, '');
-  invoices.push(inv); recOnInvoice(inv);
-  save(); closeModal(); render(); toast(rec < total ? 'Saved — invoice created (partially paid)' : 'Saved — invoice created (paid in full)');
+  const type = f.clientType === 'retainer' ? 'retainer' : 'onetime', msgs = [rec < total ? 'Saved — invoice created (partially paid)' : 'Saved — invoice created (paid in full)'];
+  inv.clientType = type;
+  let c = clientByName(inv.client);
+  if (!c) {   // the invoice creates the client
+    c = {id:uid(), company:inv.client, contact:'', phone:'', email:'', industry:'', website:'', status:'Active', clientType:type, retainer:type === 'retainer' ? total : 0, onboardingDate:today(), contractStart:'', firstInvoiceDate:today(), notes:[]};
+    clients.push(c); msgs.push(inv.client + ' added to Clients');
+  } else {   // …or links to the existing record
+    if (!c.firstInvoiceDate) c.firstInvoiceDate = [...clientInvoices(c).map(i => i.date), inv.date].sort()[0];
+    if (c.clientType !== type) applyClientType(c, type);
+  }
+  inv.clientId = c.id; invoices.push(inv);
+  if (cuEnsureClientSpace(c)) msgs.push('Space created for ' + inv.client + ' in Tasks');
+  recOnInvoice(inv);
+  save(); closeModal(); render(); toastSeq(msgs);
 }
 
 /* ----- Expenses ----- */
@@ -1708,7 +1747,7 @@ let clSel = null, clMode = 'list';
 const clf = {q:'', s:''};
 const clById = id => clients.find(c => c.id === id);
 const clName = id => (clById(id) || {}).company || '—';
-const clientInvoices = c => invoices.filter(i => ckey(i.client) === ckey(c.company));
+const clientInvoices = c => invoices.filter(i => i.clientId === c.id || ckey(i.client) === ckey(c.company));
 const clBadge = st => `<span class="badge" style="background:${CL_COLORS[st]}22;color:${CL_COLORS[st]}">${st}</span>`;
 /* renewal = the next anniversary of the contract start date (annual contracts) */
 function nextRenewal(c){
@@ -1743,7 +1782,7 @@ function vClients(){
       <select onchange="clf.s=this.value;render()"><option value="">All statuses</option>${CL_STATUS.map(s => `<option ${clf.s === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
     <div class="tablewrap"><table><thead><tr><th>Company</th><th>Contact</th><th>Status</th><th class="num">Retainer / mo</th><th class="num">Invoiced · period</th><th class="num">Received · period</th><th class="num">Lists</th></tr></thead>
       <tbody>${list.map(c => { const inv = clientInvoices(c).filter(i => inRange(i.date)), rec = sum(clientInvoices(c).flatMap(i => i.payments || []).filter(p => inRange(p.date)), p => p.amount);
-        return `<tr style="cursor:pointer" onclick="openClient('${c.id}')"><td><b>${esc(c.company)}</b><div class="muted" style="font-size:12px">${esc(c.industry)}</div></td><td>${esc(c.contact)}<div class="muted" style="font-size:12px">${esc(c.phone)}</div></td><td>${clBadge(c.status)}</td>
+        return `<tr style="cursor:pointer" onclick="openClient('${c.id}')"><td><b>${esc(c.company)}</b> ${clientTypeBadge(c.clientType)}<div class="muted" style="font-size:12px">${esc(c.industry)}</div></td><td>${esc(c.contact)}<div class="muted" style="font-size:12px">${esc(c.phone)}</div></td><td>${clBadge(c.status)}</td>
           <td class="num">${fmt(c.retainer)}</td><td class="num">${fmt(sum(inv, i => i.total_amount))}</td><td class="num" style="color:var(--green)">${fmt(rec)}</td><td class="num">${cuLists.filter(l => l.clientId === c.id).length}</td></tr>`; }).join('') || '<tr><td colspan="7" class="empty">No clients found — click “+ New Client”</td></tr>'}</tbody></table></div></div>`}`;
 }
 function clPipeline(){
@@ -1758,12 +1797,15 @@ function vClientProfile(c){
   const invs = clientInvoices(c).sort((a, b) => b.date.localeCompare(a.date)), prj = cuLists.filter(l => l.clientId === c.id), notes = [...(c.notes || [])];
   const ren = nextRenewal(c);
   return `<button class="btn ghost sm" onclick="clSel=null;render()" style="margin-bottom:12px">← All clients</button>
-  <div class="card" style="margin-bottom:16px"><div class="profile-head">${miniAv(c.company, 64)}<div class="grow"><h2 style="font-size:22px">${esc(c.company)}</h2><div class="muted">${esc(c.industry) || '—'}${c.website ? ' · ' + esc(c.website) : ''}</div><div style="margin-top:8px">${clBadge(c.status)}${renewalSoon(c) ? ' <span class="badge b-due">Renewal ' + fdate(ren) + '</span>' : ''}</div></div>
+  <div class="card" style="margin-bottom:16px"><div class="profile-head">${miniAv(c.company, 64)}<div class="grow"><h2 style="font-size:22px">${esc(c.company)}</h2><div class="muted">${esc(c.industry) || '—'}${c.website ? ' · ' + esc(c.website) : ''}</div><div style="margin-top:8px">${clBadge(c.status)} ${clientTypeBadge(c.clientType)}${renewalSoon(c) ? ' <span class="badge b-due">Renewal ' + fdate(ren) + '</span>' : ''}</div></div>
     <div class="inv-actions"><button class="btn sm" onclick="incomeForm({client:decodeURIComponent('${encAttr(c.company)}')})">+ Invoice</button><button class="btn sm ghost" onclick="cuClientList('${c.id}')">+ List</button><button class="btn sm ghost" onclick="clientForm('${c.id}')">Edit</button><button class="btn sm danger" onclick="delClient('${c.id}')">Delete</button></div></div>
     <div style="margin-top:14px"><div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">Pipeline stage</div><div class="fpills">${CL_STATUS.map(s => `<button class="${c.status === s ? 'on' : ''}" style="${c.status === s ? 'background:' + CL_COLORS[s] + ';border-color:' + CL_COLORS[s] : ''}" onclick="setClStatus('${c.id}','${s}')">${s}</button>`).join('')}</div></div></div>
   <div class="grid g-main">
     <div>
-      <div class="card" style="margin-bottom:16px"><h3>Details</h3><div class="kv">${kv('Contact person', c.contact)}${kv('Phone', c.phone)}${kv('Email', c.email)}${kv('Website', c.website)}${kv('Onboarding date', c.onboardingDate && fdate(c.onboardingDate))}${kv('Contract start', c.contractStart && fdate(c.contractStart))}${kv('Monthly retainer', c.retainer ? fmt(c.retainer) : '')}${kv('Next renewal', ren && fdate(ren))}</div></div>
+      <div class="card" style="margin-bottom:16px"><h3>Details</h3>
+        <div style="margin-bottom:12px"><div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">Client type</div><div class="fpills">${['onetime', 'retainer'].map(k => `<button class="${(c.clientType || 'onetime') === k ? 'on' : ''}" style="${(c.clientType || 'onetime') === k ? 'background:' + (k === 'retainer' ? '#16a34a' : '#64748b') + ';border-color:' + (k === 'retainer' ? '#16a34a' : '#64748b') : ''}" onclick="setClientType('${c.id}','${k}')">${CT_LABEL[k]}</button>`).join('')}</div>
+        <div class="muted" style="font-size:12px;margin-top:6px">${c.clientType === 'retainer' ? 'The 30-day invoice reminder is ON.' : 'No recurring reminder. Switch to Retainer to start one from today.'}</div></div>
+        <div class="kv">${c.clientType === 'retainer' ? kv('Monthly value', fmt(+c.retainer || (invs[0] ? invs[0].total_amount : 0))) + kv('Next invoice due', (recFind(c.company) || {}).next_alert_date ? fdate(recFind(c.company).next_alert_date) : '') : kv('Total billed', fmt(sum(invs, i => i.total_amount))) + kv('Last invoice', invs[0] && fdate(invs[0].date))}${kv('First invoice', c.firstInvoiceDate && fdate(c.firstInvoiceDate))}${kv('Contact person', c.contact)}${kv('Phone', c.phone)}${kv('Email', c.email)}${kv('Website', c.website)}${kv('Onboarding date', c.onboardingDate && fdate(c.onboardingDate))}${kv('Contract start', c.contractStart && fdate(c.contractStart))}${kv('Retainer amount', c.retainer ? fmt(c.retainer) : '')}${kv('Next renewal', ren && fdate(ren))}</div></div>
       <div class="card" style="margin-bottom:16px"><h3>Invoices <span class="muted" style="font-weight:400">· ${invs.length} · billed ${fmt(sum(invs, i => i.total_amount))} · received ${fmt(sum(invs, invReceived))}</span></h3>
         <div class="tablewrap"><table><tbody>${invs.map(i => `<tr style="cursor:pointer" onclick="viewInvoice('${i.id}')"><td>${fdate(i.date)}</td><td>${esc(i.service)}</td><td>${badge(invStatus(i))}</td><td class="num"><b>${fmt(i.total_amount)}</b></td></tr>`).join('') || '<tr><td class="empty">No invoices for this client yet — invoices match by company name</td></tr>'}</tbody></table></div></div>
       <div class="card"><h3>Task lists</h3>${prj.map(l => `<div class="tx" style="cursor:pointer" onclick="cuOpenList('${l.id}')"><div><div class="t1"><span class="dot" style="background:${l.color};display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px"></span>${esc(l.name)}</div><div class="t2">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length} open tasks</div></div>${listProgress(l)}</div>`).join('') || '<div class="muted">No lists yet — a List groups this client\'s tasks.</div>'}</div>
@@ -1775,6 +1817,10 @@ function vClientProfile(c){
 }
 function addClNote(ev, id){ ev.preventDefault(); const c = clById(id); const t = new FormData(ev.target).get('text').trim(); if (c && t) { (c.notes = c.notes || []).push({id:uid(), at:new Date().toISOString(), text:t}); save(); render(); } }
 function cuClientList(cid){ if (!cuFolders.length) { toast('Set up your Tasks workspace first (Tasks → Set up workspace)'); view = 'tasks'; render(); return; } cuNodeForm('list', null, ''); setTimeout(() => { const s = document.querySelector('#modal select[name=clientId]'); if (s) s.value = cid; const n = document.querySelector('#modal input[name=name]'); if (n) n.value = clName(cid); }, 20); }
+function setClientType(id, type){
+  const c = clById(id); if (!c || (c.clientType || 'onetime') === type) return;
+  applyClientType(c, type); save(); render(); toast(type === 'retainer' ? c.company + ' is now a Retainer — 30-day reminder ON from today' : c.company + ' is now One-Time — recurring reminder OFF');
+}
 function setClStatus(id, st){ const c = clById(id); if (c) { c.status = st; if (st === 'Active' && !c.onboardingDate) c.onboardingDate = today(); save(); render(); } }
 function clientForm(id){
   const c = id ? clById(id) : {status:'Lead'};
@@ -1783,13 +1829,15 @@ function clientForm(id){
     <div class="row2">${inp('Company Name', 'company', 'text', 'required')}${inp('Contact Person', 'contact')}</div>
     <div class="row2">${inp('Phone', 'phone', 'tel')}${inp('Email', 'email', 'email')}</div>
     <div class="row2">${inp('Industry', 'industry')}${inp('Website', 'website')}</div>
+    <div class="field"><label>Client Type</label><select name="clientType"><option value="onetime" ${(c.clientType || 'onetime') === 'onetime' ? 'selected' : ''}>One-Time Client</option><option value="retainer" ${c.clientType === 'retainer' ? 'selected' : ''}>Monthly Retainer</option></select></div>
     <div class="row2"><div class="field"><label>Client Status</label><select name="status">${CL_STATUS.map(s => `<option ${s === c.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div>${inp('Monthly Retainer (₨)', 'retainer', 'number', 'min="0" step="any"')}</div>
     <div class="row2">${inp('Onboarding Date', 'onboardingDate', 'date')}${inp('Contract Start Date', 'contractStart', 'date')}</div>
     <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">${id ? 'Save changes' : 'Add client'}</button></div></form>`, 'xl');
 }
 function saveClient(ev, id){
   ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); const data = {...f, company:f.company.trim(), retainer:+f.retainer || 0};
-  if (id) Object.assign(clById(id), data); else clients.push({id:uid(), notes:[], ...data});
+  if (id) { const c = clById(id), old = c.clientType || 'onetime'; Object.assign(c, data); if (old !== data.clientType) applyClientType(c, data.clientType); }
+  else { const c = {id:uid(), notes:[], ...data}; clients.push(c); if (data.clientType === 'retainer') applyClientType(c, 'retainer'); }
   save(); closeModal(); render(); toast(id ? 'Client updated' : 'Client added');
 }
 function delClient(id){ const c = clById(id); if (c && confirm('Delete ' + c.company + '? Their invoices stay in the books; task lists stay but lose the client link.')) { clients = clients.filter(x => x.id !== id); clSel = null; save(); render(); } }
@@ -1932,12 +1980,20 @@ function cuTree(){
   ${row('top ' + (cuScope.type === 'mine' ? 'sel' : ''), '<span class="nm">👤 My Tasks</span>', "cuGo({type:'mine'})")}
   ${favs.length ? `<div class="tr-sec"><span>FAVORITES</span></div>${favs.map(l => row('li fav ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `<span class="dot" style="background:${l.color}"></span><span class="nm">${esc(l.name)}</span>`, `cuOpenList('${l.id}')`)).join('')}` : ''}
   ${cuSpaces.map(sp => { const open = !cuCollapsed.has(sp.id);
-    return `${row('sp', `<span class="sq" style="background:${sp.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">${esc(sp.name[0] || '?').toUpperCase()}</span><span class="nm">${esc(sp.name)}</span><span class="acts"><button title="New Folder" onclick="event.stopPropagation();cuNodeForm('folder',null,'${sp.id}')">+</button><button title="Edit" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">✎</button></span><span class="arr">${open ? '▾' : '▸'}</span>`, `cuToggle('${sp.id}')`)}
+    return `${row('sp', `<span class="sq" style="background:${sp.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">${esc(initials(sp.name))}</span><span class="nm">${esc(sp.name)}</span><span class="acts"><button title="New Folder" onclick="event.stopPropagation();cuNodeForm('folder',null,'${sp.id}')">+</button><button title="Edit" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">✎</button></span><span class="arr">${open ? '▾' : '▸'}</span>`, `cuToggle('${sp.id}')`)}
     ${open ? cuFolders.filter(f => f.spaceId === sp.id).map(f => { const fo = !cuCollapsed.has(f.id);
       return `${row('fo', `${dot('folder', f.id, f.color)}<span class="nm">${esc(f.name)}</span><span class="acts"><button title="New List" onclick="event.stopPropagation();cuNodeForm('list',null,'${f.id}')">+</button><button title="Edit" onclick="event.stopPropagation();cuNodeForm('folder','${f.id}')">✎</button></span><span class="arr">${fo ? '▾' : '▸'}</span>`, `cuToggle('${f.id}')`)}
       ${fo ? cuLists.filter(l => l.folderId === f.id).map(l => row('li ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `${dot('list', l.id, l.color)}<span class="nm">${esc(l.name)}</span><span class="cnt">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length || ''}</span>`, `cuOpenList('${l.id}')`)).join('') : ''}`; }).join('') : ''}`; }).join('')}`;
 }
 const cuToggle = id => { cuCollapsed.has(id) ? cuCollapsed.delete(id) : cuCollapsed.add(id); render(); };
+/* one Space per client (no duplicates): Space › "Projects" folder › "General Tasks" list */
+function cuEnsureClientSpace(c){
+  const ex = cuSpaces.find(s => s.clientId === c.id || ckey(s.name) === ckey(c.company));
+  if (ex) { if (!ex.clientId) ex.clientId = c.id; return false; }
+  const sp = {id:uid(), name:c.company, color:CU_COLORS[0], clientId:c.id}, fo = {id:uid(), spaceId:sp.id, name:'Projects', color:CU_COLORS[1]};
+  cuSpaces.push(sp); cuFolders.push(fo); cuLists.push({id:uid(), folderId:fo.id, name:'General Tasks', color:CU_COLORS[2], clientId:c.id, statuses:defaultStatuses()});
+  return true;
+}
 function cuSetupDefault(){
   const sp = {id:uid(), name:'Media Beem Agency', color:CU_COLORS[0]}; cuSpaces.push(sp);
   [['Client Projects', CU_COLORS[1]], ['Internal', CU_COLORS[2]], ['Marketing', CU_COLORS[5]]].forEach(([name, color]) => cuFolders.push({id:uid(), spaceId:sp.id, name, color}));
