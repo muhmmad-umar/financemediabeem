@@ -1,7 +1,8 @@
 # Cloudflare Workers config for the Media Beem API (Workers + D1 only).
+# Deliberately NOT in the repo root, so Cloudflare Pages does not pick it up.
 # The frontend (public/) is deployed separately to Cloudflare Pages — see README.md.
 name = "mediabeem-api"
-main = "worker/src/index.js"
+main = "src/index.js"
 compatibility_date = "2024-09-23"
 
 [vars]
@@ -13,7 +14,7 @@ binding = "DB"
 database_name = "mediabeem-db"
 # Replace with the id printed by `npm run db:create`
 database_id = "00000000-0000-0000-0000-000000000000"
-migrations_dir = "worker/migrations"
+migrations_dir = "migrations"
 
 # JWT_SECRET is a secret, not a var:  npx wrangler secret put JWT_SECRET
 # (for local dev put JWT_SECRET=... in .dev.vars)

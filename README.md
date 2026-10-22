@@ -14,7 +14,7 @@ public/            frontend (Cloudflare Pages)   login, admin, employee, client 
 worker/src/        API (Cloudflare Worker)       auth, admin sync, employee, client, messaging
 worker/migrations/ D1 schema
 worker/seed-admin.mjs   creates the first admin
-wrangler.toml      Worker + D1 config (Workers only — Pages is deployed from public/)
+worker/wrangler.toml   Worker + D1 config (Workers only; kept out of the repo root so Pages ignores it)
 finance-app.html   the old single-file localStorage app (kept for reference)
 ```
 
@@ -25,11 +25,11 @@ npm install
 npx wrangler login
 
 # 1. database
-npm run db:create                    # copy the printed database_id into wrangler.toml
+npm run db:create                    # copy the printed database_id into worker/wrangler.toml
 npm run db:migrate                   # applies worker/migrations to the remote D1
 
 # 2. secrets + API
-npx wrangler secret put JWT_SECRET   # paste a long random string:  openssl rand -base64 48
+npx wrangler secret put JWT_SECRET -c worker/wrangler.toml   # paste a long random string:  openssl rand -base64 48
 npm run deploy:api                   # prints https://mediabeem-api.<you>.workers.dev
 
 # 3. first admin
@@ -37,7 +37,7 @@ ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a-long-password' npm run db:seed
 
 # 4. frontend
 #    edit public/config.js → set the production API_BASE to the Worker URL from step 2
-#    edit wrangler.toml    → ALLOWED_ORIGINS must contain your Pages origin (https://mediabeem-pages.pages.dev)
+#    edit worker/wrangler.toml → ALLOWED_ORIGINS must contain your Pages origin (https://mediabeem-pages.pages.dev)
 npm run deploy:api && npm run deploy:pages
 ```
 
@@ -53,7 +53,7 @@ Open `/admin` in the **same browser** that has the old app's data. On first logi
 ## Local development
 ```bash
 npm install
-cp .dev.vars.example .dev.vars            # JWT_SECRET for local dev
+cp worker/.dev.vars.example worker/.dev.vars     # JWT_SECRET for local dev
 npm run db:migrate:local
 ADMIN_EMAIL=admin@mediabeem.test ADMIN_PASSWORD='TestPassw0rd!x' npm run db:seed:local
 npm run dev                               # API on :8787

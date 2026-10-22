@@ -27,6 +27,6 @@ const id = randomBytes(8).toString('hex');
 const sql = `INSERT INTO users (id,email,password_hash,role,name,active) VALUES (${q(id)},${q(email)},${q(hash)},'admin',${q(name)},1)
 ON CONFLICT(email) DO UPDATE SET password_hash=excluded.password_hash, active=1, role='admin';`;
 
-const r = spawnSync('npx', ['wrangler', 'd1', 'execute', 'mediabeem-db', target, '--command', sql], { stdio: 'inherit' });
+const r = spawnSync('npx', ['wrangler', 'd1', 'execute', 'mediabeem-db', target, '-c', 'worker/wrangler.toml', '--command', sql], { stdio: 'inherit' });
 if (r.status !== 0) process.exit(r.status || 1);
 console.log(`\nAdmin ready: ${email}`);
