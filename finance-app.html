@@ -79,6 +79,14 @@ main{margin-left:240px;flex:1;padding:26px 30px 50px;min-width:0}
 .catbar .nm{width:120px;flex:none;font-weight:600}.catbar .tr{flex:1;height:10px;background:#f1f5f9;border-radius:99px;overflow:hidden}
 .catbar .tr>div{height:100%;border-radius:99px}.catbar .vl{width:150px;text-align:right;flex:none;white-space:nowrap}
 @media(max-width:520px){.catbar{flex-wrap:wrap}.catbar .vl{width:auto;margin-left:auto}}
+.nbadge{margin-left:auto;background:#ef4444;color:#fff;border-radius:99px;font-size:11px;font-weight:700;padding:1px 8px;box-shadow:0 0 0 3px rgba(239,68,68,.25)}
+.rem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.rem-card{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
+.rem-card.due{background:#fffbeb;border-color:#f4c542}.rem-card.overdue{background:#fef2f2;border-color:#fca5a5}
+.rem-title{font-size:14px;line-height:1.35}
+.rem-rows{margin:12px 0}.rem-rows>div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.rem-rows span{color:var(--muted)}
+.b-due{background:#fde68a;color:#92400e}.b-upcoming{background:#e0f2fe;color:#075985}
 /* date filter bar */
 .fbar{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin-bottom:18px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
 .fpills{display:flex;gap:6px;flex-wrap:wrap}
@@ -252,7 +260,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
 /* ========= Config & storage ========= */
 const ALLAH_RATE = 0.10;
 const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses', exp:'expenses',
-  pe:'personal_expenses', pi:'personal_income', pw:'personal_withdrawals'};
+  pe:'personal_expenses', pi:'personal_income', pw:'personal_withdrawals', ra:'recurring_alerts'};
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } };
 const save = () => {
   syncIncome();
@@ -264,10 +272,12 @@ const save = () => {
     localStorage.setItem(K.pe, JSON.stringify(personalExp));
     localStorage.setItem(K.pi, JSON.stringify(personalInc));
     localStorage.setItem(K.pw, JSON.stringify(personalWd));
+    localStorage.setItem(K.ra, JSON.stringify(recurring));
   } catch(e){ toast('Could not save to localStorage'); }
 };
 let income, invoices, charity, expenses;
-let personalExp = [], personalInc = [], personalWd = [];   // Personal Finance: separate world, never used by agency maths
+let personalExp = [], personalInc = [], personalWd = [];
+let recurring = [];   // recurring invoice reminders: {client_name, frequency_days, last_invoice_date, next_alert_date, active, last_amount}   // Personal Finance: separate world, never used by agency maths
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -325,7 +335,7 @@ const DATA_VERSION = '4';
 function init(){
   let ver = null; try { ver = localStorage.getItem('data_version'); } catch(e){}
   if (!ver) {   // first run: start completely empty, clearing any pre-loaded data
-    income = []; invoices = []; charity = []; expenses = []; personalExp = []; personalInc = []; personalWd = [];
+    income = []; invoices = []; charity = []; expenses = []; personalExp = []; personalInc = []; personalWd = []; recurring = [];
     save(); try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
     return;
   }
@@ -348,6 +358,9 @@ function init(){
     });
     save(); try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
   }
+  const ra = load(K.ra);
+  if (Array.isArray(ra)) recurring = ra;
+  else { recurring = []; [...invoices].sort((a, b) => a.date.localeCompare(b.date)).forEach(recOnInvoice); save(); }   // first time: build reminders from existing invoices
   syncIncome();
 }
 
@@ -386,6 +399,86 @@ function filterBar(){
   return `<div class="fbar"><div class="fpills">${PERIODS.map(([k,l]) => `<button class="${period.mode === k ? 'on' : ''}" onclick="setPeriod('${k}')">${l}</button>`).join('')}</div>
     <div class="fcur">📅 <b>${periodLabel()}</b></div>
     ${period.mode === 'custom' ? `<div class="fcustom"><label>From <input type="date" value="${period.from}" max="${period.to}" onchange="setCustom('from',this.value)"></label><label>To <input type="date" value="${period.to}" min="${period.from}" onchange="setCustom('to',this.value)"></label></div>` : ''}</div>`;
+}
+
+/* ========= Recurring invoice reminders ========= */
+const REC_DAYS = [15, 30, 45, 60, 90];
+const ckey = n => String(n).trim().toLowerCase();
+const encAttr = n => encodeURIComponent(n).replace(/'/g, '%27');
+const recFind = name => recurring.find(r => ckey(r.client_name) === ckey(name));
+const recStatus = r => r.next_alert_date < today() ? 'overdue' : r.next_alert_date === today() ? 'due' : 'upcoming';
+const recDue = () => recurring.filter(r => r.active && r.next_alert_date <= today());
+/* every new invoice (re)schedules that client's next reminder: issue date + frequency, so an existing alert clears automatically */
+function recOnInvoice(inv){
+  let r = recFind(inv.client);
+  if (!r) { r = {client_name:inv.client.trim(), frequency_days:30, last_invoice_date:'', next_alert_date:'', active:true, last_amount:0}; recurring.push(r); }
+  if (!r.last_invoice_date || inv.date >= r.last_invoice_date) {
+    r.client_name = inv.client.trim(); r.last_invoice_date = inv.date; r.last_amount = inv.total_amount;
+    r.next_alert_date = addDays(inv.date, r.frequency_days);
+  }
+}
+const daysBetween = (a, b) => Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 864e5);
+function recBadge(r){
+  const st = recStatus(r);
+  return st === 'overdue' ? `<span class="badge b-overdue">Overdue · ${daysBetween(r.next_alert_date, today())}d</span>` : st === 'due' ? '<span class="badge b-due">Due Today</span>' : '<span class="badge b-upcoming">Upcoming</span>';
+}
+function createFromAlert(enc){
+  const r = recFind(decodeURIComponent(enc)); if (!r) return;
+  incomeForm({client:r.client_name, total:r.last_amount, received:0, fromAlert:true});
+}
+function dismissAlert(enc){
+  const name = decodeURIComponent(enc);
+  openModal(`<h2>Dismiss reminder</h2><p style="margin-bottom:16px">Remove the reminder for <b>${esc(name)}</b> permanently, or snooze it for 7 days?</p>
+    <div class="modal-actions" style="flex-wrap:wrap"><button class="btn ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn" onclick="snoozeAlert('${enc}')">Snooze 7 days</button>
+    <button class="btn danger" onclick="removeAlert('${enc}', true)">Remove permanently</button></div>`);
+}
+function snoozeAlert(enc){ const r = recFind(decodeURIComponent(enc)); if (r) { r.next_alert_date = addDays(today(), 7); save(); closeModal(); render(); toast('Snoozed for 7 days'); } }
+function removeAlert(enc, skipConfirm){
+  const name = decodeURIComponent(enc);
+  if (!skipConfirm && !confirm('Remove the recurring reminder for ' + name + '? (e.g. the client has left)')) return;
+  recurring = recurring.filter(r => ckey(r.client_name) !== ckey(name)); save(); closeModal(); render(); toast('Reminder removed');
+}
+function toggleAlert(enc){ const r = recFind(decodeURIComponent(enc)); if (r) { r.active = !r.active; save(); render(); } }
+function editAlert(enc){
+  const r = recFind(decodeURIComponent(enc)); if (!r) return;
+  openModal(`<h2>Edit reminder · ${esc(r.client_name)}</h2><form onsubmit="saveAlert(event,'${enc}')">
+    <div class="field"><label>Frequency</label><select name="frequency_days">${REC_DAYS.map(d => `<option value="${d}" ${d === r.frequency_days ? 'selected' : ''}>Every ${d} days</option>`).join('')}</select></div>
+    <div class="field"><label>Next alert date</label><input name="next_alert_date" type="date" value="${r.next_alert_date}" required></div>
+    <div class="hint">Last invoice: ${fdate(r.last_invoice_date)}. If you only change the frequency, the next alert date is recalculated from the last invoice date.</div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save</button></div></form>`);
+}
+function saveAlert(e, enc){
+  e.preventDefault(); const r = recFind(decodeURIComponent(enc)); if (!r) return; const f = Object.fromEntries(new FormData(e.target));
+  const freq = +f.frequency_days, dateChanged = f.next_alert_date !== r.next_alert_date;
+  r.next_alert_date = (!dateChanged && freq !== r.frequency_days && r.last_invoice_date) ? addDays(r.last_invoice_date, freq) : f.next_alert_date;
+  r.frequency_days = freq; save(); closeModal(); render(); toast('Reminder updated');
+}
+function remindersPanel(){
+  const list = recurring.filter(r => r.active).sort((a, b) => a.next_alert_date.localeCompare(b.next_alert_date)), due = recDue().length;
+  return `<div class="card" style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <h3 style="margin:0">🔔 Upcoming Invoice Reminders</h3>
+      ${due ? `<span class="badge b-overdue" style="font-size:12px;padding:4px 12px">${due} reminder${due > 1 ? 's' : ''} due</span>` : '<span class="muted" style="font-size:12px">Nothing due right now</span>'}
+    </div>
+    <div class="rem-grid">${list.map(r => { const e = encAttr(r.client_name), st = recStatus(r); return `
+      <div class="rem-card ${st}">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="rem-title">Time to invoice <b>${esc(r.client_name)}</b> again</div>${recBadge(r)}</div>
+        <div class="rem-rows"><div><span>Original invoice date</span><b>${fdate(r.last_invoice_date)}</b></div><div><span>Alert due date</span><b>${fdate(r.next_alert_date)}</b></div><div><span>Last invoice amount</span><b>${fmt(r.last_amount)}</b></div></div>
+        <div class="inv-actions"><button class="btn sm" onclick="createFromAlert('${e}')">Create Invoice</button><button class="btn sm ghost" onclick="dismissAlert('${e}')">Dismiss</button></div>
+      </div>`; }).join('') || '<div class="empty" style="grid-column:1/-1">No active reminders yet — one is scheduled automatically whenever you create an invoice.</div>'}</div>
+  </div>`;
+}
+function recurringPanel(){
+  const list = [...recurring].sort((a, b) => a.client_name.localeCompare(b.client_name));
+  return `<div class="card" style="margin-top:16px"><h3>🔁 Recurring Alerts</h3>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Client</th><th>Frequency</th><th>Next alert</th><th>Status</th><th class="num">Actions</th></tr></thead>
+      <tbody>${list.map(r => { const e = encAttr(r.client_name); return `<tr><td><b>${esc(r.client_name)}</b><div class="muted" style="font-size:12px">Last invoice ${fdate(r.last_invoice_date)} · ${fmt(r.last_amount)}</div></td>
+        <td>Every ${r.frequency_days} days</td><td>${fdate(r.next_alert_date)} ${r.active ? recBadge(r) : ''}</td>
+        <td><button class="btn sm ${r.active ? '' : 'ghost'}" onclick="toggleAlert('${e}')">${r.active ? 'Active' : 'Paused'}</button></td>
+        <td class="num"><button class="btn sm ghost" onclick="editAlert('${e}')">Edit</button> <button class="btn sm danger" onclick="removeAlert('${e}')">Remove</button></td></tr>`; }).join('') || '<tr><td colspan="5" class="empty">No recurring reminders yet</td></tr>'}</tbody>
+    </table></div></div>`;
 }
 
 /* ========= Derived values ========= */
@@ -437,6 +530,8 @@ function render(){
   destroyCharts();
   const t = totals();
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  const nb = document.querySelector('#nav button[data-view="dashboard"]'), nDue = recDue().length;
+  if (nb) nb.innerHTML = '📊 Dashboard' + (nDue ? `<span class="nbadge" title="${nDue} reminder${nDue > 1 ? 's' : ''} due">${nDue}</span>` : '');
   $('filterBar').innerHTML = filterBar();
   $('title').textContent = meta[view][0]; $('subtitle').textContent = meta[view][1];
   $('topActions').innerHTML = {
@@ -470,6 +565,7 @@ function vDashboard(t){
   const recent = [...incomeRows()].sort((a,b) => b.date.localeCompare(a.date)).slice(0,6);
   return `
   ${formulaCard(t)}
+  ${remindersPanel()}
   <div class="grid g3" style="margin-bottom:16px">
     <div class="card stat navy"><div class="label">Total Invoiced (billed)</div><div class="value">${fmt(t.invoiced)}</div><div class="sub">${invoicesIn().length} invoices billed in period</div></div>
     <div class="card stat teal"><div class="label">Total Received (in hand)</div><div class="value">${fmt(t.totalIn)}</div><div class="sub">${periodLabel()}</div></div>
@@ -499,7 +595,8 @@ function vDashboard(t){
       <div class="tx"><div><div class="t1">${esc(e.client)}</div><div class="t2">${fdate(e.date)} · ${esc(e.description || e.category)}</div></div>
       <div class="amt" style="font-weight:500;font-size:12px">${incLabel(e)}</div></div>`).join('') || '<div class="empty">No money received yet</div>'}
     </div>
-  </div>`;
+  </div>
+  ${recurringPanel()}`;
 }
 /* chart buckets: by day for ranges up to ~2 months, otherwise by month */
 function addDays(d, n){ const x = new Date(d + 'T00:00:00'); x.setDate(x.getDate() + n); return iso(x); }
@@ -556,12 +653,13 @@ function vIncome(t){   // 'Received in period' = payments dated in range (same f
 }
 
 const CATEGORIES = ['Services','Retainer','Design','Development','Marketing','Consulting','Other'];
-function incomeForm(){
-  openModal(`<h2>Add Income</h2><form onsubmit="saveIncome(event)">
+function incomeForm(pre = {}){
+  openModal(`<h2>${pre.fromAlert ? 'New Invoice · ' + esc(pre.client) : 'Add Income'}</h2><form onsubmit="saveIncome(event)">
+    ${pre.fromAlert ? '<div class="hint">Pre-filled from your recurring reminder — the amount is the last invoice and can be edited. Saving schedules the next reminder.</div>' : ''}
     <div class="hint">Saving creates the invoice automatically. Only <b>Amount Received</b> counts toward net profit, My Share and Allah's Share.</div>
-    <div class="field"><label>Total Amount (Invoiced)</label><input id="income_total_amount" name="total_amount" type="number" min="1" step="any" placeholder="Full amount expected from client" required></div>
-    <div class="field"><label>Amount Received</label><input id="income_received_amount" name="received_amount" type="number" min="0" step="any" placeholder="What you have actually received" required></div>
-    <div class="row2"><div class="field"><label>Client Name</label><input name="client" required></div>
+    <div class="field"><label>Total Amount (Invoiced)</label><input id="income_total_amount" name="total_amount" type="number" min="1" step="any" placeholder="Full amount expected from client" value="${pre.total || ''}" required></div>
+    <div class="field"><label>Amount Received</label><input id="income_received_amount" name="received_amount" type="number" min="0" step="any" placeholder="What you have actually received" value="${pre.received ?? ''}" required></div>
+    <div class="row2"><div class="field"><label>Client Name</label><input name="client" value="${esc(pre.client || '')}" required></div>
     <div class="field"><label>Date</label><input name="date" type="date" value="${today()}" required></div></div>
     <div class="field"><label>Service Description</label><input name="service" required></div>
     <div class="row2"><div class="field"><label>Category</label><select name="category">${CATEGORIES.map(c => `<option>${c}</option>`).join('')}</select></div>
@@ -577,7 +675,7 @@ function saveIncome(e){
   if (rec > total) { alert('Amount Received cannot be more than Total Amount.'); return; }
   const inv = {id:uid(), client:f.client.trim(), service:f.service.trim(), category:f.category, date:f.date, expectedBy:f.expectedBy || '', notes:(f.notes || '').trim(), total_amount:total, payments:[]};
   if (rec > 0) addPayment(inv, rec, f.date, '');
-  invoices.push(inv);
+  invoices.push(inv); recOnInvoice(inv);
   save(); closeModal(); render(); toast(rec < total ? 'Saved — invoice created (partially paid)' : 'Saved — invoice created (paid in full)');
 }
 
