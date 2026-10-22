@@ -642,7 +642,7 @@ tfoot td{border-top:1px solid #2a2a2a}
     <div class="nav-sep">Personal</div>
     <button data-view="personal" class="personal">👤 Personal Finance</button>
   </nav>
-  <div class="side-foot"><div class="who" id="whoAmI"></div><div id="syncStat" style="color:#888;font-size:11px;margin-bottom:8px">Loading…</div><button class="btn ghost sm" onclick="MB.logout()" style="width:100%">Log out</button></div>
+  <div class="side-foot"><div class="who" id="whoAmI"></div><div id="syncStat" style="color:#888;font-size:11px;margin-bottom:8px">Loading…</div><button class="btn ghost sm" onclick="pickBackupFile()" style="width:100%;margin-bottom:6px" title="Import a mediabeem-backup.json exported from the old app">⬆ Import from backup file</button><input type="file" id="backupFile" accept=".json,application/json" style="display:none" onchange="onBackupFile(this)"><button class="btn ghost sm" onclick="MB.logout()" style="width:100%">Log out</button></div>
 </aside>
 <div class="scrim" id="scrim"></div>
 
@@ -2909,19 +2909,50 @@ function showImportBanner(){
   document.querySelector('main').prepend(d);
   $('ibGo').onclick = runImport;
 }
+/* push a {key: records[]} source to the API in batches; throws on the first failure */
+async function importCollections(get, settings, onProgress){
+  await store.flush();
+  const order = SYNC_KEYS.filter(k => k !== 'cu_messages' && k !== 'channels'); order.push('channels', 'cu_messages');
+  let n = 0;
+  for (const k of order) { const arr = get(k); for (let i = 0; i < arr.length; i += 150) await MB.api('/api/admin/import', {method:'POST', body:{collections:{[k]:arr.slice(i, i + 150)}}}); n += arr.length; onProgress(n); }
+  await MB.api('/api/admin/import', {method:'POST', body:{collections:{channels_messages:get('channels_messages')}, settings}});
+  return n;
+}
 async function runImport(){
   const go = $('ibGo'), msg = $('ibMsg'); go.disabled = true; go.textContent = 'Importing…';
   try {
-    await store.flush();
     const get = k => { try { const a = JSON.parse(LS.getItem(k) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
-    const order = SYNC_KEYS.filter(k => k !== 'cu_messages' && k !== 'channels'); order.push('channels', 'cu_messages');
-    let n = 0;
-    for (const k of order) { const arr = get(k); for (let i = 0; i < arr.length; i += 150) await MB.api('/api/admin/import', {method:'POST', body:{collections:{[k]:arr.slice(i, i + 150)}}}); n += arr.length; msg.textContent = 'Imported ' + n + ' records…'; }
     const settings = {}; SETTING_KEYS.forEach(k => { const v = LS.getItem(k); if (v !== null) settings[k] = v; });
-    await MB.api('/api/admin/import', {method:'POST', body:{collections:{channels_messages:get('channels_messages')}, settings}});
+    await importCollections(get, settings, n => { msg.textContent = 'Imported ' + n + ' records…'; });
     [...LEGACY_KEYS, ...SETTING_KEYS, 'cu_folders', 'projects', 'tasks', 'subtasks', 'task_comments'].forEach(k => { try { LS.removeItem(k); } catch (e) {} });   // cleared only after every request succeeded
     $('importBanner').remove(); toast('Import complete — loading your data…'); setTimeout(() => location.reload(), 900);
   } catch (e) { go.disabled = false; go.textContent = 'Retry import'; msg.textContent = 'Import failed: ' + e.message + ' — your local data is untouched.'; }
+}
+
+/* ----- import from mediabeem-backup.json (made by "Export All Data" in the old finance-app.html) ----- */
+function pickBackupFile(){ $('backupFile').value = ''; $('backupFile').click(); }
+async function onBackupFile(input){
+  const f = input.files && input.files[0]; if (!f) return;
+  let data;
+  try {
+    const j = JSON.parse(await f.text());
+    data = j && typeof j.data === 'object' && j.data ? j.data : j;   // accept the wrapped export or a raw key → value dump
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error();
+  } catch (e) { toast('That file is not a valid mediabeem-backup.json'); return; }
+  const get = k => { let v = data[k]; if (typeof v === 'string') { try { v = JSON.parse(v); } catch (e) { v = null; } } return Array.isArray(v) ? v : []; };
+  const counts = LEGACY_KEYS.map(k => [k, get(k).length]).filter(c => c[1]);
+  if (!counts.length) { toast('No records found in that file'); return; }
+  const total = counts.reduce((t, c) => t + c[1], 0), settings = {};
+  SETTING_KEYS.forEach(k => { if (data[k] !== undefined && data[k] !== null) settings[k] = String(data[k]); });
+  openModal(`<h2>Import from backup file</h2><p style="margin-bottom:8px"><b>${esc(f.name)}</b> contains <b>${total}</b> records:</p>
+    <div class="muted" style="font-size:13px;margin-bottom:10px">${counts.map(([k, n]) => esc(k.replace(/_/g, ' ')) + ' ' + n).join(' · ')}</div>
+    <p class="muted" style="font-size:13px">Records are saved to your account. Anything with the same id is overwritten; everything else is kept.</p>
+    <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="bkGo">Import ${total} records</button></div>`);
+  $('bkGo').onclick = async () => {
+    const b = $('bkGo'); b.disabled = true; b.textContent = 'Importing…';
+    try { await importCollections(get, settings, n => { b.textContent = 'Imported ' + n + ' / ' + total; }); closeModal(); toast('Import complete — loading your data…'); setTimeout(() => location.reload(), 900); }
+    catch (e) { b.disabled = false; b.textContent = 'Retry import'; toast('Import failed: ' + e.message); }
+  };
 }
 
 /* ========= Boot ========= */

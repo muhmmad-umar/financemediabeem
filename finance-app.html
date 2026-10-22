@@ -1058,7 +1058,7 @@ function render(){
   document.body.classList.toggle('cu-mode', view === 'tasks');
   $('title').textContent = meta[view][0]; $('subtitle').textContent = meta[view][1];
   $('topActions').innerHTML = {
-    dashboard:'',
+    dashboard:'<button class="btn" onclick="exportAllData()" title="Download every record in this browser as mediabeem-backup.json">⬇ Export All Data</button>',
     income:'<button class="btn" onclick="incomeForm()">+ Add Income</button>',
     expenses:'<button class="btn" onclick="expenseForm()">+ Add Expense</button>',
     invoices:'<button class="btn" onclick="invoiceForm()">+ New Invoice</button>',
@@ -2319,6 +2319,15 @@ function resLinkForm(fid){
 function resSaveLink(ev, fid){
   ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)), fo = resFolderById(fid); if (!fo || !/^https?:\/\//i.test(f.url)) { alert('Enter a link starting with http:// or https://'); return; }
   resFiles.push({id:uid(), folderId:fid, spaceId:fo.spaceId, kind:'link', name:f.name.trim(), url:f.url.trim(), size:0, type:'link', uploadedAt:new Date().toISOString(), by:cuAuthor}); save(); closeModal(); render(); toast('Link added');
+}
+/* Backup: every localStorage key → one JSON file, importable from the new admin portal (/admin → Import from backup file) */
+function exportAllData(){
+  const data = {};
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i), raw = localStorage.getItem(k); try { data[k] = JSON.parse(raw); } catch (e) { data[k] = raw; } } }
+  catch (e) { toast('Could not read this browser\'s storage'); return; }
+  const records = Object.values(data).reduce((t, v) => t + (Array.isArray(v) ? v.length : 0), 0);
+  const blob = new Blob([JSON.stringify({app:'mediabeem', format:1, exported_at:new Date().toISOString(), data}, null, 2)], {type:'application/json'});
+  saveBlobAs(blob, 'mediabeem-backup.json').then(() => toast('Backup ready — ' + records + ' records exported'));
 }
 function saveBlobAs(blob, name){
   return (async () => {
