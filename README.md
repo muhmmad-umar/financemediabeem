@@ -71,3 +71,8 @@ npm run dev:web                           # frontend on :8080 (clean URLs: /admi
 * **Admin** → *Attendance*: daily report, per-employee calendar + monthly summary (CSV export), and *Work hours* settings (start/end time, working days, alert delay, half-day hours, timezone, "count attendance from" date). The dashboard shows today's report card and red alerts (nobody checked in an hour after start, or still clocked in after the end time).
 * Only employees with an active portal account are tracked. Days before the "count attendance from" date are never marked absent.
 * Needs migration `0002_attendance.sql` (`npm run db:migrate`) and a Worker deploy.
+
+## Employee workspace
+* The employee top bar always shows a **Check In / Check Out** button (status, "since" time, today's hours, active task). Checking out asks for an optional note and the tasks worked on.
+* **Tasks** is a full ClickUp-style workspace: Spaces sidebar, *My Tasks* / *All Tasks* tabs, List / Board (drag to change status) / Calendar views and a slide-in task panel. Employees can create and delete tasks, reassign, change status, comment, tick subtasks and log time on any task, and link a task to today's attendance ("Work on this task"). They cannot create/delete Spaces or Lists, and the workspace API never returns finance, client money or salaries.
+* Needs migration `0003_workspace.sql` (`npm run db:migrate`) and a Worker deploy.

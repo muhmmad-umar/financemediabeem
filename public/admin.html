@@ -2954,6 +2954,9 @@ async function pollChanges(){
     const r = await MB.api('/api/admin/changes?since=' + lastChanges); lastChanges = r.now - 3000;
     const live = {cu_tasks:cuTasks, cu_subtasks:cuSubs, cu_comments:cuComments, cu_time_logs:cuTimeLogs}; let ch = false;
     for (const k of SHARED_KEYS) if (store.merge(k, r.changes[k] || [], live[k])) ch = true;
+    const gone = {cu_tasks:cuTasks, cu_subtasks:cuSubs, cu_comments:cuComments, cu_time_logs:cuTimeLogs};   // things an employee deleted
+    for (const [k, ids] of Object.entries(r.deleted || {})) if (gone[k]) ids.forEach(id => { const i = gone[k].findIndex(x => String(x.id) === id); if (i >= 0) { gone[k].splice(i, 1); ch = true; if (k === 'cu_tasks' && cuPanelId === id) cuPanelId = null; } if (store.snap[k]) store.snap[k].delete(id); });
+    if (ch) store.mem.cu_tasks = JSON.stringify(cuTasks), store.mem.cu_subtasks = JSON.stringify(cuSubs), store.mem.cu_comments = JSON.stringify(cuComments), store.mem.cu_time_logs = JSON.stringify(cuTimeLogs);
     const ae = document.activeElement, typing = ae && (/INPUT|TEXTAREA|SELECT/.test(ae.tagName) || ae.isContentEditable);
     if (ch && !$('overlay').classList.contains('open') && !typing) render();
   } catch (e) { /* offline — try again next tick */ }

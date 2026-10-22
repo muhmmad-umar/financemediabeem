@@ -11,11 +11,13 @@
 <body>
 <script src="config.js"></script>
 <script src="portal.js"></script>
+<script src="tasks.js"></script>
+<script src="punch.js"></script>
 <script>
 (async () => {
   const user = await MB.guard('employee');
   const { esc, fmt, fdate, $ } = MB;
-  let tasks = [], lists = {}, filter = 'open', pane = null, me = null;
+  let pane = null, curKey = '', viewSeq = 0;
   const stopPane = () => { if (pane) { pane.stop(); pane = null; } };
   const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const isDone = t => t.status_kind === 'done' || t.status_kind === 'closed';
@@ -24,55 +26,20 @@
   const A = MB.att;
   const shell = MB.shell({
     user, role: 'employee',
-    items: [{ key: 'tasks', label: 'My Tasks', icon: '✅' }, { key: 'attendance', label: 'Attendance', icon: '🕘' }, { key: 'channels', label: 'Channels', icon: '#' }, { key: 'dms', label: 'Direct Messages', icon: '💬' }, { key: 'profile', label: 'Profile', icon: '👤' }],
-    titles: { tasks: ['My Tasks', 'Everything assigned to you'], attendance: ['Attendance', 'Check in, log your day and see your history'], channels: ['Channels', 'Team channels you have been added to'], dms: ['Direct Messages', 'Chat with the admin and your teammates'], profile: ['Profile', 'Your details and salary history'] },
-    onView: key => { stopPane(); ({ tasks: viewTasks, attendance: viewAttendance, channels: viewChannels, dms: viewDms, profile: viewProfile })[key](); },
+    items: [{ key: 'tasks', label: 'Tasks', icon: '✅' }, { key: 'attendance', label: 'Attendance', icon: '🕘' }, { key: 'channels', label: 'Channels', icon: '#' }, { key: 'dms', label: 'Direct Messages', icon: '💬' }, { key: 'profile', label: 'Profile', icon: '👤' }],
+    titles: { tasks: ['Tasks', 'Spaces, lists and everything your team is working on'], attendance: ['Attendance', 'Check in, log your day and see your history'], channels: ['Channels', 'Team channels you have been added to'], dms: ['Direct Messages', 'Chat with the admin and your teammates'], profile: ['Profile', 'Your details and salary history'] },
+    onView: key => { stopPane(); curKey = key; viewSeq++; ({ tasks: viewTasks, attendance: viewAttendance, channels: viewChannels, dms: viewDms, profile: viewProfile })[key](); },
   });
 
-  /* ---------------- My Tasks ---------------- */
-  async function viewTasks() {
-    const v = $('view'); v.innerHTML = '<div class="empty">Loading…</div>';
-    try { const r = await MB.api('/api/employee/tasks'); tasks = r.tasks; lists = r.lists; } catch (e) { v.innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
-    paintTasks();
-  }
-  function paintTasks() {
-    const t0 = today(), open = tasks.filter(t => !isDone(t));
-    const shown = tasks.filter(t => filter === 'all' || (filter === 'open' ? !isDone(t) : isDone(t)));
-    const groups = filter === 'done' ? [['Completed', shown]] : [
-      ['Overdue', shown.filter(t => !isDone(t) && t.due && t.due < t0)], ['Due today', shown.filter(t => !isDone(t) && t.due === t0)],
-      ['Upcoming', shown.filter(t => !isDone(t) && t.due && t.due > t0)], ['No due date', shown.filter(t => !isDone(t) && !t.due)],
-      ['Completed', filter === 'all' ? shown.filter(isDone) : []]];
-    const row = t => { const sd = t.subtasks.filter(s => s.done).length;
-      return `<div class="row click" data-id="${esc(t.id)}">${MB.statusPill(t.status_name, t.status_color)}<div class="grow"><div class="t1">${esc(t.title)}</div><div class="t2">${esc(t.space.name || '')}${t.list.name ? ' › ' + esc(t.list.name) : ''}${t.subtasks.length ? ' · ' + sd + '/' + t.subtasks.length + ' subtasks' : ''}</div></div>
-        <div class="t2 ${!isDone(t) && t.due && t.due < t0 ? 'due-late' : ''}">${t.due ? fdate(t.due) : ''}</div></div>`; };
-    $('view').innerHTML = `<div class="grid" style="margin-bottom:16px"><div class="stat"><div class="l">Open tasks</div><div class="v">${open.length}</div></div>
-      <div class="stat"><div class="l">Overdue</div><div class="v" style="color:${open.some(t => t.due && t.due < t0) ? 'var(--red)' : '#fff'}">${open.filter(t => t.due && t.due < t0).length}</div></div>
-      <div class="stat"><div class="l">Completed</div><div class="v">${tasks.length - open.length}</div></div></div>
-      <div class="tabs">${[['open', 'Open'], ['done', 'Completed'], ['all', 'All']].map(([k, l]) => `<button class="${filter === k ? 'on' : ''}" data-f="${k}">${l}</button>`).join('')}</div>
-      ${groups.filter(g => g[1].length).map(([n, a]) => `<div class="card task-sec"><h4>${n} · ${a.length}</h4>${a.map(row).join('')}</div>`).join('') || '<div class="card empty">Nothing here — you are all caught up. 🎉</div>'}`;
-    $('view').querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; paintTasks(); });
-    $('view').querySelectorAll('.row.click').forEach(r => r.onclick = () => openTask(r.dataset.id));
-  }
-  function openTask(id) {
-    const t = tasks.find(x => x.id === id); if (!t) return;
-    const sts = (lists[t.list.id] || {}).statuses || [];
-    MB.openModal(`<h2>${esc(t.title)}</h2>
-      <div class="t2" style="margin-bottom:12px">${esc(t.space.name || '')}${t.list.name ? ' › ' + esc(t.list.name) : ''}${t.due ? ' · Due ' + fdate(t.due) : ''}${t.priority && t.priority !== 'normal' ? ' · ' + esc(t.priority) + ' priority' : ''}</div>
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px"><label class="muted" for="stSel">Status</label><select id="stSel" style="width:auto">${sts.map(s => `<option value="${esc(s.id)}" ${s.id === t.status ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>
-        ${isDone(t) ? '' : `<button class="btn sm" id="doneBtn">Mark complete</button>`}</div>
-      ${t.description ? `<div class="task-sec"><h4>Description</h4><div class="desc">${MB.sanitize(t.description)}</div></div>` : ''}
-      ${t.subtasks.length ? `<div class="task-sec"><h4>Subtasks</h4>${t.subtasks.map(s => `<label class="sub"><input type="checkbox" data-sub="${esc(s.id)}" ${s.done ? 'checked' : ''}><span style="${s.done ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(s.title)}</span></label>`).join('')}</div>` : ''}
-      <div class="task-sec"><h4>Activity &amp; comments</h4><div id="cms">${t.comments.map(c => c.kind === 'activity' ? `<div class="cm act">${esc(c.by)} ${esc(c.text)} <span class="at">${MB.fmtTs(c.at)}</span></div>` : `<div class="cm"><span class="by">${esc(c.by)}</span><span class="at">${MB.fmtTs(c.at)}</span><div style="white-space:pre-wrap">${esc(c.text)}</div></div>`).join('') || '<div class="muted">No comments yet.</div>'}</div></div>
-      <form id="cmForm" style="display:flex;gap:8px"><textarea id="cmIn" rows="2" placeholder="Write a comment…" maxlength="4000" required></textarea><button class="btn">Post</button></form>
-      <div class="modal-actions"><button class="btn ghost" id="closeBtn">Close</button></div>`);
-    const upd = r => { const nt = r.tasks[0]; tasks = tasks.map(x => x.id === id ? nt : x); paintTasks(); openTask(id); };
-    $('closeBtn').onclick = MB.closeModal;
-    $('stSel').onchange = async e => { try { upd(await MB.api('/api/employee/tasks/' + id, { method: 'PATCH', body: { status: e.target.value } })); } catch (er) { MB.toast(er.message); } };
-    const db = $('doneBtn'); if (db) db.onclick = async () => { const d = sts.find(s => s.kind === 'done'); if (!d) return MB.toast('This list has no “done” status'); try { upd(await MB.api('/api/employee/tasks/' + id, { method: 'PATCH', body: { status: d.id } })); } catch (er) { MB.toast(er.message); } };
-    $('modal').querySelectorAll('[data-sub]').forEach(cb => cb.onchange = async () => { try { await MB.api('/api/employee/subtasks/' + cb.dataset.sub, { method: 'PATCH', body: { done: cb.checked } }); t.subtasks.find(s => s.id === cb.dataset.sub).done = cb.checked; paintTasks(); openTask(id); } catch (er) { MB.toast(er.message); cb.checked = !cb.checked; } });
-    $('cmForm').onsubmit = async e => { e.preventDefault(); const text = $('cmIn').value.trim(); if (!text) return; try { const c = await MB.api('/api/employee/tasks/' + id + '/comments', { method: 'POST', body: { text } }); t.comments.push({ id: c.id, by: c.by, text: c.text, at: c.at, kind: 'comment' }); openTask(id); } catch (er) { MB.toast(er.message); } };
-  }
+  MB.punch.mount($('topRight'));
+  MB.punch.listeners.push(() => { if (curKey === 'attendance') viewAttendance(); });
 
+  /* ---------------- Tasks (full workspace) ---------------- */
+  async function viewTasks() {
+    const seq = viewSeq; $('view').innerHTML = '<div class="empty">Loading…</div>';
+    const p = await MB.tasks.mount($('view'));
+    if (seq !== viewSeq) p.stop(); else { pane = p; MB.punch.openActive = id => { if (curKey === 'tasks' && pane && pane.openTask) pane.openTask(id); else { MB.openTaskId = id; shell.go('tasks'); } }; if (MB.openTaskId && p.openTask) { const id = MB.openTaskId; MB.openTaskId = null; p.openTask(id); } }
+  }
 
   /* ---------------- Attendance ---------------- */
   let attMonth = null;
@@ -103,13 +70,9 @@
       <button class="btn" id="saveRep" ${log ? '' : 'disabled'}>Save report</button></div>
     <div class="card"><h3>History</h3>${rec ? `<div class="ac-nav"><button class="btn ghost sm" id="mPrev">‹</button><b>${A.monthLabel(attMonth)}</b><button class="btn ghost sm" id="mNext">›</button></div>${A.summaryHtml(A.summary(attMonth, rec.ctx))}${A.calendar(attMonth, rec.ctx)}` : '<div class="muted">Could not load history.</div>'}</div>`;
     const reload = () => viewAttendance();
-    $('punchBtn').onclick = async () => {
-      const b = $('punchBtn'); b.disabled = true;
-      try { const r = await MB.api('/api/employee/attendance/' + (open ? 'check-out' : 'check-in'), { method: 'POST' }); if (r.notice) MB.toast(r.notice); else MB.toast(open ? 'Checked out — have a good evening' : 'Checked in — have a productive day'); await reload(); }
-      catch (e) { MB.toast(e.message); b.disabled = false; reload(); }
-    };
+    $('punchBtn').onclick = () => MB.punch.toggle();   // same flow as the top-bar button (asks for a note when checking out)
     $('saveRep').onclick = async () => {
-      try { await MB.api('/api/employee/attendance/report', { method: 'PUT', body: { activity_note: $('actNote').value, task_ids: [...document.querySelectorAll('[data-t]:checked')].map(c => c.dataset.t) } }); MB.toast('Report saved'); } catch (e) { MB.toast(e.message); }
+      try { await MB.api('/api/employee/attendance/report', { method: 'PUT', body: { activity_note: $('actNote').value, task_ids: [...document.querySelectorAll('[data-t]:checked')].map(c => c.dataset.t) } }); MB.toast('Report saved'); MB.punch.refresh().catch(() => {}); } catch (e) { MB.toast(e.message); }
     };
     if (open) { const base = Date.now(); pane = { timer: setInterval(() => { const el = $('liveH'); if (el) el.textContent = A.fmtH(A.liveHours(log, new Date(Date.parse(td.now.iso) + Date.now() - base).toISOString())); }, 15000), stop() { clearInterval(this.timer); } }; }
     if (rec) {

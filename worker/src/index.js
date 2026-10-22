@@ -262,9 +262,10 @@ async function adminSync(req, env) {
   return { ok: true, ts };
 }
 async function adminChanges(env, since) {
-  const out = {};
+  const out = {}, deleted = {};
   for (const key of SHARED_KEYS) out[key] = await loadCollection(env, key, since);
-  return { changes: out, now: Date.now() };
+  (await env.DB.prepare('SELECT key,id FROM tombstones WHERE ts>?').bind(since).all()).results.forEach(r => { (deleted[r.key] = deleted[r.key] || []).push(r.id); });
+  return { changes: out, deleted, now: Date.now() };
 }
 async function adminImport(req, env, admin) {
   const { collections, settings } = await readBody(req);
@@ -440,11 +441,11 @@ async function empTaskRows(env, employeeId, taskId) {
   const sql = `SELECT t.data FROM tasks t WHERE EXISTS (SELECT 1 FROM json_each(t.data, '$.assignees') j WHERE j.value = ?)${taskId ? ' AND t.id = ?' : ''} ORDER BY t.due_date IS NULL, t.due_date, t.rowid`;
   return (await env.DB.prepare(sql).bind(...(taskId ? [employeeId, taskId] : [employeeId])).all()).results;
 }
-async function ownTask(env, user, taskId) {
+async function ownTask(env, user, taskId) {   // employees work on every task, not only the ones assigned to them
   if (!user.linked_id) throw forbidden('Your account is not linked to an employee record');
-  const rows = await empTaskRows(env, user.linked_id, taskId);
-  if (!rows.length) throw forbidden('That task is not assigned to you');
-  return safeJson(rows[0].data, null);
+  const r = await env.DB.prepare('SELECT data FROM tasks WHERE id=?').bind(taskId).first();
+  if (!r) throw notFound('Task not found');
+  return safeJson(r.data, null);
 }
 async function employeeMe(env, user) {
   const e = user.linked_id ? await env.DB.prepare('SELECT data FROM employees WHERE id=?').bind(user.linked_id).first() : null;
@@ -566,7 +567,7 @@ async function refreshLog(env, logId, settings) {
   await env.DB.prepare('UPDATE attendance_logs SET check_in=?,check_out=?,total_hours=?,status=?,updated_at=? WHERE id=?').bind(r.check_in, r.check_out, r.total_hours, r.status, Date.now(), logId).run();
 }
 async function attLogs(env, where, binds) {
-  const logs = (await env.DB.prepare(`SELECT id,employee_id,date,check_in,check_out,total_hours,status,activity_note FROM attendance_logs WHERE ${where} ORDER BY date, check_in`).bind(...binds).all()).results;
+  const logs = (await env.DB.prepare(`SELECT id,employee_id,date,check_in,check_out,total_hours,status,activity_note,active_task_id FROM attendance_logs WHERE ${where} ORDER BY date, check_in`).bind(...binds).all()).results;
   const sess = {}, tasks = {};
   for (const part of chunk(logs.map(l => l.id), 80)) {
     const q = part.map(() => '?').join(',');
@@ -597,7 +598,11 @@ async function empAttendanceToday(env, user) {
   const [log] = await attLogs(env, 'employee_id=? AND date=?', [empId, now.date]);
   const stale = await env.DB.prepare(`SELECT l.date, x.check_in FROM attendance_sessions x JOIN attendance_logs l ON l.id=x.attendance_id WHERE l.employee_id=? AND x.check_out IS NULL AND l.date<? LIMIT 1`).bind(empId, now.date).first();
   const rows = await empTaskRows(env, empId);
-  const my_tasks = rows.map(r => safeJson(r.data, null)).filter(Boolean).map(t => ({ id: t.id, title: t.title, due: t.due || '', status: t.status }));
+  const mineT = rows.map(r => safeJson(r.data, null)).filter(Boolean).map(t => ({ id: t.id, title: t.title, due: t.due || '', status: t.status }));
+  const extra = (log ? log.task_ids : []).filter(id => !mineT.some(t => t.id === id));   // tasks linked to today's log that are not assigned to them
+  if (log && log.active_task_id && !extra.includes(log.active_task_id) && !mineT.some(t => t.id === log.active_task_id)) extra.push(log.active_task_id);
+  for (const id of extra) { const r = await env.DB.prepare('SELECT data FROM tasks WHERE id=?').bind(id).first(), t = r && safeJson(r.data, null); if (t) mineT.push({ id: t.id, title: t.title, due: t.due || '', status: t.status }); }
+  const my_tasks = mineT;
   return { settings, now, log: log || null, stale_open: stale || null, my_tasks };
 }
 async function empCheckIn(env, user) {
@@ -627,8 +632,9 @@ async function empReport(req, env, user) {
   const log = await env.DB.prepare('SELECT id FROM attendance_logs WHERE employee_id=? AND date=?').bind(empId, date).first();
   if (!log) throw bad('Check in first — there is no attendance record for that day');
   const note = String(b.activity_note || '').slice(0, 4000);
-  const mine = new Set((await empTaskRows(env, empId)).map(r => safeJson(r.data, {}).id));
-  const ids = [...new Set((Array.isArray(b.task_ids) ? b.task_ids : []).map(String))].filter(id => mine.has(id)).slice(0, 100);
+  const asked = [...new Set((Array.isArray(b.task_ids) ? b.task_ids : []).map(String))].slice(0, 100), real = new Set();
+  for (const part of chunk(asked, 80)) (await env.DB.prepare(`SELECT id FROM tasks WHERE id IN (${part.map(() => '?').join(',')})`).bind(...part).all()).results.forEach(t => real.add(t.id));
+  const ids = asked.filter(id => real.has(id));
   await env.DB.batch([env.DB.prepare('UPDATE attendance_logs SET activity_note=?,updated_at=? WHERE id=?').bind(note, Date.now(), log.id), env.DB.prepare('DELETE FROM attendance_task_logs WHERE attendance_id=?').bind(log.id),
     ...ids.map(t => env.DB.prepare('INSERT INTO attendance_task_logs (attendance_id,task_id) VALUES (?,?)').bind(log.id, t))]);
   return empAttendanceToday(env, user);
@@ -699,6 +705,116 @@ async function adminDeleteDay(env, id) {
   return { ok: true };
 }
 
+/* -------------------------------------------------- employee workspace (full task management) */
+const PRIORITIES = ['urgent', 'high', 'normal', 'low'];
+/** descriptions are HTML shown inside the admin app too → rebuild them from an allow-list, no attributes except safe link hrefs */
+function cleanHtml(html) {
+  const OK = new Set(['p', 'br', 'b', 'strong', 'i', 'em', 'u', 's', 'ul', 'ol', 'li', 'div', 'h1', 'h2', 'h3', 'blockquote', 'code', 'pre']);
+  const esc = t => t.replace(/&(?!amp;|lt;|gt;|quot;|#\d+;)/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let out = '', last = 0, openA = 0; const re = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)([^>]*)>/g, str = String(html || '').slice(0, 20000); let m;
+  while ((m = re.exec(str))) {
+    out += esc(str.slice(last, m.index)); last = re.lastIndex;
+    const name = m[2].toLowerCase();
+    if (OK.has(name)) out += `<${m[1]}${name}>`;
+    else if (name === 'a') { if (m[1]) { if (openA) { openA--; out += '</a>'; } } else { const href = /href\s*=\s*"(https?:\/\/[^"\s<>']+)"/i.exec(m[3]); if (href) { openA++; out += `<a href="${href[1]}" target="_blank" rel="noopener noreferrer">`; } } }
+  }
+  return out + esc(str.slice(last)) + '</a>'.repeat(openA);
+}
+async function activity(env, user, taskId, text) { await addComment(env, taskId, { by: user.name, author_id: user.id, text, kind: 'activity' }); }
+async function tomb(env, key, ids) { const ts = Date.now(); for (const part of chunk(ids, 40)) if (part.length) await env.DB.batch(part.map(id => env.DB.prepare('INSERT OR REPLACE INTO tombstones (key,id,ts) VALUES (?,?,?)').bind(key, String(id), ts))); }
+
+async function workspace(env, user) {
+  const spaces = (await env.DB.prepare('SELECT data FROM cu_spaces ORDER BY rowid').all()).results.map(r => safeJson(r.data, null)).filter(Boolean).map(s => ({ id: s.id, name: s.name, color: s.color || '' }));   // no client link → nothing about the client's money
+  const lists = (await env.DB.prepare('SELECT data FROM cu_lists ORDER BY rowid').all()).results.map(r => safeJson(r.data, null)).filter(Boolean).map(l => ({ id: l.id, spaceId: l.spaceId, name: l.name, color: l.color || '', statuses: l.statuses || [] }));
+  const tasks = (await env.DB.prepare('SELECT data FROM tasks ORDER BY rowid').all()).results.map(r => safeJson(r.data, null)).filter(Boolean).map(t => ({
+    id: t.id, listId: t.listId, title: t.title, status: t.status, assignees: t.assignees || [], due: t.due || '', priority: t.priority || 'normal', tags: t.tags || [], estimate: t.estimate || 0, created: t.created || '', repeat: t.repeat || '' }));
+  const subs = {}; (await env.DB.prepare('SELECT task_id, COUNT(*) n, SUM(completed) d FROM subtasks GROUP BY task_id').all()).results.forEach(r => { subs[r.task_id] = [r.n, r.d || 0]; });
+  const people = (await env.DB.prepare('SELECT id,name,data FROM employees ORDER BY name').all()).results.map(e => ({ id: e.id, name: e.name, d: safeJson(e.data, {}) })).filter(e => !e.d.archived && (e.d.status === 'Active' || e.d.status === 'On Leave')).map(e => ({ id: e.id, name: e.name }));   // names only — never salary or HR data
+  return { me: user.linked_id, spaces, lists, tasks: tasks.map(t => ({ ...t, sub_total: (subs[t.id] || [0, 0])[0], sub_done: (subs[t.id] || [0, 0])[1] })), people };
+}
+async function taskDetail(env, user, id) {
+  const task = await ownTask(env, user, id);
+  const subtasks = (await env.DB.prepare('SELECT id,title,completed FROM subtasks WHERE task_id=? ORDER BY rowid').bind(id).all()).results.map(s => ({ id: s.id, title: s.title, done: !!s.completed }));
+  const comments = (await env.DB.prepare('SELECT id,author_id,author_name,text,timestamp,kind FROM task_comments WHERE task_id=? ORDER BY timestamp').bind(id).all()).results.map(c => ({ id: c.id, by: c.author_name, author_id: c.author_id, text: c.text, at: c.timestamp, kind: c.kind }));
+  const time = (await env.DB.prepare('SELECT data FROM task_time_logs WHERE task_id=? ORDER BY rowid').bind(id).all()).results.map(r => safeJson(r.data, null)).filter(Boolean);
+  const list = await loadList(env, task.listId);
+  return { task: { ...task, description: task.description || '' }, subtasks, comments, time_logs: time, statuses: list ? list.statuses || [] : [] };
+}
+async function createTask(req, env, user) {
+  const b = await readBody(req), list = await loadList(env, String(b.list_id || ''));
+  if (!list) throw bad('Pick a list for the task');
+  const title = String(b.title || '').trim().slice(0, 300); if (!title) throw bad('Give the task a title');
+  const first = (list.statuses || []).find(s => s.kind === 'open') || (list.statuses || [])[0];
+  const status = b.status && (list.statuses || []).some(s => s.id === b.status) ? b.status : (first ? first.id : '');
+  const t = { id: uid(), listId: list.id, title, description: cleanHtml(b.description), assignees: await validAssignees(env, b.assignees), due: isDate(b.due) ? b.due : '', start: '', priority: PRIORITIES.includes(b.priority) ? b.priority : 'normal', status, tags: [], estimate: 0, repeat: '', repeatDays: 7, created: nowIso() };
+  await writeTask(env, t); await activity(env, user, t.id, 'created this task');
+  return taskDetail(env, user, t.id);
+}
+async function validAssignees(env, ids) {
+  const want = [...new Set((Array.isArray(ids) ? ids : []).map(String))].slice(0, 30); if (!want.length) return [];
+  return (await env.DB.prepare(`SELECT id FROM employees WHERE id IN (${want.map(() => '?').join(',')})`).bind(...want).all()).results.map(r => r.id);
+}
+async function patchTask(req, env, user, id) {
+  const b = await readBody(req), t = await ownTask(env, user, id), list = await loadList(env, t.listId), names = {};
+  (await env.DB.prepare('SELECT id,name FROM employees').all()).results.forEach(e => { names[e.id] = e.name; });
+  if (b.title !== undefined) { const v = String(b.title).trim().slice(0, 300); if (!v) throw bad('Title cannot be empty'); if (v !== t.title) { t.title = v; } }
+  if (b.description !== undefined) t.description = cleanHtml(b.description);
+  if (b.due !== undefined) { const v = b.due === '' || b.due === null ? '' : String(b.due); if (v && !isDate(v)) throw bad('Invalid due date'); if (v !== (t.due || '')) { t.due = v; await activity(env, user, id, v ? 'changed the due date to ' + v : 'cleared the due date'); } }
+  if (b.priority !== undefined) { if (!PRIORITIES.includes(b.priority)) throw bad('Invalid priority'); if (b.priority !== (t.priority || 'normal')) { t.priority = b.priority; await activity(env, user, id, 'set priority to ' + b.priority); } }
+  if (b.assignees !== undefined) {
+    const next = await validAssignees(env, b.assignees), prev = t.assignees || [];
+    if (next.join() !== prev.join()) { t.assignees = next; const add = next.filter(x => !prev.includes(x)).map(x => names[x]), rem = prev.filter(x => !next.includes(x)).map(x => names[x]).filter(Boolean);
+      await activity(env, user, id, [add.length ? 'assigned ' + add.join(', ') : '', rem.length ? 'unassigned ' + rem.join(', ') : ''].filter(Boolean).join(' · ') || 'cleared the assignees'); }
+  }
+  if (b.tags !== undefined && Array.isArray(b.tags)) t.tags = b.tags.map(x => String(x).trim().slice(0, 40)).filter(Boolean).slice(0, 20);
+  if (b.estimate !== undefined) { const v = +b.estimate; if (!(v >= 0 && v <= 10000)) throw bad('Invalid estimate'); t.estimate = v; }
+  if (b.status !== undefined && b.status !== t.status) { if (!list || !(list.statuses || []).some(s => s.id === b.status)) throw bad('That status does not exist in this list'); await setTaskStatus(env, user, t, String(b.status)); }
+  else await writeTask(env, t);
+  return taskDetail(env, user, id);
+}
+async function deleteTask(env, user, id) {
+  await ownTask(env, user, id);
+  const sub = (await env.DB.prepare('SELECT id FROM subtasks WHERE task_id=?').bind(id).all()).results.map(r => r.id), cm = (await env.DB.prepare('SELECT id FROM task_comments WHERE task_id=?').bind(id).all()).results.map(r => r.id), tl = (await env.DB.prepare('SELECT id FROM task_time_logs WHERE task_id=?').bind(id).all()).results.map(r => r.id);
+  await env.DB.batch([env.DB.prepare('DELETE FROM subtasks WHERE task_id=?').bind(id), env.DB.prepare('DELETE FROM task_comments WHERE task_id=?').bind(id), env.DB.prepare('DELETE FROM task_time_logs WHERE task_id=?').bind(id),
+    env.DB.prepare('DELETE FROM attendance_task_logs WHERE task_id=?').bind(id), env.DB.prepare('UPDATE attendance_logs SET active_task_id=NULL WHERE active_task_id=?').bind(id), env.DB.prepare('DELETE FROM tasks WHERE id=?').bind(id)]);
+  await tomb(env, 'cu_tasks', [id]); await tomb(env, 'cu_subtasks', sub); await tomb(env, 'cu_comments', cm); await tomb(env, 'cu_time_logs', tl);
+  return { ok: true };
+}
+async function addSubtask(req, env, user, taskId) {
+  await ownTask(env, user, taskId); const title = String((await readBody(req)).title || '').trim().slice(0, 300); if (!title) throw bad('Write the subtask');
+  const s = { id: uid(), taskId, title, done: false }, c = COLLECTIONS.cu_subtasks;
+  await upsertStmt(env, c).bind(s.id, ...c.row(s), JSON.stringify(s), Date.now()).run(); return { subtask: s };
+}
+async function patchSubtask(req, env, user, id) {
+  const row = await env.DB.prepare('SELECT data FROM subtasks WHERE id=?').bind(id).first(), s = row && safeJson(row.data, null); if (!s) throw notFound();
+  await ownTask(env, user, s.taskId); const b = await readBody(req);
+  if (b.done !== undefined) s.done = !!b.done; if (b.title !== undefined && String(b.title).trim()) s.title = String(b.title).trim().slice(0, 300);
+  const c = COLLECTIONS.cu_subtasks; await upsertStmt(env, c).bind(s.id, ...c.row(s), JSON.stringify(s), Date.now()).run(); return { subtask: { id: s.id, title: s.title, done: s.done } };
+}
+async function deleteSubtask(env, user, id) {
+  const row = await env.DB.prepare('SELECT data FROM subtasks WHERE id=?').bind(id).first(), s = row && safeJson(row.data, null); if (!s) throw notFound();
+  await ownTask(env, user, s.taskId); await env.DB.prepare('DELETE FROM subtasks WHERE id=?').bind(id).run(); await tomb(env, 'cu_subtasks', [id]); return { ok: true };
+}
+async function logTime(req, env, user, taskId) {
+  await ownTask(env, user, taskId); const b = await readBody(req), hours = +b.hours;
+  if (!(hours > 0 && hours <= 24)) throw bad('Enter hours between 0 and 24');
+  const settings = await getWorkSettings(env), t = { id: uid(), taskId, hours: Math.round(hours * 100) / 100, date: isDate(b.date) ? b.date : attNow(settings).date, note: String(b.note || '').trim().slice(0, 500), by: user.name, author_id: user.id }, c = COLLECTIONS.cu_time_logs;
+  await upsertStmt(env, c).bind(t.id, ...c.row(t), JSON.stringify(t), Date.now()).run(); return { time_log: t };
+}
+async function deleteTime(env, user, id) {
+  const row = await env.DB.prepare('SELECT data FROM task_time_logs WHERE id=?').bind(id).first(), t = row && safeJson(row.data, null); if (!t) throw notFound();
+  if (t.author_id && t.author_id !== user.id) throw forbidden('You can only remove your own time entries');
+  await env.DB.prepare('DELETE FROM task_time_logs WHERE id=?').bind(id).run(); await tomb(env, 'cu_time_logs', [id]); return { ok: true };
+}
+async function linkActiveTask(req, env, user) {
+  const empId = needEmp(user), b = await readBody(req), settings = await getWorkSettings(env), now = attNow(settings);
+  const log = await env.DB.prepare('SELECT id FROM attendance_logs WHERE employee_id=? AND date=?').bind(empId, now.date).first();
+  if (!log) throw bad('Check in first, then pick the task you are working on');
+  if (b.task_id) { await ownTask(env, user, String(b.task_id)); await env.DB.batch([env.DB.prepare('UPDATE attendance_logs SET active_task_id=?,updated_at=? WHERE id=?').bind(String(b.task_id), Date.now(), log.id), env.DB.prepare('INSERT OR IGNORE INTO attendance_task_logs (attendance_id,task_id) VALUES (?,?)').bind(log.id, String(b.task_id))]); }
+  else await env.DB.prepare('UPDATE attendance_logs SET active_task_id=NULL,updated_at=? WHERE id=?').bind(Date.now(), log.id).run();
+  return empAttendanceToday(env, user);
+}
+
 /* ------------------------------------------------------------------ router */
 async function route(req, env, url) {
   const path = url.pathname.replace(/\/+$/, '') || '/', method = req.method, seg = path.split('/').filter(Boolean);
@@ -760,13 +876,18 @@ async function route(req, env, url) {
       const task = await ownTask(env, user, seg[3]); const { text } = await readBody(req);
       return addComment(env, task.id, { by: user.name, author_id: user.id, text: cleanText(text) });
     }
-    if (seg[2] === 'subtasks' && seg[3] && method === 'PATCH') {
-      const row = await env.DB.prepare('SELECT data FROM subtasks WHERE id=?').bind(seg[3]).first(); const s = row && safeJson(row.data, null);
-      if (!s) throw notFound(); await ownTask(env, user, s.taskId);
-      const { done } = await readBody(req); s.done = !!done; const c = COLLECTIONS.cu_subtasks;
-      await upsertStmt(env, c).bind(s.id, ...c.row(s), JSON.stringify(s), Date.now()).run();
-      return { ok: true, subtask: { id: s.id, title: s.title, done: s.done } };
-    }
+    if (seg[2] === 'subtasks' && seg[3] && method === 'PATCH') return patchSubtask(req, env, user, seg[3]);
+    if (r === 'workspace' && method === 'GET') return workspace(env, user);
+    if (r === 'task' && method === 'POST') return createTask(req, env, user);
+    if (seg[2] === 'task' && seg[3] && seg.length === 4 && method === 'GET') return taskDetail(env, user, seg[3]);
+    if (seg[2] === 'task' && seg[3] && seg.length === 4 && method === 'PATCH') return patchTask(req, env, user, seg[3]);
+    if (seg[2] === 'task' && seg[3] && seg.length === 4 && method === 'DELETE') return deleteTask(env, user, seg[3]);
+    if (seg[2] === 'task' && seg[3] && seg[4] === 'subtasks' && method === 'POST') return addSubtask(req, env, user, seg[3]);
+    if (seg[2] === 'task' && seg[3] && seg[4] === 'comments' && method === 'POST') { const t = await ownTask(env, user, seg[3]); return addComment(env, t.id, { by: user.name, author_id: user.id, text: cleanText((await readBody(req)).text) }); }
+    if (seg[2] === 'task' && seg[3] && seg[4] === 'time' && method === 'POST') return logTime(req, env, user, seg[3]);
+    if (seg[2] === 'time' && seg[3] && method === 'DELETE') return deleteTime(env, user, seg[3]);
+    if (seg[2] === 'subtasks' && seg[3] && method === 'DELETE') return deleteSubtask(env, user, seg[3]);
+    if (r === 'attendance/link-task' && method === 'POST') return linkActiveTask(req, env, user);
     if (r === 'attendance/today' && method === 'GET') return empAttendanceToday(env, user);
     if (r === 'attendance/check-in' && method === 'POST') return empCheckIn(env, user);
     if (r === 'attendance/check-out' && method === 'POST') return empCheckOut(env, user);
