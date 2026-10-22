@@ -122,6 +122,104 @@ main{margin-left:240px;flex:1;padding:26px 30px 50px;min-width:0}
 .dn{font-size:12px;font-weight:700;color:var(--muted)}.cald.today .dn{color:var(--teal)}
 .cchip{color:#fff;font-size:11px;border-radius:5px;padding:1px 6px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 @media(max-width:640px){.cald{min-height:60px}.cchip{font-size:9px;padding:0 3px}}
+/* ---- Tasks workspace (ClickUp style) ---- */
+main.cu{padding:0}
+main.cu .topbar{display:none}
+@media(max-width:820px){main.cu .topbar{display:flex;padding:8px 12px;margin:0}}
+.cu-wrap{display:flex;min-height:100vh;background:#f7f8fa}
+.cu-tree{width:264px;flex:none;background:#1a2332;color:#cbd5e1;height:100vh;position:sticky;top:0;overflow:auto;padding:10px 8px;font-size:13px}
+.tr-row{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:7px;cursor:pointer;min-height:30px}
+.tr-row:hover{background:#243247}.tr-row.sel{background:#33405a;color:#fff}
+.tr-row.top{font-weight:600;color:#e2e8f0}.tr-row.fo{padding-left:20px}.tr-row.li{padding-left:40px}
+.tr-row .arr{width:10px;font-size:10px;color:#64748b}.tr-row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-row .cnt{font-size:11px;color:#64748b}
+.tr-row .acts{display:none;gap:2px}.tr-row:hover .acts{display:flex}
+.tr-row .acts button,.tr-sec button{background:none;border:0;color:#94a3b8;font-size:14px;padding:0 5px;border-radius:4px;line-height:1.4}
+.tr-row .acts button:hover,.tr-sec button:hover{background:#33405a;color:#fff}
+.tr-sec{display:flex;justify-content:space-between;align-items:center;margin:16px 8px 4px;font-size:10px;font-weight:700;letter-spacing:.14em;color:#64748b}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;cursor:pointer;display:inline-block}
+.cu-main{flex:1;min-width:0;padding:16px 22px 90px;transition:margin .25s}
+.cu-treebtn{display:none;margin-bottom:10px}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:2px}
+.cu-title{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}.cu-title h1{font-size:22px}
+.cu-bar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:12px}
+.cu-tabs{display:flex;gap:2px}
+.cu-tabs button{background:none;border:0;padding:8px 14px;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent}
+.cu-tabs button.on{color:#7b68ee;border-color:#7b68ee}
+.cu-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cu-sel{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}.cu-sel select{width:auto;padding:5px 8px;font-size:12px}
+.cu-search{width:170px;padding:6px 10px;font-size:12px}
+.cu-fpanel{display:flex;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:12px}
+.cu-fpanel select{width:auto;font-size:12px;padding:6px 8px}
+.spill{display:inline-block;color:#fff;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 9px;border-radius:5px;white-space:nowrap}
+.cu-board{display:flex;gap:12px;overflow-x:auto;align-items:flex-start;padding-bottom:12px}
+.cu-col{flex:0 0 268px;background:#eceef3;border-radius:10px;padding:8px;min-height:90px;transition:background .15s,box-shadow .15s}
+.cu-col.over{background:#dfe3f3;box-shadow:inset 0 0 0 2px #7b68ee}
+.chead{display:flex;align-items:center;gap:8px;margin:2px 4px 8px}
+.cu-card{background:#fff;border:1px solid #e4e7ee;border-radius:8px;padding:9px 10px;margin-bottom:7px;cursor:grab;font-size:13px;transition:box-shadow .15s,transform .15s}
+.cu-card:hover{box-shadow:0 3px 10px rgba(15,23,42,.12)}.cu-card.dragging{opacity:.4;transform:rotate(2deg)}
+.cu-card.overdue{background:#fef2f2;border-color:#fca5a5}.cu-card.today{background:#fffbeb;border-color:#f4c542}
+.ct{font-weight:600;line-height:1.3}.ctags{margin-top:5px}
+.cm{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;flex-wrap:wrap}
+.clist{font-size:11px;margin-left:auto}
+.cdue{color:var(--muted);font-size:12px}.cdue.od{color:#dc2626;font-weight:700}.cdue.td{color:#b45309;font-weight:700}
+.cadd{width:100%;text-align:left;background:none;border:0;color:var(--muted);font-size:12px;padding:7px 6px;border-radius:6px}.cadd:hover{background:#dfe3ec;color:var(--text)}
+.cu-table{background:#fff;border:1px solid var(--line);border-radius:10px;overflow-x:auto}
+.cu-table table{font-size:13px}
+.cu-table th{padding:8px 10px;background:#fafbfc;white-space:nowrap;user-select:none}
+.cu-table td{padding:5px 10px;border-bottom:1px solid #f1f3f6}
+.ghead td{background:#f7f8fa;padding:7px 10px;border-bottom:1px solid var(--line)}
+.trow.overdue td{background:#fef2f2}.trow.today td{background:#fffbeb}
+.trow:hover td{background:#f5f6fb}.trow.overdue:hover td{background:#fee2e2}
+.tname{min-width:240px}.tname .ttl{cursor:pointer;font-weight:500}.tname .ttl:hover{color:#7b68ee}
+.tname .arrow{display:inline-block;width:16px;cursor:pointer;color:var(--muted);font-size:11px}
+.tname input{width:90%}
+.cell{display:inline-block;min-width:30px;min-height:22px;cursor:pointer;padding:1px 4px;border-radius:5px}.cell:hover{background:#eef0f6}
+.cu-table select,.cu-table td input[data-edit]{padding:3px 6px;font-size:12px;width:auto}
+.subrow td{background:#fcfcfe;padding:3px 10px}.subrow label{display:flex;gap:8px;align-items:center;margin:0 0 0 38px;color:var(--text);font-weight:400}.subrow input{width:auto}
+.addrow td{border-bottom:0}.addrow .qadd{width:100%;border:0;background:transparent;padding:6px 4px}.addrow .qadd:focus{background:#f5f6fb}
+.cu-table input[type=checkbox],.cu-panel input[type=checkbox]{width:auto}
+.cu-bulk{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:8px 12px;margin-bottom:10px}
+.cu-bulk select{width:auto;font-size:12px;padding:5px 8px}
+.cu-cal{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px}
+.calbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.fab{position:fixed;right:26px;bottom:26px;width:52px;height:52px;border-radius:50%;border:0;background:#7b68ee;color:#fff;font-size:30px;line-height:1;box-shadow:0 6px 18px rgba(123,104,238,.5);z-index:40;transition:right .25s,transform .15s}
+.fab:hover{transform:scale(1.08)}
+main:not(.cu) .fab{display:none}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}.swatches input{display:none}
+.swatches span{display:block;width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent}
+.swatches input:checked+span{border-color:#0f172a}
+.strow{display:flex;gap:6px;align-items:center;margin-bottom:8px}.strow input[type=color]{width:38px;height:34px;padding:2px;flex:none}.strow select{width:auto}
+/* right-hand task panel */
+.cu-panel{position:fixed;top:0;right:0;bottom:0;width:min(520px,100vw);background:#fff;box-shadow:-8px 0 30px rgba(15,23,42,.18);transform:translateX(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);z-index:45;overflow-y:auto;border-left:1px solid var(--line)}
+.cu-panel.open{transform:none}
+@media(min-width:1280px){body.cu-panel-open main.cu .cu-main{margin-right:520px}body.cu-panel-open .fab{right:546px}}
+.ph{display:flex;gap:8px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:2}
+.ptitle{font-size:18px;font-weight:700;border-color:transparent;flex:1}.ptitle:hover,.ptitle:focus{border-color:var(--line)}
+.pclose{background:#f1f3f7;border:0;border-radius:8px;width:32px;height:32px;font-size:15px}
+.pbody{padding:14px 18px 40px}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+.pf span{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.pf select,.pf input{padding:6px 8px;font-size:13px}
+.stsel{color:#fff;font-weight:700;text-transform:uppercase;font-size:12px!important;border:0}
+.tagbox{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.tagbox input{width:90px;border:0;padding:3px 4px}
+.tagchip a{cursor:pointer;opacity:.6;margin-left:2px}
+.psec{font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--muted);margin:18px 0 8px}
+.logform{display:flex;gap:6px;margin-top:10px}.logform input{padding:6px 8px;font-size:12px}
+.loglist{margin-top:8px;font-size:12px}.loglist div{display:flex;gap:10px;padding:3px 0;border-bottom:1px dashed var(--line)}.loglist a{margin-left:auto;cursor:pointer;color:var(--red)}
+.rtbar{display:flex;gap:4px;margin-bottom:4px}.rtbar button{background:#f1f3f7;border:0;border-radius:5px;padding:3px 9px;font-size:12px}
+.rte{min-height:90px;border:1px solid #cbd5e1;border-radius:8px;padding:9px 11px;font-size:13px;line-height:1.5;outline:none}
+.rte:focus{border-color:#7b68ee;box-shadow:0 0 0 2px #e0dcfb}.rte:empty:before{content:attr(data-ph);color:#94a3b8}
+.rte ul,.rte ol{margin-left:20px}
+.sub{display:flex;justify-content:space-between;align-items:center;padding:4px 0}.sub label{display:flex;gap:8px;align-items:center;margin:0;color:var(--text);font-weight:400;font-size:13px}.sub a{cursor:pointer;color:var(--muted);padding:0 6px}
+.cu-panel .qadd{margin-top:6px;width:100%;font-size:13px}
+.act{display:flex;gap:10px;padding:8px 0;align-items:flex-start}.act .who{font-size:12px;color:var(--muted)}.act .who b{color:var(--text)}.act .txt{font-size:13px;margin-top:2px;white-space:pre-wrap}
+.act.sys .txt{color:var(--muted);font-size:12px}
+.cform{display:flex;gap:6px;margin-top:10px}.cform select{width:110px;flex:none}.cform input{flex:1}
+@media(max-width:820px){
+  .cu-wrap{display:block}.cu-tree{display:none;position:static;width:100%;height:auto;max-height:55vh}.cu-tree.open{display:block}
+  .cu-treebtn{display:inline-block}.pgrid{grid-template-columns:1fr}.cu-main{padding:12px 12px 90px}
+}
 /* date filter bar */
 .fbar{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin-bottom:18px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
 .fpills{display:flex;gap:6px;flex-wrap:wrap}
@@ -219,7 +317,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
   @page{margin:0;size:A4}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body{display:block;background:#fff}
-  .sidebar,main,.toast,.scrim,.no-print,.fbar{display:none!important}
+  .sidebar,main,.toast,.scrim,.no-print,.fbar,.cu-panel,.fab{display:none!important}
   .overlay{position:static!important;display:block!important;background:none!important;padding:0!important}
   .modal,.modal.wide{box-shadow:none;max-width:none;padding:0.5in;background:#fff;max-height:none;overflow:visible;animation:none}
   .inv-sheet{border:0;border-radius:0;padding:0}
@@ -268,7 +366,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
     <button data-view="dashboard">📊 Dashboard</button>
     <div class="nav-sep">Work</div>
     <button data-view="clients">🤝 Clients</button>
-    <button data-view="projects">🗂️ Projects &amp; Tasks</button>
+    <button data-view="tasks">✅ Tasks</button>
     <div class="nav-sep">Finance</div>
     <button data-view="income">💰 Income / Cash Flow</button>
     <button data-view="expenses">💸 Expenses</button>
@@ -295,6 +393,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
   <div id="view"></div>
 </main>
 
+<aside id="cuPanel" class="cu-panel"></aside>
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -303,7 +402,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
 const ALLAH_RATE = 0.10;
 const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses', exp:'expenses',
   pe:'personal_expenses', pi:'personal_income', pw:'personal_withdrawals', ra:'recurring_alerts', emp:'employees', sp:'salary_payments', el:'employee_leaves',
-  cl:'clients', pj:'projects', tk:'tasks', st:'subtasks', tc:'task_comments'};
+  cl:'clients', cus:'cu_spaces', cuf:'cu_folders', cul:'cu_lists', cut:'cu_tasks', cusb:'cu_subtasks', cuc:'cu_comments', cutl:'cu_time_logs'};
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } };
 const save = () => {
   syncIncome();
@@ -320,15 +419,19 @@ const save = () => {
     localStorage.setItem(K.sp, JSON.stringify(salaryPay));
     localStorage.setItem(K.el, JSON.stringify(empLeaves));
     localStorage.setItem(K.cl, JSON.stringify(clients));
-    localStorage.setItem(K.pj, JSON.stringify(projects));
-    localStorage.setItem(K.tk, JSON.stringify(tasks));
-    localStorage.setItem(K.st, JSON.stringify(subtasks));
-    localStorage.setItem(K.tc, JSON.stringify(taskComments));
+    localStorage.setItem(K.cus, JSON.stringify(cuSpaces));
+    localStorage.setItem(K.cuf, JSON.stringify(cuFolders));
+    localStorage.setItem(K.cul, JSON.stringify(cuLists));
+    localStorage.setItem(K.cut, JSON.stringify(cuTasks));
+    localStorage.setItem(K.cusb, JSON.stringify(cuSubs));
+    localStorage.setItem(K.cuc, JSON.stringify(cuComments));
+    localStorage.setItem(K.cutl, JSON.stringify(cuTimeLogs));
   } catch(e){ toast('Could not save to localStorage'); }
 };
 let income, invoices, charity, expenses;
 let personalExp = [], personalInc = [], personalWd = [];
-let clients = [], projects = [], tasks = [], subtasks = [], taskComments = [];   // Agency Manager: clients, projects, tasks
+let clients = [];
+let cuSpaces = [], cuFolders = [], cuLists = [], cuTasks = [], cuSubs = [], cuComments = [], cuTimeLogs = [];   // Tasks: Space › Folder › List › Task › Subtask
 let employees = [], salaryPay = [], empLeaves = [];   // Employees section: profiles, salary payments, leave log
 let recurring = [];   // recurring invoice reminders: {client_name, frequency_days, last_invoice_date, next_alert_date, active, last_amount}   // Personal Finance: separate world, never used by agency maths
 
@@ -389,8 +492,8 @@ function init(){
   let ver = null; try { ver = localStorage.getItem('data_version'); } catch(e){}
   if (!ver) {   // first run: start completely empty, clearing any pre-loaded data
     income = []; invoices = []; charity = []; expenses = []; personalExp = []; personalInc = []; personalWd = []; recurring = []; employees = []; salaryPay = []; empLeaves = [];
-    clients = []; projects = []; tasks = []; subtasks = []; taskComments = [];
-    save(); try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
+    clients = []; cuSpaces = []; cuFolders = []; cuLists = []; cuTasks = []; cuSubs = []; cuComments = []; cuTimeLogs = [];
+    save(); try { localStorage.setItem('cu_migrated', '1'); } catch(e){} try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
     return;
   }
   income = load(K.inc); invoices = load(K.inv); charity = load(K.ch); expenses = load(K.exp);
@@ -413,7 +516,8 @@ function init(){
     save(); try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
   }
   [employees, salaryPay, empLeaves] = [load(K.emp), load(K.sp), load(K.el)].map(a => Array.isArray(a) ? a : []);
-  [clients, projects, tasks, subtasks, taskComments] = [load(K.cl), load(K.pj), load(K.tk), load(K.st), load(K.tc)].map(a => Array.isArray(a) ? a : []);
+  [clients, cuSpaces, cuFolders, cuLists, cuTasks, cuSubs, cuComments, cuTimeLogs] = [K.cl, K.cus, K.cuf, K.cul, K.cut, K.cusb, K.cuc, K.cutl].map(k => { const a = load(k); return Array.isArray(a) ? a : []; });
+  cuMigrateOld();
   const ra = load(K.ra);
   if (Array.isArray(ra)) recurring = ra;
   else { recurring = []; [...invoices].sort((a, b) => a.date.localeCompare(b.date)).forEach(recOnInvoice); save(); }   // first time: build reminders from existing invoices
@@ -455,6 +559,24 @@ function filterBar(){
   return `<div class="fbar"><div class="fpills">${PERIODS.map(([k,l]) => `<button class="${period.mode === k ? 'on' : ''}" onclick="setPeriod('${k}')">${l}</button>`).join('')}</div>
     <div class="fcur">📅 <b>${periodLabel()}</b></div>
     ${period.mode === 'custom' ? `<div class="fcustom"><label>From <input type="date" value="${period.from}" max="${period.to}" onchange="setCustom('from',this.value)"></label><label>To <input type="date" value="${period.to}" min="${period.from}" onchange="setCustom('to',this.value)"></label></div>` : ''}</div>`;
+}
+
+/* one-time: bring the earlier Projects & Tasks data into the new Space › Folder › List structure */
+function cuMigrateOld(){
+  let done = null; try { done = localStorage.getItem('cu_migrated'); } catch(e){}
+  if (done === '1') return;
+  const op = load('projects'), ot = load('tasks'), os = load('subtasks'), oc = load('task_comments');
+  if (Array.isArray(op) && op.length) {
+    const sp = {id:uid(), name:'Media Beem Agency', color:CU_COLORS[0]}, fo = {id:uid(), spaceId:sp.id, name:'Client Projects', color:CU_COLORS[1]}, idx = ['todo', 'progress', 'review', 'done', 'cancelled'], map = {};
+    cuSpaces.push(sp); cuFolders.push(fo);
+    op.forEach(p => { const l = {id:uid(), folderId:fo.id, name:p.name, color:CU_COLORS[2], clientId:p.clientId || '', statuses:defaultStatuses()}; cuLists.push(l); map[p.id] = l; });
+    const tmap = {};
+    (ot || []).forEach(t => { const l = map[t.projectId]; if (!l) return; const nt = {id:uid(), listId:l.id, title:t.title, description:t.description ? '<p>' + esc(t.description) + '</p>' : '', assignee:t.assignee || '', due:t.due || '', priority:t.priority || 'normal', status:l.statuses[Math.max(0, idx.indexOf(t.status))].id, tags:t.tags || [], estimate:t.estimate || 0, repeat:t.recurring || '', repeatDays:7, created:t.created || new Date().toISOString()}; cuTasks.push(nt); tmap[t.id] = nt; });
+    (os || []).forEach(x => { if (tmap[x.taskId]) cuSubs.push({id:uid(), taskId:tmap[x.taskId].id, title:x.title, done:!!x.done}); });
+    (oc || []).forEach(x => { if (tmap[x.taskId]) cuComments.push({id:uid(), taskId:tmap[x.taskId].id, at:x.at, by:x.by === 'Owner' ? 'You' : x.by, text:x.text, kind:'comment'}); });
+  }
+  try { localStorage.setItem('cu_migrated', '1'); } catch(e){}
+  save();
 }
 
 /* ========= Recurring invoice reminders ========= */
@@ -571,7 +693,7 @@ function totals(){
 const $ = id => document.getElementById(id);
 function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2400); }
 function openModal(html, cls = ''){ $('modal').className = 'modal ' + cls; $('modal').innerHTML = html; $('overlay').classList.add('open'); }
-function closeModal(){ $('overlay').classList.remove('open'); openTaskId = null; }
+function closeModal(){ $('overlay').classList.remove('open'); }
 $('overlay').addEventListener('mousedown', e => { if (e.target.id === 'overlay') closeModal(); });
 const badge = s => `<span class="badge b-${s}">${STATUS_LABEL[s] || (s[0].toUpperCase() + s.slice(1))}</span>`;
 const charts = [];
@@ -589,8 +711,8 @@ const meta = {
   invoices:['Invoices','Every income entry is an invoice — only payments received count as income'],
   allah:["Allah's Share Tracker","10% of net profit (income − expenses) — tracked until fully paid"],
   personal:['Personal Finance','Your own money — completely separate from the agency'],
-  clients:['Clients','Profiles, pipeline stages, projects and invoices per client'],
-  projects:['Projects & Tasks','Client → Project → Tasks → Subtasks'],
+  clients:['Clients','Profiles, pipeline stages, task lists and invoices per client'],
+  tasks:['Tasks','Space › Folder › List › Task › Subtask'],
   employees:['Employees','Profiles, salaries and leave — salaries paid flow into agency expenses'],
   reports:['Reports',"Monthly breakdown, cumulative Allah's Share and top clients"],
 };
@@ -601,7 +723,9 @@ function render(){
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   const nb = document.querySelector('#nav button[data-view="dashboard"]'), nDue = recDue().length;
   if (nb) nb.innerHTML = '📊 Dashboard' + (nDue ? `<span class="nbadge" title="${nDue} reminder${nDue > 1 ? 's' : ''} due">${nDue}</span>` : '');
-  $('filterBar').innerHTML = filterBar();
+  $('filterBar').innerHTML = view === 'tasks' ? '' : filterBar();   // Tasks has its own top bar
+  document.querySelector('main').classList.toggle('cu', view === 'tasks');
+  if (view !== 'tasks') cuClose();
   $('title').textContent = meta[view][0]; $('subtitle').textContent = meta[view][1];
   $('topActions').innerHTML = {
     dashboard:'',
@@ -612,11 +736,12 @@ function render(){
     reports:'',
     personal:personalActions(),
     clients: clSel ? '' : '<button class="btn" onclick="clientForm()">+ New Client</button>',
-    projects: pjSel ? '<button class="btn" onclick="taskForm()">+ New Task</button>' : '<button class="btn ghost" onclick="taskForm()">+ New Task</button> <button class="btn" onclick="projectForm()">+ New Project</button>',
+    tasks: '',
     employees: empSel ? '' : '<button class="btn" onclick="empForm()">+ Add Employee</button>'
   }[view];
-  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees, clients:vClients, projects:vProjects}[view](t);
+  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees, clients:vClients, tasks:vTasks}[view](t);
   ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah, personal:afterPersonal}[view] || (()=>{}))(t);
+  if (view === 'tasks') { cuRefreshPanel(); const ed = document.querySelector('[data-edit], #cuAddIn'); if (ed) ed.focus(); }
 }
 
 function formulaCard(t){
@@ -634,10 +759,9 @@ function formulaCard(t){
   </div>`;
 }
 /* ========= Agency HQ dashboard helpers ========= */
-function goTasks(patch){ Object.keys(tf).forEach(k => tf[k] = ''); Object.assign(tf, patch); view = 'projects'; pjSel = 'all'; pjTab = 'list'; render(); window.scrollTo(0, 0); }
 function workStats(){
-  const open = tasks.filter(isOpenT);
-  return {projects: projects.filter(p => p.status === 'Active').length, dueToday: open.filter(t => t.due === today()).length, overdue: open.filter(isOverdueT).length, urgent: open.filter(t => t.priority === 'urgent').length};
+  const open = cuTasks.filter(isOpenT);
+  return {open:open.length, dueToday:open.filter(t => t.due === today()).length, overdue:open.filter(isOverdueT).length, urgent:open.filter(t => t.priority === 'urgent').length};
 }
 function salaryDueRows(){ const m = curMonth(); return employees.filter(e => onPayroll(e) && ['unpaid', 'overdue'].includes(empMonthStatus(e)) && today() >= payDueDate(e, m)); }
 function snap(label, value, sub, cls = '', go = ''){ return `<div class="card stat ${cls}" ${go ? `onclick="${go}" style="cursor:pointer"` : ''}><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`; }
@@ -648,16 +772,16 @@ function recordPaymentPicker(){
     <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Close</button></div>`);
 }
 function taskAlertsPanel(){
-  if (!tasks.length) return '';
-  const open = tasks.filter(isOpenT), by = (a, b) => (a.due || '9').localeCompare(b.due || '9');
+  if (!cuTasks.length) return '';
+  const open = cuTasks.filter(isOpenT), by = (a, b) => (a.due || '9').localeCompare(b.due || '9');
   const overdue = open.filter(isOverdueT).sort(by), due = open.filter(t => t.due === today()), urgent = open.filter(t => t.priority === 'urgent').sort(by);
-  const list = (arr, empty) => arr.slice(0, 6).map(t => `<div class="tx" style="cursor:pointer;padding:7px 0" onclick="openTask('${t.id}')"><div><div class="t1" style="font-size:13px">${esc(t.title)}</div><div class="t2">${esc((projById(t.projectId) || {}).name || '')} · ${esc(empName(t.assignee) || 'Unassigned')}${t.due ? ' · ' + fdate(t.due) : ''}</div></div></div>`).join('') + (arr.length > 6 ? `<div class="muted" style="font-size:12px">+${arr.length - 6} more</div>` : '') || `<div class="muted" style="font-size:13px">${empty}</div>`;
-  const per = {}; open.forEach(t => { const n = empName(t.assignee) || 'Unassigned'; per[n] = per[n] || {open:0, od:0}; per[n].open++; if (isOverdueT(t)) per[n].od++; });
+  const list = (arr, empty) => arr.slice(0, 6).map(t => `<div class="tx" style="cursor:pointer;padding:7px 0" onclick="cuJump('${t.id}')"><div><div class="t1" style="font-size:13px">${esc(t.title)}</div><div class="t2">${esc((listOf(t) || {}).name || '')} · ${esc(empName(t.assignee) || 'Unassigned')}${t.due ? ' · ' + fdate(t.due) : ''}</div></div></div>`).join('') + (arr.length > 6 ? `<div class="muted" style="font-size:12px">+${arr.length - 6} more</div>` : '') || `<div class="muted" style="font-size:13px">${empty}</div>`;
+  const per = {}; open.forEach(t => { const k = t.assignee || ''; per[k] = per[k] || {open:0, od:0}; per[k].open++; if (isOverdueT(t)) per[k].od++; });
   return `<div class="card" style="margin-bottom:16px"><h3>✅ Task alerts</h3>
     <div class="grid g3" style="gap:20px"><div><div class="sec-t" style="margin:0 0 6px;color:var(--red)">Overdue (${overdue.length})</div>${list(overdue, 'Nothing overdue 🎉')}</div>
       <div><div class="sec-t" style="margin:0 0 6px;color:var(--amber)">Due today (${due.length})</div>${list(due, 'Nothing due today')}</div>
       <div><div class="sec-t" style="margin:0 0 6px">🔴 Urgent (${urgent.length})</div>${list(urgent, 'No urgent tasks')}</div></div>
-    ${Object.keys(per).length ? `<div class="sec-t" style="margin:16px 0 6px">Open tasks per assignee</div><div style="display:flex;flex-wrap:wrap;gap:8px">${Object.entries(per).sort((a, b) => b[1].open - a[1].open).map(([n, v]) => `<span class="badge" style="background:#f1f5f9;color:var(--text);padding:5px 12px;cursor:pointer" onclick="goTasks({assignee:'${(employees.find(e => e.name === n) || {}).id || ''}',status:'open'})">${esc(n)} · ${v.open} open${v.od ? ` · <span style="color:var(--red)">${v.od} overdue</span>` : ''}</span>`).join('')}</div>` : ''}</div>`;
+    <div class="sec-t" style="margin:16px 0 6px">Open tasks per assignee</div><div style="display:flex;flex-wrap:wrap;gap:8px">${Object.entries(per).sort((a, b) => b[1].open - a[1].open).map(([k, v]) => `<span class="badge" style="background:#f1f5f9;color:var(--text);padding:5px 12px;cursor:pointer" onclick="goTasks({assignee:'${k || '__none'}',status:'open'})">${esc(empName(k) || 'Unassigned')} · ${v.open} open${v.od ? ` · <span style="color:var(--red)">${v.od} overdue</span>` : ''}</span>`).join('')}</div></div>`;
 }
 function vDashboard(t){
   const recent = [...incomeRows()].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
@@ -675,8 +799,8 @@ function vDashboard(t){
   </div>
   <div class="dsec">Work snapshot</div>
   <div class="grid g4" style="margin-bottom:16px">
-    ${snap('Active Projects', ws.projects, projects.length + ' total', 'navy', "view='projects';pjSel=null;render()")}
-    ${snap('Tasks Due Today', ws.dueToday, 'Open tasks', 'amber', "goTasks({due:'today',status:'open'})")}
+    ${snap('Open Tasks', ws.open, cuLists.length + ' lists', 'navy', "goTasks({status:'open'})")}
+    ${snap('Tasks Due Today', `<span style="color:${ws.dueToday ? 'var(--amber)' : 'inherit'}">${ws.dueToday}</span>`, 'Open tasks', 'amber', "goTasks({due:'today',status:'open'})")}
     ${snap('Overdue Tasks', `<span style="color:${ws.overdue ? 'var(--red)' : 'inherit'}">${ws.overdue}</span>`, 'Past due, not done', '', "goTasks({due:'overdue'})")}
     ${snap('Urgent Tasks', ws.urgent, '🔴 Open urgent', '', "goTasks({priority:'urgent',status:'open'})")}
   </div>
@@ -865,7 +989,7 @@ function vInvoices(t){
       </div>
     </div>`; }).join('') || '<div class="card empty" style="grid-column:1/-1">No invoices in this period — add income and its invoice is created automatically.</div>'}</div>`;
 }
-function renderKeep(el){ const p = el.selectionStart; render(); const n = document.querySelector('.filters input'); if (n) { n.focus(); n.setSelectionRange(p, p); } }
+function renderKeep(el){ const p = el.selectionStart; render(); const n = document.querySelector(view === 'tasks' ? '.cu-search' : '.filters input'); if (n) { n.focus(); n.setSelectionRange(p, p); } }
 
 /* ----- Styled invoice (no invoice number anywhere) ----- */
 function invoiceHTML(i){
@@ -1547,10 +1671,10 @@ function vClients(){
   <div class="card"><div class="filters">
       <input placeholder="Search company, contact, industry…" value="${esc(clf.q)}" oninput="clf.q=this.value;renderKeep(this)">
       <select onchange="clf.s=this.value;render()"><option value="">All statuses</option>${CL_STATUS.map(s => `<option ${clf.s === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
-    <div class="tablewrap"><table><thead><tr><th>Company</th><th>Contact</th><th>Status</th><th class="num">Retainer / mo</th><th class="num">Invoiced · period</th><th class="num">Received · period</th><th class="num">Projects</th></tr></thead>
+    <div class="tablewrap"><table><thead><tr><th>Company</th><th>Contact</th><th>Status</th><th class="num">Retainer / mo</th><th class="num">Invoiced · period</th><th class="num">Received · period</th><th class="num">Lists</th></tr></thead>
       <tbody>${list.map(c => { const inv = clientInvoices(c).filter(i => inRange(i.date)), rec = sum(clientInvoices(c).flatMap(i => i.payments || []).filter(p => inRange(p.date)), p => p.amount);
         return `<tr style="cursor:pointer" onclick="openClient('${c.id}')"><td><b>${esc(c.company)}</b><div class="muted" style="font-size:12px">${esc(c.industry)}</div></td><td>${esc(c.contact)}<div class="muted" style="font-size:12px">${esc(c.phone)}</div></td><td>${clBadge(c.status)}</td>
-          <td class="num">${fmt(c.retainer)}</td><td class="num">${fmt(sum(inv, i => i.total_amount))}</td><td class="num" style="color:var(--green)">${fmt(rec)}</td><td class="num">${projects.filter(p => p.clientId === c.id).length}</td></tr>`; }).join('') || '<tr><td colspan="7" class="empty">No clients found — click “+ New Client”</td></tr>'}</tbody></table></div></div>`}`;
+          <td class="num">${fmt(c.retainer)}</td><td class="num">${fmt(sum(inv, i => i.total_amount))}</td><td class="num" style="color:var(--green)">${fmt(rec)}</td><td class="num">${cuLists.filter(l => l.clientId === c.id).length}</td></tr>`; }).join('') || '<tr><td colspan="7" class="empty">No clients found — click “+ New Client”</td></tr>'}</tbody></table></div></div>`}`;
 }
 function clPipeline(){
   return `<div class="kanban">${CL_STATUS.map(st => { const list = clients.filter(c => c.status === st);
@@ -1561,18 +1685,18 @@ function clPipeline(){
 function dropClient(ev, st){ ev.preventDefault(); const c = clById(ev.dataTransfer.getData('text/plain')); if (c && c.status !== st) { c.status = st; save(); render(); toast(c.company + ' → ' + st); } }
 function openClient(id){ clSel = id; render(); window.scrollTo(0, 0); }
 function vClientProfile(c){
-  const invs = clientInvoices(c).sort((a, b) => b.date.localeCompare(a.date)), prj = projects.filter(p => p.clientId === c.id), notes = [...(c.notes || [])];
+  const invs = clientInvoices(c).sort((a, b) => b.date.localeCompare(a.date)), prj = cuLists.filter(l => l.clientId === c.id), notes = [...(c.notes || [])];
   const ren = nextRenewal(c);
   return `<button class="btn ghost sm" onclick="clSel=null;render()" style="margin-bottom:12px">← All clients</button>
   <div class="card" style="margin-bottom:16px"><div class="profile-head">${miniAv(c.company, 64)}<div class="grow"><h2 style="font-size:22px">${esc(c.company)}</h2><div class="muted">${esc(c.industry) || '—'}${c.website ? ' · ' + esc(c.website) : ''}</div><div style="margin-top:8px">${clBadge(c.status)}${renewalSoon(c) ? ' <span class="badge b-due">Renewal ' + fdate(ren) + '</span>' : ''}</div></div>
-    <div class="inv-actions"><button class="btn sm" onclick="incomeForm({client:decodeURIComponent('${encAttr(c.company)}')})">+ Invoice</button><button class="btn sm ghost" onclick="projectForm(null,'${c.id}')">+ Project</button><button class="btn sm ghost" onclick="clientForm('${c.id}')">Edit</button><button class="btn sm danger" onclick="delClient('${c.id}')">Delete</button></div></div>
+    <div class="inv-actions"><button class="btn sm" onclick="incomeForm({client:decodeURIComponent('${encAttr(c.company)}')})">+ Invoice</button><button class="btn sm ghost" onclick="cuClientList('${c.id}')">+ List</button><button class="btn sm ghost" onclick="clientForm('${c.id}')">Edit</button><button class="btn sm danger" onclick="delClient('${c.id}')">Delete</button></div></div>
     <div style="margin-top:14px"><div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">Pipeline stage</div><div class="fpills">${CL_STATUS.map(s => `<button class="${c.status === s ? 'on' : ''}" style="${c.status === s ? 'background:' + CL_COLORS[s] + ';border-color:' + CL_COLORS[s] : ''}" onclick="setClStatus('${c.id}','${s}')">${s}</button>`).join('')}</div></div></div>
   <div class="grid g-main">
     <div>
       <div class="card" style="margin-bottom:16px"><h3>Details</h3><div class="kv">${kv('Contact person', c.contact)}${kv('Phone', c.phone)}${kv('Email', c.email)}${kv('Website', c.website)}${kv('Onboarding date', c.onboardingDate && fdate(c.onboardingDate))}${kv('Contract start', c.contractStart && fdate(c.contractStart))}${kv('Monthly retainer', c.retainer ? fmt(c.retainer) : '')}${kv('Next renewal', ren && fdate(ren))}</div></div>
       <div class="card" style="margin-bottom:16px"><h3>Invoices <span class="muted" style="font-weight:400">· ${invs.length} · billed ${fmt(sum(invs, i => i.total_amount))} · received ${fmt(sum(invs, invReceived))}</span></h3>
         <div class="tablewrap"><table><tbody>${invs.map(i => `<tr style="cursor:pointer" onclick="viewInvoice('${i.id}')"><td>${fdate(i.date)}</td><td>${esc(i.service)}</td><td>${badge(invStatus(i))}</td><td class="num"><b>${fmt(i.total_amount)}</b></td></tr>`).join('') || '<tr><td class="empty">No invoices for this client yet — invoices match by company name</td></tr>'}</tbody></table></div></div>
-      <div class="card"><h3>Projects</h3>${prj.map(p => `<div class="tx" style="cursor:pointer" onclick="view='projects';pjSel='${p.id}';render()"><div><div class="t1">${esc(p.name)}</div><div class="t2">${p.status} · deadline ${fdate(p.deadline)}</div></div>${projProgress(p)}</div>`).join('') || '<div class="muted">No projects yet.</div>'}</div>
+      <div class="card"><h3>Task lists</h3>${prj.map(l => `<div class="tx" style="cursor:pointer" onclick="cuOpenList('${l.id}')"><div><div class="t1"><span class="dot" style="background:${l.color};display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px"></span>${esc(l.name)}</div><div class="t2">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length} open tasks</div></div>${listProgress(l)}</div>`).join('') || '<div class="muted">No lists yet — a List groups this client\'s tasks.</div>'}</div>
     </div>
     <div class="card"><h3>Communication log</h3>
       <form onsubmit="addClNote(event,'${c.id}')"><textarea name="text" rows="3" placeholder="Add a note — call, meeting, email sent…" required></textarea><div class="modal-actions" style="margin-top:8px"><button class="btn sm">Add note</button></div></form>
@@ -1580,6 +1704,7 @@ function vClientProfile(c){
   </div>`;
 }
 function addClNote(ev, id){ ev.preventDefault(); const c = clById(id); const t = new FormData(ev.target).get('text').trim(); if (c && t) { (c.notes = c.notes || []).push({id:uid(), at:new Date().toISOString(), text:t}); save(); render(); } }
+function cuClientList(cid){ if (!cuFolders.length) { toast('Set up your Tasks workspace first (Tasks → Set up workspace)'); view = 'tasks'; render(); return; } cuNodeForm('list', null, ''); setTimeout(() => { const s = document.querySelector('#modal select[name=clientId]'); if (s) s.value = cid; const n = document.querySelector('#modal input[name=name]'); if (n) n.value = clName(cid); }, 20); }
 function setClStatus(id, st){ const c = clById(id); if (c) { c.status = st; if (st === 'Active' && !c.onboardingDate) c.onboardingDate = today(); save(); render(); } }
 function clientForm(id){
   const c = id ? clById(id) : {status:'Lead'};
@@ -1597,271 +1722,354 @@ function saveClient(ev, id){
   if (id) Object.assign(clById(id), data); else clients.push({id:uid(), notes:[], ...data});
   save(); closeModal(); render(); toast(id ? 'Client updated' : 'Client added');
 }
-function delClient(id){ const c = clById(id); if (c && confirm('Delete ' + c.company + '? Their invoices stay in the books; projects will show no client.')) { clients = clients.filter(x => x.id !== id); clSel = null; save(); render(); } }
+function delClient(id){ const c = clById(id); if (c && confirm('Delete ' + c.company + '? Their invoices stay in the books; task lists stay but lose the client link.')) { clients = clients.filter(x => x.id !== id); clSel = null; save(); render(); } }
 
-/* ========= Projects & Tasks ========= */
-const PRI = {urgent:{l:'Urgent', i:'🔴', c:'#dc2626', o:0}, high:{l:'High', i:'🟠', c:'#f59e0b', o:1}, normal:{l:'Normal', i:'🔵', c:'#3b82f6', o:2}, low:{l:'Low', i:'⚪', c:'#94a3b8', o:3}};
-const TS = {todo:'To Do', progress:'In Progress', review:'In Review', done:'Done', cancelled:'Cancelled'};
-const BOARD_COLS = ['todo', 'progress', 'review', 'done'];
-const PJ_STATUS = ['Planning', 'Active', 'On Hold', 'Completed'];
-let pjSel = null, pjTab = 'board', calMonth = today().slice(0, 7), calDay = '', dragTaskId = null, openTaskId = null;
-const tf = {q:'', assignee:'', priority:'', status:'', client:'', tag:'', due:''};
-let tsort = {key:'due', dir:1};
-const selT = new Set();
-let commentAuthor = 'owner';
-const taskById = id => tasks.find(t => t.id === id);
-const projById = id => projects.find(p => p.id === id);
-const isOpenT = t => t.status !== 'done' && t.status !== 'cancelled';
-const isOverdueT = t => isOpenT(t) && t.due && t.due < today();
-const isBlockedT = t => { const b = t.blockedBy && taskById(t.blockedBy); return !!(b && isOpenT(b)); };
+/* ========= Tasks — ClickUp-style workspace: Space › Folder › List › Task › Subtask ========= */
+const CU_COLORS = ['#7b68ee', '#3b82f6', '#14b8a6', '#22c55e', '#f59e0b', '#f97316', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
+const PRI = {urgent:{l:'Urgent', i:'🔴', c:'#dc2626', o:0}, high:{l:'High', i:'🟠', c:'#f97316', o:1}, normal:{l:'Normal', i:'🔵', c:'#3b82f6', o:2}, low:{l:'Low', i:'⚪', c:'#94a3b8', o:3}};
+const defaultStatuses = () => [['To Do', '#94a3b8', 'open'], ['In Progress', '#3b82f6', 'open'], ['In Review', '#a855f7', 'open'], ['Done', '#22c55e', 'done'], ['Cancelled', '#ef4444', 'closed']].map(([name, color, kind]) => ({id:uid(), name, color, kind}));
+let cuScope = {type:'none'}, cuView = 'list', cuGroup = 'status', cuSortKey = 'due', cuSortDir = 1, cuFilterOpen = false, cuMonth = today().slice(0, 7);
+let cuPanelId = null, cuEdit = null, cuAddCol = null, cuTreeOpen = false, cuPerson = '', cuLogOpen = false, cuAuthor = 'You';
+const cuCollapsed = new Set(), cuExpanded = new Set(), cuSel = new Set();
+const cf = {q:'', assignee:'', priority:'', status:'', tag:'', due:''};
+
+const spaceById = id => cuSpaces.find(x => x.id === id), folderById = id => cuFolders.find(x => x.id === id), listById = id => cuLists.find(x => x.id === id), taskById = id => cuTasks.find(x => x.id === id);
+const listOf = t => listById(t.listId);
+const statusOf = t => { const l = listOf(t); return (l && l.statuses.find(s => s.id === t.status)) || (l && l.statuses[0]) || {name:'—', color:'#94a3b8', kind:'open'}; };
+const isOpenT = t => statusOf(t).kind === 'open';
+const isOverdueT = t => isOpenT(t) && !!t.due && t.due < today();
+const isTodayT = t => isOpenT(t) && t.due === today();
 const empName = id => (empById(id) || {}).name || '';
 const empOpts = cur => '<option value="">Unassigned</option>' + employees.filter(e => !e.archived || e.id === cur).map(e => `<option value="${e.id}" ${e.id === cur ? 'selected' : ''}>${esc(e.name)}</option>`).join('');
-const priBadge = p => `<span class="badge" style="background:${PRI[p].c}22;color:${PRI[p].c}">${PRI[p].i} ${PRI[p].l}</span>`;
-const allTags = () => [...new Set(tasks.flatMap(t => t.tags || []))].sort();
+const parseTags = s => [...new Set(String(s || '').split(',').map(x => x.trim()).filter(Boolean))];
+const allTags = () => [...new Set(cuTasks.flatMap(t => t.tags || []))].sort();
+const fmtShort = t => { const d = new Date(t); return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) + ', ' + d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}).toLowerCase().replace(' ', ''); };
+const hoursOf = id => sum(cuTimeLogs.filter(l => l.taskId === id), l => l.hours);
+const assigneeDot = (id, size = 22) => empName(id) ? miniAv(empName(id), size) : `<span class="av" title="Unassigned" style="width:${size}px;height:${size}px;border:1.5px dashed #cbd5e1;background:#fff"></span>`;
+const statusPill = s => `<span class="spill" style="background:${s.color}">${esc(s.name)}</span>`;
 function weekRange(){ const n = new Date(), dow = (n.getDay() + 6) % 7; return {from:iso(new Date(n.getFullYear(), n.getMonth(), n.getDate() - dow)), to:iso(new Date(n.getFullYear(), n.getMonth(), n.getDate() - dow + 6))}; }
-function projProgress(p){
-  const ts = tasks.filter(t => t.projectId === p.id && t.status !== 'cancelled'), d = ts.filter(t => t.status === 'done').length, pct = ts.length ? d / ts.length * 100 : 0;
+function listProgress(l){
+  const ts = cuTasks.filter(t => t.listId === l.id && statusOf(t).kind !== 'closed'), d = ts.filter(t => statusOf(t).kind === 'done').length, pct = ts.length ? d / ts.length * 100 : 0;
   return `<div style="min-width:110px"><div class="bar light" style="height:7px;margin:0"><div style="width:${pct}%"></div></div><div class="muted" style="font-size:11px;margin-top:3px">${d}/${ts.length} tasks done</div></div>`;
 }
+/* light sanitiser for the rich-text description */
+function cleanHtml(html){
+  const doc = new DOMParser().parseFromString('<body>' + html + '</body>', 'text/html'), ok = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'UL', 'OL', 'LI', 'BR', 'P', 'DIV', 'H3']);
+  const walk = n => [...n.childNodes].map(c => c.nodeType === 3 ? esc(c.textContent) : c.nodeType === 1 ? (ok.has(c.tagName) ? `<${c.tagName.toLowerCase()}>${walk(c)}</${c.tagName.toLowerCase()}>` : walk(c)) : '').join('');
+  return walk(doc.body);
+}
 
-function filteredTasks(useDate = true){
-  const q = tf.q.toLowerCase(), wk = weekRange();
-  return tasks.filter(t => {
-    if (pjSel && pjSel !== 'all' && t.projectId !== pjSel) return false;
-    const p = projById(t.projectId);
-    if (tf.assignee && t.assignee !== tf.assignee) return false;
-    if (tf.priority && t.priority !== tf.priority) return false;
-    if (tf.status === 'open' ? !isOpenT(t) : (tf.status && t.status !== tf.status)) return false;
-    if (tf.client && (!p || p.clientId !== tf.client)) return false;
-    if (tf.tag && !(t.tags || []).includes(tf.tag)) return false;
-    if (tf.due === 'today' && t.due !== today()) return false;
-    if (tf.due === 'overdue' && !isOverdueT(t)) return false;
-    if (tf.due === 'week' && !(t.due && t.due >= wk.from && t.due <= wk.to)) return false;
-    if (tf.due === 'none' && t.due) return false;
-    if (q && !(t.title + ' ' + (t.description || '') + ' ' + (t.tags || []).join(' ')).toLowerCase().includes(q)) return false;
-    if (useDate && !(!t.due || inRange(t.due) || isOverdueT(t))) return false;   // date filter: due in period, plus undated and overdue-open tasks
-    return true;
+/* ----- scope, filters, sorting, grouping ----- */
+const scopeLists = () => cuScope.type === 'list' ? [listById(cuScope.id)].filter(Boolean) : cuLists;
+const scopeTasks = () => cuScope.type === 'list' ? cuTasks.filter(t => t.listId === cuScope.id) : cuScope.type === 'mine' ? cuTasks.filter(t => (t.assignee || '') === cuPerson) : cuTasks;
+function cuFiltered(){
+  const q = cf.q.toLowerCase(), wk = weekRange();
+  return scopeTasks().filter(t => {
+    if (cf.assignee === '__none' ? t.assignee : (cf.assignee && t.assignee !== cf.assignee)) return false;
+    if (cf.priority && t.priority !== cf.priority) return false;
+    if (cf.status === 'open' ? !isOpenT(t) : (cf.status && statusOf(t).name.toLowerCase() !== cf.status.toLowerCase())) return false;
+    if (cf.tag && !(t.tags || []).includes(cf.tag)) return false;
+    if (cf.due === 'today' && t.due !== today()) return false;
+    if (cf.due === 'overdue' && !isOverdueT(t)) return false;
+    if (cf.due === 'week' && !(t.due && t.due >= wk.from && t.due <= wk.to)) return false;
+    if (cf.due === 'none' && t.due) return false;
+    return !q || (t.title + ' ' + (t.description || '').replace(/<[^>]+>/g, ' ') + ' ' + (t.tags || []).join(' ')).toLowerCase().includes(q);
   });
 }
-
-function vProjects(){
-  if (!pjSel) return vProjectOverview();
-  const p = pjSel === 'all' ? null : projById(pjSel);
-  if (pjSel !== 'all' && !p) { pjSel = null; return vProjectOverview(); }
-  const tabs = [['board', '▥ Board'], ['list', '☰ List'], ['calendar', '📅 Calendar']];
-  const list = filteredTasks(pjTab !== 'calendar');
-  return `<button class="btn ghost sm" onclick="pjSel=null;selT.clear();render()" style="margin-bottom:12px">← All projects</button>
-  ${p ? `<div class="card" style="margin-bottom:14px"><div class="profile-head"><div class="grow"><h2 style="font-size:20px">${esc(p.name)}</h2><div class="muted">${esc(clName(p.clientId))} · ${fdate(p.start)} → ${fdate(p.deadline)}</div>${p.description ? `<div style="margin-top:6px;white-space:pre-wrap">${esc(p.description)}</div>` : ''}</div>
-      <div style="display:flex;gap:4px">${(p.team || []).map(id => miniAv(empName(id) || '?', 30)).join('')}</div>
-      <select style="width:auto" onchange="setProjStatus('${p.id}',this.value)">${PJ_STATUS.map(s => `<option ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
-      <div class="inv-actions"><button class="btn sm" onclick="taskForm({project:'${p.id}'})">+ Task</button><button class="btn sm ghost" onclick="projectForm('${p.id}')">Edit</button><button class="btn sm danger" onclick="delProject('${p.id}')">Delete</button></div></div></div>`
-    : '<div class="card" style="margin-bottom:14px"><h2 style="font-size:20px">All tasks</h2><div class="muted">Across every project</div></div>'}
-  <div class="psub">${tabs.map(([k, l]) => `<button class="${pjTab === k ? 'on' : ''}" onclick="pjTab='${k}';render()">${l}</button>`).join('')}</div>
-  ${taskFilterBar()}
-  <div class="muted" style="margin:0 0 10px;font-size:12px">${list.length} task${list.length === 1 ? '' : 's'}${pjTab === 'calendar' ? ' · calendar ignores the date filter' : ' · due ' + periodLabel() + ', plus overdue and undated tasks'}</div>
-  ${pjTab === 'board' ? taskBoard(list) : pjTab === 'list' ? taskTable(list) : taskCalendar(list)}`;
+function cuSorter(){
+  const v = {due:t => t.due || '9999', priority:t => PRI[t.priority].o, created:t => t.created, title:t => t.title.toLowerCase(), status:t => statusOf(t).name.toLowerCase(), assignee:t => empName(t.assignee).toLowerCase() || '~', est:t => t.estimate || 0}[cuSortKey];
+  return (a, b) => { const x = v(a), y = v(b); return (x < y ? -1 : x > y ? 1 : 0) * cuSortDir; };
 }
-function taskFilterBar(){
-  const sel = (k, label, opts) => `<select onchange="tf.${k}=this.value;render()"><option value="">${label}</option>${opts.map(([v, l]) => `<option value="${v}" ${tf[k] === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
-  const active = Object.values(tf).some(Boolean);
-  return `<div class="card" style="margin-bottom:12px;padding:12px"><div class="filters" style="margin:0">
-    <input placeholder="Search tasks…" value="${esc(tf.q)}" oninput="tf.q=this.value;renderKeep(this)">
-    ${sel('assignee', '👤 My Tasks / Assignee', employees.map(e => [e.id, e.name]))}
-    ${sel('priority', 'Priority', Object.entries(PRI).map(([k, v]) => [k, v.i + ' ' + v.l]))}
-    ${sel('status', 'Status', [['open', 'Open (not done)'], ...Object.entries(TS)])}
-    ${pjSel === 'all' ? sel('client', 'Client', clients.map(c => [c.id, c.company])) : ''}
-    ${sel('tag', 'Tag', allTags().map(t => [t, t]))}
-    ${sel('due', 'Due date', [['today', 'Due today'], ['overdue', 'Overdue'], ['week', 'This week'], ['none', 'No due date']])}
-    ${active ? '<button class="btn sm ghost" onclick="Object.keys(tf).forEach(k=>tf[k]=\'\');render()">Clear filters</button>' : ''}</div></div>`;
+function statusUnion(){ const seen = new Map(); scopeLists().forEach(l => l.statuses.forEach(s => { if (!seen.has(s.name.toLowerCase())) seen.set(s.name.toLowerCase(), s); })); return [...seen.values()]; }
+function setStatusByName(t, name){ const s = listOf(t).statuses.find(x => x.name.toLowerCase() === name.toLowerCase()); if (!s) { toast('“' + name + '” is not a status in ' + listOf(t).name); return false; } cuSetStatus(t, s.id, true); return true; }
+function groupDefs(){
+  if (cuGroup === 'assignee') return [...employees.filter(e => !e.archived).map(e => ({key:'a' + e.id, label:e.name, color:'hsl(' + hueOf(e.name) + ' 45% 42%)', match:t => t.assignee === e.id, set:t => { t.assignee = e.id; return true; }})), {key:'a', label:'Unassigned', color:'#94a3b8', match:t => !t.assignee, set:t => { t.assignee = ''; return true; }}];
+  if (cuGroup === 'priority') return Object.entries(PRI).map(([k, p]) => ({key:'p' + k, label:p.i + ' ' + p.l, color:p.c, match:t => t.priority === k, set:t => { t.priority = k; return true; }}));
+  if (cuGroup === 'due') { const wk = weekRange(), td = today();
+    return [['Overdue', '#ef4444', t => isOverdueT(t)], ['Earlier', '#94a3b8', t => !!t.due && t.due < td && !isOverdueT(t)], ['Today', '#f59e0b', t => t.due === td], ['This week', '#3b82f6', t => !!t.due && t.due > td && t.due <= wk.to], ['Later', '#64748b', t => !!t.due && t.due > wk.to], ['No date', '#94a3b8', t => !t.due]]
+      .map(([label, color, match]) => ({key:'d' + label, label, color, match, set:null})); }
+  return statusUnion().map(s => ({key:'s' + s.name.toLowerCase(), label:s.name, color:s.color, kind:s.kind, match:t => statusOf(t).name.toLowerCase() === s.name.toLowerCase(), set:t => setStatusByName(t, s.name)}));
 }
 
-/* ----- project overview ----- */
-const pjf = {q:''};
-function vProjectOverview(){
-  const list = projects.filter(p => !pjf.q || (p.name + clName(p.clientId)).toLowerCase().includes(pjf.q.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
-  return `<div class="card" style="margin-bottom:16px"><div class="filters" style="margin:0"><input placeholder="Search projects or clients…" value="${esc(pjf.q)}" oninput="pjf.q=this.value;renderKeep(this)">
-    <button class="btn ghost" style="flex:none" onclick="pjSel='all';render()">View all tasks</button></div></div>
-  <div class="emp-grid">${list.map(p => { const n = tasks.filter(t => t.projectId === p.id && isOpenT(t)).length, od = tasks.filter(t => t.projectId === p.id && isOverdueT(t)).length;
-    return `<div class="card emp-card" onclick="pjSel='${p.id}';render()"><div style="display:flex;justify-content:space-between;gap:8px"><div><b style="font-size:15px">${esc(p.name)}</b><div class="muted">${esc(clName(p.clientId))}</div></div><span class="badge ${p.status === 'Active' ? 'b-active' : p.status === 'Completed' ? 'b-paid' : p.status === 'On Hold' ? 'b-leave' : 'b-draft'}">${p.status}</span></div>
-      <div class="emp-meta" style="margin-top:12px"><span>Deadline</span><b>${fdate(p.deadline)}</b></div><div class="emp-meta"><span>Open tasks</span><b>${n}${od ? ` · <span style="color:var(--red)">${od} overdue</span>` : ''}</b></div>
-      <div style="margin:10px 0">${projProgress(p)}</div><div style="display:flex;gap:4px">${(p.team || []).map(id => miniAv(empName(id) || '?')).join('')}</div></div>`; }).join('') || '<div class="card empty" style="grid-column:1/-1">No projects yet — click “+ New Project”.</div>'}</div>`;
+/* ----- main entry ----- */
+function vTasks(){
+  const wrap = body => `<div class="cu-wrap"><aside class="cu-tree ${cuTreeOpen ? 'open' : ''}">${cuTree()}</aside><section class="cu-main"><button class="btn sm ghost cu-treebtn" onclick="cuTreeOpen=!cuTreeOpen;render()">📂 Lists</button>${body}</section></div><button class="fab" onclick="cuQuickAdd()" title="Quick add task">+</button>`;
+  if (!cuSpaces.length) return wrap(`<div class="card empty" style="padding:50px 20px"><h2 style="margin-bottom:8px">Welcome to Tasks</h2><p class="muted" style="margin-bottom:16px">Organise work as Space › Folder › List › Task › Subtask, just like ClickUp.</p>
+    <button class="btn" onclick="cuSetupDefault()">Set up “Media Beem Agency” workspace</button> <button class="btn ghost" onclick="cuNodeForm('space')">Create a Space</button></div>`);
+  if (cuScope.type === 'list' && !listById(cuScope.id)) cuScope = {type:'none'};
+  if (cuScope.type === 'none') return wrap('<div class="card empty" style="padding:40px 20px">Pick a List from the left — or open <b>My Tasks</b> / <b>All Tasks</b>.</div>');
+  const l = cuScope.type === 'list' ? listById(cuScope.id) : null, f = l && folderById(l.folderId), sp = f && spaceById(f.spaceId);
+  const nF = Object.values(cf).filter(Boolean).length - (cf.q ? 1 : 0);
+  const head = l ? `<div class="crumb">${esc(sp ? sp.name : '')} › ${esc(f ? f.name : '')}</div><div class="cu-title"><span class="dot" style="background:${l.color}"></span><h1>${esc(l.name)}</h1><button class="btn sm ghost" onclick="cuStatusForm('${l.id}')">⚙ Statuses</button><button class="btn sm ghost" onclick="cuNodeForm('list','${l.id}')">Edit list</button></div>`
+    : cuScope.type === 'mine' ? `<div class="cu-title"><h1>👤 My Tasks</h1><select style="width:auto" onchange="cuPerson=this.value;render()">${employees.filter(e => !e.archived).map(e => `<option value="${e.id}" ${e.id === cuPerson ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}<option value="" ${cuPerson === '' ? 'selected' : ''}>Unassigned</option></select><span class="muted">all tasks across all lists</span></div>`
+    : '<div class="cu-title"><h1>☰ All Tasks</h1><span class="muted">across every list</span></div>';
+  const tabs = [['list', '📋 List'], ['board', '📌 Board'], ['calendar', '📅 Calendar']];
+  const so = {due:'Due Date', priority:'Priority', created:'Created Date', title:'Alphabetical'};
+  const bar = `<div class="cu-bar"><div class="cu-tabs">${tabs.map(([k, n]) => `<button class="${cuView === k ? 'on' : ''}" onclick="cuView='${k}';render()">${n}</button>`).join('')}</div>
+    <div class="cu-ctl"><button class="btn sm ${nF ? '' : 'ghost'}" onclick="cuFilterOpen=!cuFilterOpen;render()">Filter ▼${nF ? ' · ' + nF : ''}</button>
+      ${cuView !== 'calendar' ? `<label class="cu-sel">Group by <select onchange="cuGroup=this.value;render()">${[['status', 'Status'], ['assignee', 'Assignee'], ['priority', 'Priority'], ['due', 'Due Date']].map(([k, n]) => `<option value="${k}" ${cuGroup === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <label class="cu-sel">Sort <select onchange="cuSortKey=this.value;cuSortDir=this.value==='created'?-1:1;render()">${Object.entries(so).map(([k, n]) => `<option value="${k}" ${cuSortKey === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>` : ''}
+      <input class="cu-search" placeholder="🔍 Search" value="${esc(cf.q)}" oninput="cf.q=this.value;renderKeep(this)"></div></div>`;
+  const sel = (k, label, opts) => `<select onchange="cf.${k}=this.value;render()"><option value="">${label}</option>${opts.map(([v, n]) => `<option value="${esc(v)}" ${cf[k] === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
+  const fp = cuFilterOpen ? `<div class="cu-fpanel">${sel('assignee', 'Assignee', [...employees.map(e => [e.id, e.name]), ['__none', 'Unassigned']])}${sel('priority', 'Priority', Object.entries(PRI).map(([k, p]) => [k, p.i + ' ' + p.l]))}
+    ${sel('status', 'Status', [['open', 'Open (not done)'], ...statusUnion().map(s => [s.name, s.name])])}${sel('tag', 'Tag', allTags().map(t => [t, t]))}${sel('due', 'Due date', [['today', 'Due today'], ['overdue', 'Overdue'], ['week', 'This week'], ['none', 'No due date']])}
+    ${nF ? '<button class="btn sm ghost" onclick="Object.keys(cf).forEach(k=>{if(k!==\'q\')cf[k]=\'\'});render()">Clear</button>' : ''}</div>` : '';
+  const list = cuFiltered();
+  return wrap(`${head}${bar}${fp}${cuView === 'board' ? cuBoard(list) : cuView === 'calendar' ? cuCalendar(list) : cuListView(list)}`);
 }
-function projectForm(id, clientId){
-  const p = id ? projById(id) : {status:'Planning', clientId:clientId || '', team:[], start:today()};
-  openModal(`<h2>${id ? 'Edit Project' : 'New Project'}</h2><form onsubmit="saveProject(event,'${id || ''}')">
-    <div class="field"><label>Project name</label><input name="name" value="${esc(p.name || '')}" required></div>
-    <div class="row2"><div class="field"><label>Client</label><select name="clientId" required><option value="">Select client…</option>${clients.map(c => `<option value="${c.id}" ${c.id === p.clientId ? 'selected' : ''}>${esc(c.company)}</option>`).join('')}</select></div>
-    <div class="field"><label>Status</label><select name="status">${PJ_STATUS.map(s => `<option ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div></div>
-    <div class="row2"><div class="field"><label>Start date</label><input name="start" type="date" value="${p.start || ''}"></div><div class="field"><label>Deadline</label><input name="deadline" type="date" value="${p.deadline || ''}"></div></div>
-    <div class="field"><label>Description</label><textarea name="description" rows="3">${esc(p.description || '')}</textarea></div>
-    <div class="field"><label>Assigned team members</label><div style="display:flex;flex-wrap:wrap;gap:6px 14px">${employees.filter(e => !e.archived).map(e => `<label style="font-weight:500;color:var(--text);display:flex;gap:6px;align-items:center"><input type="checkbox" name="team" value="${e.id}" style="width:auto" ${(p.team || []).includes(e.id) ? 'checked' : ''}>${esc(e.name)}</label>`).join('') || '<span class="muted">Add employees first</span>'}</div></div>
-    ${clients.length ? '' : '<div class="hint">Create a client first — every project belongs to a client.</div>'}
-    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">${id ? 'Save changes' : 'Create project'}</button></div></form>`, 'xl');
-}
-function saveProject(ev, id){
-  ev.preventDefault(); const fd = new FormData(ev.target), f = Object.fromEntries(fd);
-  const data = {name:f.name.trim(), clientId:f.clientId, status:f.status, start:f.start, deadline:f.deadline, description:f.description.trim(), team:fd.getAll('team')};
-  if (id) Object.assign(projById(id), data); else { const p = {id:uid(), ...data}; projects.push(p); pjSel = p.id; }
-  save(); closeModal(); render(); toast(id ? 'Project updated' : 'Project created');
-}
-function setProjStatus(id, st){ const p = projById(id); if (p) { p.status = st; save(); render(); } }
-function delProject(id){
-  const p = projById(id); if (!p || !confirm('Delete project "' + p.name + '" with all its tasks, subtasks and comments?')) return;
-  tasks.filter(t => t.projectId === id).forEach(removeTaskData); projects = projects.filter(x => x.id !== id); pjSel = null; save(); render();
-}
-function removeTaskData(t){ subtasks = subtasks.filter(s => s.taskId !== t.id); taskComments = taskComments.filter(c => c.taskId !== t.id); tasks = tasks.filter(x => x.id !== t.id); tasks.forEach(x => { if (x.blockedBy === t.id) x.blockedBy = ''; }); selT.delete(t.id); }
+function cuGo(scope){ cuScope = scope; Object.keys(cf).forEach(k => cf[k] = ''); cuSel.clear(); cuTreeOpen = false; if (scope.type === 'mine' && !cuPerson && employees.some(e => !e.archived)) cuPerson = employees.filter(e => !e.archived)[0].id; render(); }
+function cuOpenList(id){ view = 'tasks'; cuGo({type:'list', id}); window.scrollTo(0, 0); }
+function goTasks(patch){ view = 'tasks'; cuScope = {type:'all'}; Object.keys(cf).forEach(k => cf[k] = ''); Object.assign(cf, patch); cuView = 'list'; cuFilterOpen = true; render(); window.scrollTo(0, 0); }
 
-/* ----- tasks: create / status / recurring ----- */
-function taskForm(o = {}){
-  if (!projects.length) { openModal('<h2>New Task</h2><p style="margin-bottom:14px">Every task lives inside a project. Create a project first.</p><div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" onclick="projectForm()">New project</button></div>'); return; }
-  const pid = o.project || (pjSel && pjSel !== 'all' ? pjSel : '');
-  openModal(`<h2>New Task</h2><form onsubmit="saveNewTask(event)">
-    <div class="field"><label>Title</label><input name="title" value="${esc(o.title || '')}" required></div>
-    <div class="row2"><div class="field"><label>Project</label><select name="projectId" required><option value="">Select project…</option>${projects.map(p => `<option value="${p.id}" ${p.id === pid ? 'selected' : ''}>${esc(p.name)} · ${esc(clName(p.clientId))}</option>`).join('')}</select></div>
-    <div class="field"><label>Assigned to</label><select name="assignee">${empOpts('')}</select></div></div>
-    <div class="row2"><div class="field"><label>Due date</label><input name="due" type="date" value="${o.due || ''}"></div>
-    <div class="field"><label>Time estimate (hours)</label><input name="estimate" type="number" min="0" step="any"></div></div>
-    <div class="row2"><div class="field"><label>Priority</label><select name="priority">${Object.entries(PRI).map(([k, v]) => `<option value="${k}" ${k === 'normal' ? 'selected' : ''}>${v.i} ${v.l}</option>`).join('')}</select></div>
-    <div class="field"><label>Status</label><select name="status">${Object.entries(TS).map(([k, v]) => `<option value="${k}" ${k === (o.status || 'todo') ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
-    <div class="field"><label>Tags (comma separated)</label><input name="tags" placeholder="Design, Content…"></div>
-    <div class="field"><label>Description</label><textarea name="description" rows="3"></textarea></div>
-    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Create task</button></div></form>`, 'xl');
+/* ----- hierarchy tree ----- */
+function cuTree(){
+  const row = (cls, inner, click) => `<div class="tr-row ${cls}" ${click ? `onclick="${click}"` : ''}>${inner}</div>`;
+  const dot = (kind, id, color) => `<span class="dot" style="background:${color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('${kind}','${id}')"></span>`;
+  const mine = cuScope.type === 'mine', all = cuScope.type === 'all';
+  return `${row('top ' + (mine ? 'sel' : ''), '<span>👤 My Tasks</span>', "cuGo({type:'mine'})")}${row('top ' + (all ? 'sel' : ''), '<span>☰ All Tasks</span>', "cuGo({type:'all'})")}
+  <div class="tr-sec"><span>SPACES</span><button title="New Space" onclick="cuNodeForm('space')">+</button></div>
+  ${cuSpaces.map(sp => { const open = !cuCollapsed.has(sp.id);
+    return `${row('sp', `<span class="arr">${open ? '▾' : '▸'}</span>${dot('space', sp.id, sp.color)}<span class="nm">${esc(sp.name)}</span><span class="acts"><button title="New Folder" onclick="event.stopPropagation();cuNodeForm('folder',null,'${sp.id}')">+</button><button title="Edit" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">✎</button></span>`, `cuToggle('${sp.id}')`)}
+    ${open ? cuFolders.filter(f => f.spaceId === sp.id).map(f => { const fo = !cuCollapsed.has(f.id);
+      return `${row('fo', `<span class="arr">${fo ? '▾' : '▸'}</span>${dot('folder', f.id, f.color)}<span class="nm">${esc(f.name)}</span><span class="acts"><button title="New List" onclick="event.stopPropagation();cuNodeForm('list',null,'${f.id}')">+</button><button title="Edit" onclick="event.stopPropagation();cuNodeForm('folder','${f.id}')">✎</button></span>`, `cuToggle('${f.id}')`)}
+      ${fo ? cuLists.filter(l => l.folderId === f.id).map(l => `${row('li ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `${dot('list', l.id, l.color)}<span class="nm">${esc(l.name)}</span><span class="cnt">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length || ''}</span>`, `cuOpenList('${l.id}')`)}`).join('') : ''}`; }).join('') : ''}`; }).join('')}`;
 }
-const parseTags = s => [...new Set(String(s || '').split(',').map(x => x.trim()).filter(Boolean))];
-function newTask(o){ const t = {id:uid(), title:'', description:'', assignee:'', due:'', priority:'normal', status:'todo', tags:[], estimate:0, attachments:'', blockedBy:'', recurring:'', created:new Date().toISOString(), ...o}; tasks.push(t); return t; }
-function saveNewTask(ev){
+const cuToggle = id => { cuCollapsed.has(id) ? cuCollapsed.delete(id) : cuCollapsed.add(id); render(); };
+function cuSetupDefault(){
+  const sp = {id:uid(), name:'Media Beem Agency', color:CU_COLORS[0]}; cuSpaces.push(sp);
+  [['Client Projects', CU_COLORS[1]], ['Internal', CU_COLORS[2]], ['Marketing', CU_COLORS[5]]].forEach(([name, color]) => cuFolders.push({id:uid(), spaceId:sp.id, name, color}));
+  save(); render(); toast('Workspace ready — add a List with the + next to a Folder');
+}
+function cuNodeForm(kind, id, parent){
+  const x = id ? ({space:spaceById, folder:folderById, list:listById}[kind])(id) : {name:'', color:CU_COLORS[kind === 'space' ? 0 : kind === 'folder' ? 1 : 2]};
+  const label = {space:'Space', folder:'Folder', list:'List'}[kind];
+  const folderSel = kind === 'list' && !id && !parent ? `<div class="field"><label>Folder</label><select name="parent" required>${cuFolders.map(f => `<option value="${f.id}">${esc((spaceById(f.spaceId) || {}).name)} › ${esc(f.name)}</option>`).join('')}</select></div>` : '';
+  openModal(`<h2>${id ? 'Edit' : 'New'} ${label}</h2><form onsubmit="cuSaveNode(event,'${kind}','${id || ''}','${parent || ''}')">
+    ${folderSel}<div class="field"><label>Name</label><input name="name" value="${esc(x.name)}" placeholder="${kind === 'space' ? 'e.g. Media Beem Agency' : kind === 'folder' ? 'e.g. Client Projects' : 'e.g. Website Redesign'}" required></div>
+    <div class="field"><label>Colour</label><div class="swatches">${CU_COLORS.map(c => `<label><input type="radio" name="color" value="${c}" ${c === x.color ? 'checked' : ''}><span style="background:${c}"></span></label>`).join('')}</div></div>
+    ${kind === 'list' ? `<div class="field"><label>Linked client (optional)</label><select name="clientId"><option value="">— none —</option>${clients.map(c => `<option value="${c.id}" ${c.id === x.clientId ? 'selected' : ''}>${esc(c.company)}</option>`).join('')}</select></div>` : ''}
+    <div class="modal-actions">${id ? `<button type="button" class="btn danger" style="margin-right:auto" onclick="cuDelNode('${kind}','${id}')">Delete</button>` : ''}<button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">${id ? 'Save' : 'Create'}</button></div></form>`);
+}
+function cuSaveNode(ev, kind, id, parent){
+  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)), name = f.name.trim(); if (!name) return;
+  if (id) { const x = ({space:spaceById, folder:folderById, list:listById}[kind])(id); x.name = name; x.color = f.color; if (kind === 'list') x.clientId = f.clientId || ''; }
+  else if (kind === 'space') cuSpaces.push({id:uid(), name, color:f.color});
+  else if (kind === 'folder') cuFolders.push({id:uid(), spaceId:parent, name, color:f.color});
+  else { const l = {id:uid(), folderId:parent || f.parent, name, color:f.color, clientId:f.clientId || '', statuses:defaultStatuses()}; cuLists.push(l); cuScope = {type:'list', id:l.id}; view = 'tasks'; }
+  save(); closeModal(); render();
+}
+function cuDelNode(kind, id){
+  const lists = kind === 'list' ? [id] : kind === 'folder' ? cuLists.filter(l => l.folderId === id).map(l => l.id) : cuLists.filter(l => cuFolders.some(f => f.id === l.folderId && f.spaceId === id)).map(l => l.id);
+  const n = cuTasks.filter(t => lists.includes(t.listId)).length;
+  if (!confirm('Delete this ' + kind + (kind !== 'list' ? ' with everything inside it' : '') + (n ? ' and its ' + n + ' task(s)' : '') + '? This cannot be undone.')) return;
+  cuTasks.filter(t => lists.includes(t.listId)).forEach(cuRemoveTaskData);
+  cuLists = cuLists.filter(l => !lists.includes(l.id));
+  if (kind === 'folder') cuFolders = cuFolders.filter(f => f.id !== id);
+  if (kind === 'space') { cuFolders = cuFolders.filter(f => f.spaceId !== id); cuSpaces = cuSpaces.filter(s => s.id !== id); }
+  save(); closeModal(); render();
+}
+function cuRemoveTaskData(t){ cuSubs = cuSubs.filter(s => s.taskId !== t.id); cuComments = cuComments.filter(c => c.taskId !== t.id); cuTimeLogs = cuTimeLogs.filter(l => l.taskId !== t.id); cuTasks = cuTasks.filter(x => x.id !== t.id); cuSel.delete(t.id); if (cuPanelId === t.id) cuClose(); }
+
+/* ----- statuses per list ----- */
+function cuStatusForm(lid){
+  const l = listById(lid); if (!l) return;
+  openModal(`<h2>Statuses · ${esc(l.name)}</h2><p class="muted" style="margin-bottom:10px;font-size:13px">Rename, recolour, reorder or remove. “Kind” tells the app whether a status counts as open, done or closed (cancelled) — it drives overdue highlights and repeating tasks.</p>
+    <form onsubmit="cuSaveStatuses(event,'${lid}')"><div id="stRows">${l.statuses.map((s, i) => statusRow(s, i, l.statuses.length)).join('')}</div>
+    <button type="button" class="btn sm ghost" onclick="cuAddStatusRow()">+ Add status</button>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save statuses</button></div></form>`, 'xl');
+}
+const statusRow = s => `<div class="strow" data-id="${s.id}"><input type="color" name="color" value="${s.color}"><input name="name" value="${esc(s.name)}" required><select name="kind">${[['open', 'Open'], ['done', 'Done'], ['closed', 'Closed']].map(([k, n]) => `<option value="${k}" ${s.kind === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
+  <button type="button" class="btn sm ghost" onclick="stMove(this,-1)">▲</button><button type="button" class="btn sm ghost" onclick="stMove(this,1)">▼</button><button type="button" class="btn sm danger" onclick="this.parentNode.remove()">✕</button></div>`;
+function cuAddStatusRow(){ $('stRows').insertAdjacentHTML('beforeend', statusRow({id:'new' + uid(), name:'', color:CU_COLORS[Math.floor(Math.random() * CU_COLORS.length)], kind:'open'})); }
+function stMove(btn, d){ const row = btn.parentNode; if (d < 0 && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling); if (d > 0 && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row); }
+function cuSaveStatuses(ev, lid){
+  ev.preventDefault(); const l = listById(lid);
+  const next = [...document.querySelectorAll('#stRows .strow')].map(r => ({id:r.dataset.id.startsWith('new') ? uid() : r.dataset.id, name:r.querySelector('[name=name]').value.trim(), color:r.querySelector('[name=color]').value, kind:r.querySelector('[name=kind]').value})).filter(s => s.name);
+  if (!next.length) { alert('A list needs at least one status.'); return; }
+  const removed = l.statuses.filter(s => !next.some(n => n.id === s.id)), moved = cuTasks.filter(t => t.listId === lid && removed.some(s => s.id === t.status));
+  if (moved.length && !confirm(moved.length + ' task(s) use a removed status and will move to “' + next[0].name + '”. Continue?')) return;
+  moved.forEach(t => t.status = next[0].id); l.statuses = next; save(); closeModal(); render();
+}
+
+/* ----- creating & changing tasks ----- */
+function cuNewTask(o){
+  const l = listById(o.listId), t = {id:uid(), title:'', description:'', assignee:'', due:'', priority:'normal', tags:[], estimate:0, repeat:'', repeatDays:7, created:new Date().toISOString(), status:l.statuses[0].id, ...o};
+  cuTasks.push(t); cuComments.push({id:uid(), taskId:t.id, at:t.created, by:'You', text:o.activityText || 'Task created', kind:'activity'}); delete t.activityText; return t;
+}
+function cuQuickAdd(o = {}){
+  if (!cuLists.length) { openModal('<h2>Quick add</h2><p style="margin-bottom:14px">Create a List first — every task lives in a List.</p><div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" onclick="cuNodeForm(\'list\')">New List</button></div>'); return; }
+  const cur = o.listId || (cuScope.type === 'list' ? cuScope.id : cuLists[0].id), asg = o.assignee ?? (cuScope.type === 'mine' ? cuPerson : '');
+  openModal(`<h2>Quick add task</h2><form onsubmit="cuSaveQuick(event)">
+    <div class="field"><label>Title</label><input name="title" value="${esc(o.title || '')}" required autofocus></div>
+    <div class="field"><label>List</label><select name="listId">${cuLists.map(l => `<option value="${l.id}" ${l.id === cur ? 'selected' : ''}>${esc((folderById(l.folderId) || {}).name)} › ${esc(l.name)}</option>`).join('')}</select></div>
+    <div class="row2"><div class="field"><label>Assignee</label><select name="assignee">${empOpts(asg)}</select></div><div class="field"><label>Due date</label><input name="due" type="date" value="${o.due || ''}"></div></div>
+    <div class="field"><label>Priority</label><select name="priority">${Object.entries(PRI).map(([k, p]) => `<option value="${k}" ${k === 'normal' ? 'selected' : ''}>${p.i} ${p.l}</option>`).join('')}</select></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save</button></div></form>`);
+  setTimeout(() => { const i = document.querySelector('#modal input[name=title]'); if (i) i.focus(); }, 30);
+}
+function cuSaveQuick(ev){
   ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
-  newTask({title:f.title.trim(), projectId:f.projectId, assignee:f.assignee, due:f.due, priority:f.priority, status:f.status, tags:parseTags(f.tags), estimate:+f.estimate || 0, description:f.description.trim()});
-  save(); closeModal(); render(); toast('Task created');
+  cuNewTask({listId:f.listId, title:f.title.trim(), assignee:f.assignee, due:f.due, priority:f.priority}); save(); closeModal(); render(); toast('Task created');
 }
-function quickAdd(status, input){
-  const title = input.value.trim(); if (!title) return;
-  if (!pjSel || pjSel === 'all') { taskForm({status, title}); return; }
-  newTask({title, projectId:pjSel, status}); save(); render(); toast('Task added');
+function cuAddInline(gi, listId, input){
+  const def = groupDefs()[gi], title = input.value.trim(); if (!title) return;
+  const lid = listId || (cuScope.type === 'list' ? cuScope.id : ''); if (!lid) { cuQuickAdd({title}); return; }
+  const t = cuNewTask({listId:lid, title}); if (def && def.set) def.set(t); cuAddCol = null; save(); render();
 }
 function nextDue(t){
   const base = t.due || today();
-  if (t.recurring === 'daily') return addDays(base, 1);
-  if (t.recurring === 'weekly') return addDays(base, 7);
+  if (t.repeat === 'daily') return addDays(base, 1);
+  if (t.repeat === 'weekly') return addDays(base, 7);
+  if (t.repeat === 'custom') return addDays(base, Math.max(1, +t.repeatDays || 1));
   const d = new Date(base + 'T00:00:00'), day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth() + 1); d.setDate(Math.min(day, monthDays(iso(d).slice(0, 7)))); return iso(d);
 }
-function spawnRecurring(t){
-  const n = newTask({...t, id:uid(), status:'todo', due:nextDue(t), blockedBy:'', recurSpawned:false, created:new Date().toISOString()});
-  subtasks.filter(s => s.taskId === t.id).forEach(s => subtasks.push({id:uid(), taskId:n.id, title:s.title, done:false}));
-  t.recurSpawned = true; toast('Recurring task — next one created for ' + fdate(n.due));
+function cuSpawn(t){
+  const l = listOf(t), n = cuNewTask({...t, id:uid(), status:l.statuses.find(s => s.kind === 'open').id, due:nextDue(t), spawned:false, created:new Date().toISOString(), activityText:'Recurring task created'});
+  cuSubs.filter(s => s.taskId === t.id).forEach(s => cuSubs.push({id:uid(), taskId:n.id, title:s.title, done:false}));
+  t.spawned = true; toast('Repeating task — next one created for ' + fdate(n.due));
 }
-function setTaskStatus(t, st){
-  if (st === 'done' && isBlockedT(t) && !confirm('This task is blocked by "' + taskById(t.blockedBy).title + '", which is not done yet. Mark it Done anyway?')) return false;
-  t.status = st;
-  if (st === 'done' && t.recurring && !t.recurSpawned) spawnRecurring(t);
-  return true;
+function cuSetStatus(t, sid, noRender){
+  const old = statusOf(t), l = listOf(t), s = l.statuses.find(x => x.id === sid); if (!s || s.id === t.status) return;
+  t.status = sid; cuComments.push({id:uid(), taskId:t.id, at:new Date().toISOString(), by:'You', text:'Status: ' + old.name + ' → ' + s.name, kind:'activity'});
+  if (s.kind === 'done' && t.repeat && !t.spawned) cuSpawn(t);
+  save(); if (!noRender) render();
 }
-function changeStatus(id, st){ const t = taskById(id); if (t && setTaskStatus(t, st)) { save(); render(); if (openTaskId === id) refreshTask(id); } else render(); }
-function dropTask(ev, st){ ev.preventDefault(); const id = dragTaskId || ev.dataTransfer.getData('text/plain'); dragTaskId = null; if (id) changeStatus(id, st); }
+function cuSetField(id, field, val){
+  const t = taskById(id); if (!t) return;
+  if (field === 'status') { cuSetStatus(t, val); return; }
+  if (field === 'tags') val = Array.isArray(val) ? val : parseTags(val);
+  if (field === 'estimate') val = Math.max(0, +val || 0);
+  if (field === 'title') { val = val.trim(); if (!val) return; }
+  if (field === 'listId') { const l = listById(val), old = statusOf(t); t.status = (l.statuses.find(s => s.name.toLowerCase() === old.name.toLowerCase()) || l.statuses[0]).id; }
+  t[field] = val; save(); render();
+}
+function cuMove(id, gi){
+  const t = taskById(id), g = groupDefs()[gi]; if (!t || !g) return;
+  if (!g.set) { toast('Cannot drop into a due-date group — change the date instead'); return; }
+  if (g.match(t)) return; if (g.set(t)) { save(); render(); }
+}
+function cuDelTask(id){ const t = taskById(id); if (t && confirm('Delete "' + t.title + '" with its subtasks, comments and time logs?')) { cuRemoveTaskData(t); save(); render(); } }
 
-/* ----- board ----- */
-function taskCard(t){
-  const p = PRI[t.priority], od = isOverdueT(t), subs = subtasks.filter(s => s.taskId === t.id), done = subs.filter(s => s.done).length, name = empName(t.assignee);
-  return `<div class="kcard ${od ? 'overdue' : ''}" draggable="true" ondragstart="dragTaskId='${t.id}';event.dataTransfer.setData('text/plain','${t.id}')" onclick="openTask('${t.id}')" style="border-left-color:${p.c}">
-    <div style="display:flex;justify-content:space-between;gap:6px"><b>${esc(t.title)}</b>${isBlockedT(t) ? '<span title="Blocked by another task">🔒</span>' : ''}</div>
-    ${(t.tags || []).length ? `<div style="margin:5px 0">${t.tags.map(x => `<span class="tagchip">${esc(x)}</span>`).join('')}</div>` : ''}
-    <div class="kfoot"><span style="color:${od ? 'var(--red)' : 'var(--muted)'};font-weight:${od ? 700 : 400}">${t.due ? '📅 ' + fdate(t.due) : ''}${t.recurring ? ' 🔁' : ''}</span><span class="muted">${subs.length ? '☑ ' + done + '/' + subs.length : ''}</span>${name ? miniAv(name) : '<span class="av" style="width:24px;height:24px;background:#e2e8f0"></span>'}</div></div>`;
+/* ----- BOARD ----- */
+function cuCardCls(t){ return isOverdueT(t) ? 'overdue' : isTodayT(t) ? 'today' : ''; }
+function cuCard(t){
+  const subs = cuSubs.filter(s => s.taskId === t.id), done = subs.filter(s => s.done).length, p = PRI[t.priority];
+  return `<div class="cu-card ${cuCardCls(t)}" draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${t.id}');this.classList.add('dragging')" ondragend="this.classList.remove('dragging')" onclick="cuOpen('${t.id}')">
+    <div class="ct">${esc(t.title)}</div>${(t.tags || []).length ? `<div class="ctags">${t.tags.map(x => `<span class="tagchip">${esc(x)}</span>`).join('')}</div>` : ''}
+    <div class="cm">${assigneeDot(t.assignee)}<span title="${p.l}">${p.i}</span>${t.due ? `<span class="cdue ${isOverdueT(t) ? 'od' : isTodayT(t) ? 'td' : ''}">📅 ${fdate(t.due)}</span>` : ''}${subs.length ? `<span class="muted">☑ ${done}/${subs.length}</span>` : ''}${t.repeat ? '<span title="Repeats">🔁</span>' : ''}${cuScope.type !== 'list' ? `<span class="muted clist">${esc((listOf(t) || {}).name)}</span>` : ''}</div></div>`;
 }
-function taskBoard(list){
-  return `<div class="kanban">${BOARD_COLS.map(st => { const col = list.filter(t => t.status === st).sort((a, b) => PRI[a.priority].o - PRI[b.priority].o || (a.due || '9').localeCompare(b.due || '9'));
-    return `<div class="kcol" ondragover="event.preventDefault()" ondrop="dropTask(event,'${st}')"><div class="khead"><b>${TS[st]}</b><span class="badge b-draft">${col.length}</span></div>
-      ${col.map(taskCard).join('')}<input class="qadd" placeholder="+ Quick add task" onkeydown="if(event.key==='Enter')quickAdd('${st}',this)"></div>`; }).join('')}</div>
-    ${list.filter(t => t.status === 'cancelled').length ? `<div class="muted" style="margin-top:8px;font-size:12px">${list.filter(t => t.status === 'cancelled').length} cancelled task(s) hidden — see List view.</div>` : ''}`;
+function cuBoard(list){
+  const groups = groupDefs();
+  return `<div class="cu-board">${groups.map((g, gi) => { const col = list.filter(g.match).sort(cuSorter()), adding = cuAddCol === gi;
+    return `<div class="cu-col" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="event.preventDefault();this.classList.remove('over');cuMove(event.dataTransfer.getData('text/plain'),${gi})">
+      <div class="chead"><span class="spill" style="background:${g.color}">${esc(g.label)}</span><span class="muted">${col.length}</span></div>
+      ${col.map(cuCard).join('')}
+      ${adding ? `<input class="qadd" id="cuAddIn" placeholder="Task name — Enter to add" onkeydown="if(event.key==='Enter')cuAddInline(${gi},null,this);if(event.key==='Escape'){cuAddCol=null;render()}">` : `<button class="cadd" onclick="cuAddCol=${gi};render()">+ Add Task</button>`}</div>`; }).join('')}</div>`;
 }
 
-/* ----- list ----- */
-function setSort(k){ tsort = {key:k, dir:tsort.key === k ? -tsort.dir : 1}; render(); }
-function taskTable(list){
-  const val = {title:t => t.title.toLowerCase(), assignee:t => empName(t.assignee).toLowerCase() || '~', priority:t => PRI[t.priority].o, due:t => t.due || '9999', status:t => Object.keys(TS).indexOf(t.status)};
-  const rows = [...list].sort((a, b) => { const x = val[tsort.key](a), y = val[tsort.key](b); return (x < y ? -1 : x > y ? 1 : 0) * tsort.dir; });
-  const th = (k, l) => `<th style="cursor:pointer" onclick="setSort('${k}')">${l}${tsort.key === k ? (tsort.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`;
-  const n = [...selT].filter(id => taskById(id)).length;
-  return `${n ? `<div class="card" style="margin-bottom:10px;padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f0fdfa"><b>${n} selected</b>
-      <select style="width:auto" onchange="bulkSet('status',this.value)"><option value="">Set status…</option>${Object.entries(TS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
-      <select style="width:auto" onchange="bulkSet('priority',this.value)"><option value="">Set priority…</option>${Object.entries(PRI).map(([k, v]) => `<option value="${k}">${v.i} ${v.l}</option>`).join('')}</select>
-      <select style="width:auto" onchange="bulkSet('assignee',this.value)"><option value="">Assign to…</option>${employees.map(e => `<option value="${e.id}">${esc(e.name)}</option>`).join('')}<option value="__none">Unassigned</option></select>
-      <button class="btn sm danger" onclick="bulkDelete()">Delete</button><button class="btn sm ghost" onclick="selT.clear();render()">Clear</button></div>` : ''}
-  <div class="card"><div class="tablewrap"><table><thead><tr><th style="width:30px"><input type="checkbox" style="width:auto" onchange="toggleAllT(this.checked)" ${rows.length && rows.every(t => selT.has(t.id)) ? 'checked' : ''}></th>${th('title', 'Task')}${pjSel === 'all' ? '<th>Project</th>' : ''}${th('assignee', 'Assignee')}${th('priority', 'Priority')}${th('due', 'Due date')}${th('status', 'Status')}<th>Tags</th></tr></thead>
-    <tbody>${rows.map(t => `<tr style="${isOverdueT(t) ? 'background:#fef2f2' : ''}"><td><input type="checkbox" style="width:auto" ${selT.has(t.id) ? 'checked' : ''} onchange="toggleT('${t.id}',this.checked)"></td>
-      <td style="cursor:pointer;white-space:normal;min-width:180px" onclick="openTask('${t.id}')"><b>${esc(t.title)}</b>${isBlockedT(t) ? ' 🔒' : ''}${t.recurring ? ' 🔁' : ''}</td>${pjSel === 'all' ? `<td>${esc((projById(t.projectId) || {}).name || '—')}</td>` : ''}
-      <td>${empName(t.assignee) ? `<span style="display:flex;gap:6px;align-items:center">${miniAv(empName(t.assignee))}${esc(empName(t.assignee))}</span>` : '<span class="muted">—</span>'}</td><td>${priBadge(t.priority)}</td>
-      <td style="color:${isOverdueT(t) ? 'var(--red)' : 'inherit'};font-weight:${isOverdueT(t) ? 700 : 400}">${fdate(t.due)}</td>
-      <td><select style="width:auto;padding:5px 8px" onchange="changeStatus('${t.id}',this.value)">${Object.entries(TS).map(([k, v]) => `<option value="${k}" ${k === t.status ? 'selected' : ''}>${v}</option>`).join('')}</select></td>
-      <td>${(t.tags || []).map(x => `<span class="tagchip">${esc(x)}</span>`).join('')}</td></tr>`).join('') || `<tr><td colspan="8" class="empty">No tasks match</td></tr>`}</tbody></table></div></div>`;
+/* ----- LIST VIEW ----- */
+function cuSortBy(k){ if (cuSortKey === k) cuSortDir = -cuSortDir; else { cuSortKey = k; cuSortDir = 1; } render(); }
+const cuEditStart = (id, f) => { cuEdit = {id, f}; render(); };
+const cuEditEnd = () => { if (cuEdit) { cuEdit = null; render(); } };
+function cuCell(t, f){
+  const ed = cuEdit && cuEdit.id === t.id && cuEdit.f === f, id = t.id, st = statusOf(t);
+  const commit = (v) => `cuEdit=null;cuSetField('${id}','${f}',${v})`;
+  if (f === 'assignee') return ed ? `<select data-edit onchange="${commit('this.value')}" onblur="cuEditEnd()">${empOpts(t.assignee)}</select>` : `<span class="cell" onclick="cuEditStart('${id}','assignee')"><span style="display:flex;gap:6px;align-items:center">${assigneeDot(t.assignee)}<span>${esc(empName(t.assignee))}</span></span></span>`;
+  if (f === 'due') return ed ? `<input data-edit type="date" value="${t.due || ''}" onchange="${commit('this.value')}" onblur="cuEditEnd()">` : `<span class="cell cdue ${isOverdueT(t) ? 'od' : isTodayT(t) ? 'td' : ''}" onclick="cuEditStart('${id}','due')">${t.due ? fdate(t.due) : '<span class="muted">—</span>'}</span>`;
+  if (f === 'priority') return ed ? `<select data-edit onchange="${commit('this.value')}" onblur="cuEditEnd()">${Object.entries(PRI).map(([k, p]) => `<option value="${k}" ${k === t.priority ? 'selected' : ''}>${p.i} ${p.l}</option>`).join('')}</select>` : `<span class="cell" onclick="cuEditStart('${id}','priority')">${PRI[t.priority].i} <span class="muted">${PRI[t.priority].l}</span></span>`;
+  if (f === 'status') return ed ? `<select data-edit onchange="${commit('this.value')}" onblur="cuEditEnd()">${listOf(t).statuses.map(s => `<option value="${s.id}" ${s.id === t.status ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>` : `<span class="cell" onclick="cuEditStart('${id}','status')">${statusPill(st)}</span>`;
+  if (f === 'tags') return ed ? `<input data-edit value="${esc((t.tags || []).join(', '))}" placeholder="tag, tag" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){cuEdit=null;render()}" onblur="cuEdit=null;cuSetField('${id}','tags',this.value)">` : `<span class="cell" onclick="cuEditStart('${id}','tags')">${(t.tags || []).map(x => `<span class="tagchip">${esc(x)}</span>`).join('') || '<span class="muted">—</span>'}</span>`;
+  if (f === 'estimate') return ed ? `<input data-edit type="number" min="0" step="any" value="${t.estimate || ''}" style="width:70px" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){cuEdit=null;render()}" onblur="cuEdit=null;cuSetField('${id}','estimate',this.value)">` : `<span class="cell" onclick="cuEditStart('${id}','estimate')">${t.estimate ? t.estimate + 'h' : '<span class="muted">—</span>'}</span>`;
 }
-const toggleT = (id, on) => { on ? selT.add(id) : selT.delete(id); render(); };
-function toggleAllT(on){ filteredTasks().forEach(t => on ? selT.add(t.id) : selT.delete(t.id)); render(); }
-function bulkSet(field, v){
-  if (!v) return;
-  [...selT].map(taskById).filter(Boolean).forEach(t => { if (field === 'status') setTaskStatus(t, v); else t[field] = v === '__none' ? '' : v; });
-  save(); render(); toast('Updated ' + selT.size + ' tasks');
+function cuListView(list){
+  const groups = groupDefs(), th = (k, l) => `<th style="cursor:pointer" onclick="cuSortBy('${k}')">${l}${cuSortKey === k ? (cuSortDir > 0 ? ' ▲' : ' ▼') : ''}</th>`;
+  const n = [...cuSel].filter(taskById).length;
+  const bulk = n ? `<div class="cu-bulk"><b>${n} selected</b><select onchange="cuBulk('status',this.value)"><option value="">Status…</option>${statusUnion().map(s => `<option>${esc(s.name)}</option>`).join('')}</select>
+    <select onchange="cuBulk('priority',this.value)"><option value="">Priority…</option>${Object.entries(PRI).map(([k, p]) => `<option value="${k}">${p.i} ${p.l}</option>`).join('')}</select>
+    <select onchange="cuBulk('assignee',this.value)"><option value="">Assign to…</option>${employees.map(e => `<option value="${e.id}">${esc(e.name)}</option>`).join('')}<option value="__none">Unassigned</option></select>
+    <button class="btn sm danger" onclick="cuBulkDel()">Delete</button><button class="btn sm ghost" onclick="cuSel.clear();render()">Clear</button></div>` : '';
+  const taskRows = t => { const subs = cuSubs.filter(s => s.taskId === t.id), open = cuExpanded.has(t.id), done = subs.filter(s => s.done).length;
+    return `<tr class="trow ${cuCardCls(t)}"><td><input type="checkbox" ${cuSel.has(t.id) ? 'checked' : ''} onchange="cuSelT('${t.id}',this.checked)"></td>
+      <td class="tname"><span class="arrow" style="visibility:${subs.length ? 'visible' : 'hidden'}" onclick="cuToggleSub('${t.id}')">${open ? '▾' : '▸'}</span>${cuEdit && cuEdit.id === t.id && cuEdit.f === 'title' ? `<input data-edit value="${esc(t.title)}" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){cuEdit=null;render()}" onblur="cuEdit=null;cuSetField('${t.id}','title',this.value)">` : `<span class="ttl" onclick="cuOpen('${t.id}')" ondblclick="cuEditStart('${t.id}','title')" title="Click to open · double-click to rename">${esc(t.title)}</span>`}${subs.length ? `<span class="muted" style="font-size:11px;margin-left:6px">☑ ${done}/${subs.length}</span>` : ''}${t.repeat ? ' 🔁' : ''}${cuScope.type !== 'list' ? `<span class="muted clist">${esc((listOf(t) || {}).name)}</span>` : ''}</td>
+      <td>${cuCell(t, 'assignee')}</td><td>${cuCell(t, 'due')}</td><td>${cuCell(t, 'priority')}</td><td>${cuCell(t, 'status')}</td><td>${cuCell(t, 'tags')}</td><td>${cuCell(t, 'estimate')}</td></tr>
+      ${open ? subs.map(s => `<tr class="subrow"><td></td><td colspan="7"><label><input type="checkbox" ${s.done ? 'checked' : ''} onchange="cuToggleSubtask('${s.id}')"><span style="${s.done ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(s.title)}</span></label></td></tr>`).join('') : ''}`; };
+  return `${bulk}<div class="cu-table"><table><thead><tr><th style="width:28px"><input type="checkbox" onchange="cuSelAll(this.checked)"></th>${th('title', 'Task Name')}${th('assignee', 'Assignee')}${th('due', 'Due Date')}${th('priority', 'Priority')}${th('status', 'Status')}<th>Tags</th>${th('est', 'Time Estimate')}</tr></thead>
+    ${groups.map((g, gi) => { const rows = list.filter(g.match).sort(cuSorter());
+      return `<tbody><tr class="ghead"><td colspan="8"><span class="spill" style="background:${g.color}">${esc(g.label)}</span> <span class="muted">${rows.length}</span></td></tr>${rows.map(taskRows).join('')}
+        <tr class="addrow"><td></td><td colspan="7"><input class="qadd" placeholder="+ Add task" onkeydown="if(event.key==='Enter')cuAddInline(${gi},null,this)"></td></tr></tbody>`; }).join('')}</table></div>`;
 }
-function bulkDelete(){ if (!confirm('Delete ' + selT.size + ' selected tasks with their subtasks and comments?')) return; [...selT].map(taskById).filter(Boolean).forEach(removeTaskData); selT.clear(); save(); render(); }
+const cuToggleSub = id => { cuExpanded.has(id) ? cuExpanded.delete(id) : cuExpanded.add(id); render(); };
+const cuSelT = (id, on) => { on ? cuSel.add(id) : cuSel.delete(id); render(); };
+const cuSelAll = on => { cuFiltered().forEach(t => on ? cuSel.add(t.id) : cuSel.delete(t.id)); render(); };
+function cuBulk(field, v){ if (!v) return; [...cuSel].map(taskById).filter(Boolean).forEach(t => { if (field === 'status') setStatusByName(t, v); else t[field] = v === '__none' ? '' : v; }); save(); render(); toast('Updated ' + cuSel.size + ' tasks'); }
+function cuBulkDel(){ if (confirm('Delete ' + cuSel.size + ' selected tasks?')) { [...cuSel].map(taskById).filter(Boolean).forEach(cuRemoveTaskData); cuSel.clear(); save(); render(); } }
+function cuToggleSubtask(sid){ const s = cuSubs.find(x => x.id === sid); if (s) { s.done = !s.done; save(); render(); } }
 
-/* ----- calendar ----- */
-function calNav(d){ if (d === 0) calMonth = today().slice(0, 7); else { const [y, m] = calMonth.split('-').map(Number), x = new Date(y, m - 1 + d, 1); calMonth = iso(x).slice(0, 7); } calDay = ''; render(); }
-function taskCalendar(list){
-  const [y, mo] = calMonth.split('-').map(Number), lead = (new Date(y, mo - 1, 1).getDay() + 6) % 7, days = monthDays(calMonth);
-  const by = {}; list.filter(t => t.due && t.due.startsWith(calMonth)).forEach(t => (by[t.due] = by[t.due] || []).push(t));
-  const cells = [...Array(lead).fill(null), ...Array.from({length:days}, (_, i) => calMonth + '-' + String(i + 1).padStart(2, '0'))];
-  const dayList = calDay ? list.filter(t => t.due === calDay) : [];
-  return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px"><button class="btn sm ghost" onclick="calNav(-1)">‹</button><b style="font-size:16px">${monthName(calMonth)}</b><div><button class="btn sm ghost" onclick="calNav(0)">Today</button> <button class="btn sm ghost" onclick="calNav(1)">›</button></div></div>
+/* ----- CALENDAR ----- */
+function cuNav(d){ if (d === 0) cuMonth = today().slice(0, 7); else { const [y, m] = cuMonth.split('-').map(Number); cuMonth = iso(new Date(y, m - 1 + d, 1)).slice(0, 7); } render(); }
+function cuCalendar(list){
+  const [y, mo] = cuMonth.split('-').map(Number), lead = (new Date(y, mo - 1, 1).getDay() + 6) % 7, days = monthDays(cuMonth), by = {};
+  list.filter(t => t.due && t.due.startsWith(cuMonth)).forEach(t => (by[t.due] = by[t.due] || []).push(t));
+  const cells = [...Array(lead).fill(null), ...Array.from({length:days}, (_, i) => cuMonth + '-' + String(i + 1).padStart(2, '0'))];
+  return `<div class="cu-cal"><div class="calbar"><button class="btn sm ghost" onclick="cuNav(-1)">‹</button><b>${monthName(cuMonth)}</b><span><button class="btn sm ghost" onclick="cuNav(0)">Today</button> <button class="btn sm ghost" onclick="cuNav(1)">›</button></span></div>
     <div class="cal">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => `<div class="calh">${d}</div>`).join('')}
-    ${cells.map(d => !d ? '<div class="cald empty-cell"></div>' : `<div class="cald ${d === today() ? 'today' : ''} ${d === calDay ? 'sel' : ''}" onclick="calDay='${d}';render()"><span class="dn">${+d.slice(8)}</span>
-      ${(by[d] || []).slice(0, 3).map(t => `<div class="cchip" style="background:${PRI[t.priority].c}${isOpenT(t) ? '' : ';opacity:.45;text-decoration:line-through'}" onclick="event.stopPropagation();openTask('${t.id}')" title="${esc(t.title)}">${esc(t.title)}</div>`).join('')}${(by[d] || []).length > 3 ? `<div class="muted" style="font-size:11px">+${by[d].length - 3} more</div>` : ''}</div>`).join('')}</div>
-    <div class="muted" style="margin-top:8px;font-size:12px">${Object.values(PRI).map(p => `<span style="margin-right:10px"><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${p.c}"></span> ${p.l}</span>`).join('')}</div></div>
-  ${calDay ? `<div class="card" style="margin-top:14px"><h3>Tasks due ${fdate(calDay)}</h3>${dayList.map(t => `<div class="tx" style="cursor:pointer" onclick="openTask('${t.id}')"><div><div class="t1">${esc(t.title)}</div><div class="t2">${TS[t.status]} · ${esc(empName(t.assignee) || 'Unassigned')}</div></div>${priBadge(t.priority)}</div>`).join('') || '<div class="muted">Nothing due on this day.</div>'}
-    <div class="modal-actions"><button class="btn sm" onclick="taskForm({due:'${calDay}'})">+ Task on this day</button></div></div>` : ''}`;
+    ${cells.map(d => !d ? '<div class="cald empty-cell"></div>' : `<div class="cald ${d === today() ? 'today' : ''}" onclick="cuQuickAdd({due:'${d}'})" title="Click to add a task on this date"><span class="dn">${+d.slice(8)}</span>
+      ${(by[d] || []).slice(0, 4).map(t => `<div class="cchip" style="background:${PRI[t.priority].c}${isOpenT(t) ? '' : ';opacity:.45;text-decoration:line-through'}" onclick="event.stopPropagation();cuOpen('${t.id}')" title="${esc(t.title)}">${esc(t.title)}</div>`).join('')}${(by[d] || []).length > 4 ? `<div class="muted" style="font-size:10px">+${by[d].length - 4} more</div>` : ''}</div>`).join('')}</div>
+    <div class="muted" style="margin-top:8px;font-size:12px">${Object.values(PRI).map(p => `<span style="margin-right:12px"><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${p.c}"></span> ${p.l}</span>`).join('')}· click a date to add a task, a pill to open it</div></div>`;
 }
 
-/* ----- task detail ----- */
-function refreshTask(id){ const sc = $('modal').scrollTop; openTask(id); $('modal').scrollTop = sc; }
-function openTask(id){
-  const t = taskById(id); if (!t) return; openTaskId = id;
-  const p = projById(t.projectId), subs = subtasks.filter(s => s.taskId === id), cms = taskComments.filter(c => c.taskId === id).sort((a, b) => a.at.localeCompare(b.at));
-  const done = subs.filter(s => s.done).length, others = tasks.filter(x => x.projectId === t.projectId && x.id !== id), blocker = t.blockedBy && taskById(t.blockedBy);
-  const row = (l, inner) => `<div class="field"><label>${l}</label>${inner}</div>`;
-  openModal(`<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div class="muted" style="font-size:12px">${esc(clName(p && p.clientId))} › ${esc(p ? p.name : '—')}</div><button class="btn sm ghost" onclick="closeModal()">✕ Close</button></div>
-    <input value="${esc(t.title)}" style="font-size:19px;font-weight:700;margin:8px 0 6px;border-color:transparent" onchange="setTF('${id}','title',this.value)">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${priBadge(t.priority)} ${isOverdueT(t) ? '<span class="badge b-overdue">Overdue</span>' : ''} ${blocker && isOpenT(blocker) ? `<span class="badge b-leave">🔒 Blocked by “${esc(blocker.title)}”</span>` : ''} ${t.recurring ? `<span class="badge b-upcoming">🔁 ${t.recurring}</span>` : ''}</div>
-    <div class="row2">${row('Status', `<select onchange="changeStatus('${id}',this.value)">${Object.entries(TS).map(([k, v]) => `<option value="${k}" ${k === t.status ? 'selected' : ''}>${v}</option>`).join('')}</select>`)}
-      ${row('Priority', `<select onchange="setTF('${id}','priority',this.value,true)">${Object.entries(PRI).map(([k, v]) => `<option value="${k}" ${k === t.priority ? 'selected' : ''}>${v.i} ${v.l}</option>`).join('')}</select>`)}</div>
-    <div class="row2">${row('Assigned to', `<select onchange="setTF('${id}','assignee',this.value)">${empOpts(t.assignee)}</select>`)}${row('Due date', `<input type="date" value="${t.due || ''}" onchange="setTF('${id}','due',this.value,true)">`)}</div>
-    <div class="row2">${row('Time estimate (hours)', `<input type="number" min="0" step="any" value="${t.estimate || ''}" onchange="setTF('${id}','estimate',+this.value||0)">`)}${row('Tags (comma separated)', `<input value="${esc((t.tags || []).join(', '))}" onchange="setTF('${id}','tags',parseTags(this.value))">`)}</div>
-    <div class="row2">${row('Blocked by', `<select onchange="setTF('${id}','blockedBy',this.value,true)"><option value="">— none —</option>${others.map(o => `<option value="${o.id}" ${o.id === t.blockedBy ? 'selected' : ''}>${esc(o.title)}${isOpenT(o) ? '' : ' (done)'}</option>`).join('')}</select>`)}
-      ${row('Recurring', `<select onchange="setTF('${id}','recurring',this.value,true)">${[['', 'Not recurring'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly']].map(([v, l]) => `<option value="${v}" ${v === (t.recurring || '') ? 'selected' : ''}>${l}</option>`).join('')}</select>`)}</div>
-    ${row('Description', `<textarea rows="4" onchange="setTF('${id}','description',this.value)">${esc(t.description || '')}</textarea>`)}
-    ${row('Attachment notes (describe what is attached)', `<input value="${esc(t.attachments || '')}" placeholder="e.g. Logo files shared on Drive, brief PDF" onchange="setTF('${id}','attachments',this.value)">`)}
-    <h3 style="margin:14px 0 8px">Subtasks <span class="muted" style="font-weight:400">${subs.length ? done + '/' + subs.length : ''}</span></h3>
-    ${subs.map(s => `<div class="tx" style="padding:6px 0"><label style="display:flex;gap:8px;align-items:center;color:var(--text);font-weight:500;margin:0"><input type="checkbox" style="width:auto" ${s.done ? 'checked' : ''} onchange="toggleSub('${s.id}')"><span style="${s.done ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(s.title)}</span></label><button class="btn sm danger" onclick="delSub('${s.id}')">✕</button></div>`).join('')}
-    <input placeholder="+ Add subtask (press Enter)" style="margin-top:6px" onkeydown="if(event.key==='Enter'){event.preventDefault();addSub('${id}',this)}">
-    <h3 style="margin:18px 0 8px">Comments &amp; updates <span class="muted" style="font-weight:400">· log is append-only</span></h3>
-    ${cms.map(c => `<div class="tx" style="align-items:flex-start;justify-content:flex-start;gap:10px">${miniAv(c.by, 30)}<div><div class="t2"><b style="color:var(--text)">${esc(c.by)}</b> · ${fmtTs(c.at)}</div><div style="white-space:pre-wrap;margin-top:2px">${esc(c.text)}</div></div></div>`).join('') || '<div class="muted">No updates yet.</div>'}
-    <form onsubmit="addComment(event,'${id}')" style="margin-top:12px"><div class="row2" style="grid-template-columns:180px 1fr;gap:8px"><select name="by">${commentAuthors().map(a => `<option value="${esc(a)}" ${a === commentAuthor ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select><textarea name="text" rows="2" placeholder="Add an update — e.g. Sent draft to client for review" required></textarea></div>
-    <div class="modal-actions" style="margin-top:8px"><button type="button" class="btn sm danger" onclick="delTask('${id}')" style="margin-right:auto">Delete task</button><button class="btn sm">Post update</button></div></form>`, 'xl');
+/* ----- TASK DETAIL PANEL (slides in from the right) ----- */
+function cuOpen(id){ cuPanelId = id; cuLogOpen = false; cuRenderPanel(); $('cuPanel').classList.add('open'); document.body.classList.add('cu-panel-open'); }
+function cuClose(){ cuPanelId = null; const p = $('cuPanel'); if (p) p.classList.remove('open'); document.body.classList.remove('cu-panel-open'); }
+function cuRefreshPanel(){ if (!cuPanelId) return; const p = $('cuPanel'), sc = p.scrollTop; cuRenderPanel(); p.scrollTop = sc; }
+function cuRenderPanel(){
+  const t = taskById(cuPanelId), p = $('cuPanel'); if (!t) { cuClose(); return; }
+  const l = listOf(t), st = statusOf(t), subs = cuSubs.filter(s => s.taskId === t.id), done = subs.filter(s => s.done).length;
+  const cms = cuComments.filter(c => c.taskId === t.id).sort((a, b) => a.at.localeCompare(b.at)), logs = cuTimeLogs.filter(x => x.taskId === t.id).sort((a, b) => b.date.localeCompare(a.date));
+  const fld = (label, inner) => `<div class="pf"><span>${label}</span>${inner}</div>`, id = t.id;
+  p.innerHTML = `<div class="ph"><input class="ptitle" value="${esc(t.title)}" onchange="cuSetField('${id}','title',this.value)"><button class="pclose" onclick="cuClose()" title="Close">✕</button></div>
+    <div class="pbody">
+    <div class="pgrid">
+      ${fld('Status', `<select class="stsel" style="background:${st.color}" onchange="cuSetField('${id}','status',this.value)">${l.statuses.map(s => `<option value="${s.id}" ${s.id === t.status ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>`)}
+      ${fld('Priority', `<select onchange="cuSetField('${id}','priority',this.value)">${Object.entries(PRI).map(([k, pr]) => `<option value="${k}" ${k === t.priority ? 'selected' : ''}>${pr.i} ${pr.l}</option>`).join('')}</select>`)}
+      ${fld('Assignee', `<div style="display:flex;gap:6px;align-items:center">${assigneeDot(t.assignee, 24)}<select onchange="cuSetField('${id}','assignee',this.value)">${empOpts(t.assignee)}</select></div>`)}
+      ${fld('Due Date', `<input type="date" value="${t.due || ''}" onchange="cuSetField('${id}','due',this.value)">`)}
+      ${fld('List', `<select onchange="cuSetField('${id}','listId',this.value)">${cuLists.map(x => `<option value="${x.id}" ${x.id === t.listId ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`)}
+      ${fld('Tags', `<div class="tagbox">${(t.tags || []).map(x => `<span class="tagchip">${esc(x)} <a onclick="cuDelTag('${id}',${(t.tags || []).indexOf(x)})">×</a></span>`).join('')}<input placeholder="+ Add tag" onkeydown="if(event.key==='Enter'){event.preventDefault();cuSetField('${id}','tags',[...(taskById('${id}').tags||[]),...parseTags(this.value)])}"></div>`)}
+      ${fld('Time Est', `<div style="display:flex;align-items:center;gap:6px"><input type="number" min="0" step="any" value="${t.estimate || 0}" style="width:80px" onchange="cuSetField('${id}','estimate',this.value)"> h</div>`)}
+      ${fld('Time Log', `<div style="display:flex;align-items:center;gap:8px"><b>${+hoursOf(id).toFixed(2)}h logged</b><button class="btn sm ghost" onclick="cuLogOpen=!cuLogOpen;cuRefreshPanel()">+ Log time</button></div>`)}
+      ${fld('Repeat', `<div style="display:flex;gap:6px"><select onchange="cuSetField('${id}','repeat',this.value)">${[['', 'Does not repeat'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly'], ['custom', 'Custom']].map(([v, n]) => `<option value="${v}" ${v === (t.repeat || '') ? 'selected' : ''}>${n}</option>`).join('')}</select>${t.repeat === 'custom' ? `<input type="number" min="1" value="${t.repeatDays || 7}" style="width:64px" title="every N days" onchange="cuSetField('${id}','repeatDays',+this.value||1)">` : ''}</div>`)}
+    </div>
+    ${cuLogOpen ? `<form class="logform" onsubmit="cuAddLog(event,'${id}')"><input name="hours" type="number" min="0.1" step="any" placeholder="Hours" required style="width:90px"><input name="date" type="date" value="${today()}"><input name="note" placeholder="Note (optional)" style="flex:1"><button class="btn sm">Add</button></form>` : ''}
+    ${logs.length ? `<div class="loglist">${logs.map(x => `<div><span>${fdate(x.date)}</span><b>${x.hours}h</b><span class="muted">${esc(x.note || '')} ${x.by ? '· ' + esc(x.by) : ''}</span><a onclick="cuDelLog('${x.id}')">✕</a></div>`).join('')}</div>` : ''}
+    <div class="psec">DESCRIPTION</div>
+    <div class="rtbar">${[['bold', '<b>B</b>'], ['italic', '<i>I</i>'], ['underline', '<u>U</u>'], ['insertUnorderedList', '• List'], ['insertOrderedList', '1. List']].map(([c, n]) => `<button type="button" onmousedown="event.preventDefault();document.execCommand('${c}')">${n}</button>`).join('')}</div>
+    <div class="rte" contenteditable="true" data-ph="Write details here…" onblur="cuSaveDesc('${id}',this)">${t.description || ''}</div>
+    <div class="psec">SUBTASKS <span class="muted" style="font-weight:400;letter-spacing:0">${subs.length ? done + '/' + subs.length : ''}</span></div>
+    ${subs.map(s => `<div class="sub"><label><input type="checkbox" ${s.done ? 'checked' : ''} onchange="cuPanelSub('${s.id}')"><span style="${s.done ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(s.title)}</span></label><a onclick="cuDelSub('${s.id}')">✕</a></div>`).join('')}
+    <input class="qadd" placeholder="+ Add subtask" onkeydown="if(event.key==='Enter'){event.preventDefault();cuAddSub('${id}',this)}">
+    <div class="psec">ACTIVITY / COMMENTS</div>
+    ${cms.map(c => `<div class="act ${c.kind === 'activity' ? 'sys' : ''}">${miniAv(c.by, 24)}<div><div class="who"><b>${esc(c.by)}</b> — ${fmtShort(c.at)}</div><div class="txt">${c.kind === 'activity' ? esc(c.text) : '“' + esc(c.text) + '”'}</div></div></div>`).join('')}
+    <form onsubmit="cuPost(event,'${id}')" class="cform"><select name="by">${['You', ...employees.filter(e => !e.archived).map(e => e.name)].map(a => `<option ${a === cuAuthor ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select><input name="text" placeholder="Add a comment…" required><button class="btn sm">Post</button></form>
+    <div style="margin-top:18px"><button class="btn sm danger" onclick="cuDelTask('${id}')">Delete task</button></div></div>`;
 }
-const commentAuthors = () => ['Owner', ...employees.filter(e => !e.archived).map(e => e.name)];
-function setTF(id, field, val, refresh){ const t = taskById(id); if (!t) return; t[field] = val; save(); render(); if (refresh) refreshTask(id); }
-function addSub(id, input){ const v = input.value.trim(); if (!v) return; subtasks.push({id:uid(), taskId:id, title:v, done:false}); save(); render(); refreshTask(id); }
-function toggleSub(sid){ const s = subtasks.find(x => x.id === sid); if (s) { s.done = !s.done; save(); render(); refreshTask(s.taskId); } }
-function delSub(sid){ const s = subtasks.find(x => x.id === sid); if (s) { subtasks = subtasks.filter(x => x.id !== sid); save(); render(); refreshTask(s.taskId); } }
-function addComment(ev, id){
-  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); if (!f.text.trim()) return;
-  commentAuthor = f.by; taskComments.push({id:uid(), taskId:id, at:new Date().toISOString(), by:f.by, text:f.text.trim()}); save(); refreshTask(id);
-}
-function delTask(id){ const t = taskById(id); if (t && confirm('Delete "' + t.title + '" with its subtasks and comments?')) { removeTaskData(t); save(); closeModal(); render(); } }
+function cuDelTag(id, i){ const t = taskById(id); if (t) cuSetField(id, 'tags', t.tags.filter((_, k) => k !== i)); }
+function cuSaveDesc(id, el){ const t = taskById(id); if (!t) return; const h = cleanHtml(el.innerHTML); if (h !== (t.description || '')) { t.description = h; save(); } }
+function cuAddSub(id, input){ const v = input.value.trim(); if (!v) return; cuSubs.push({id:uid(), taskId:id, title:v, done:false}); cuExpanded.add(id); save(); render(); }
+function cuPanelSub(sid){ const s = cuSubs.find(x => x.id === sid); if (s) { s.done = !s.done; save(); render(); } }
+function cuDelSub(sid){ cuSubs = cuSubs.filter(x => x.id !== sid); save(); render(); }
+function cuPost(ev, id){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); if (!f.text.trim()) return; cuAuthor = f.by; cuComments.push({id:uid(), taskId:id, at:new Date().toISOString(), by:f.by, text:f.text.trim(), kind:'comment'}); save(); render(); }
+function cuAddLog(ev, id){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); cuTimeLogs.push({id:uid(), taskId:id, hours:+f.hours, date:f.date, note:(f.note || '').trim(), by:cuAuthor}); cuLogOpen = false; save(); render(); }
+function cuDelLog(lid){ cuTimeLogs = cuTimeLogs.filter(x => x.id !== lid); save(); render(); }
+
+function cuJump(id){ const t = taskById(id); if (!t) return; view = 'tasks'; cuScope = {type:'list', id:t.listId}; Object.keys(cf).forEach(k => cf[k] = ''); render(); cuOpen(id); }
 
 /* ========= Wiring ========= */
 /* keep the app name out of the printed page header */
 let _title = document.title;
 window.addEventListener('beforeprint', () => { _title = document.title; document.title = ' '; });
 window.addEventListener('afterprint', () => { document.title = _title; });
-$('nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { view = b.dataset.view; if (view === 'employees') { empSel = null; bankShown = false; } if (view === 'clients') clSel = null; if (view === 'projects') { pjSel = null; selT.clear(); } $('sidebar').classList.remove('open'); $('scrim').classList.remove('open'); render(); window.scrollTo(0,0); } });
+$('nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { view = b.dataset.view; if (view === 'employees') { empSel = null; bankShown = false; } if (view === 'clients') clSel = null;  $('sidebar').classList.remove('open'); $('scrim').classList.remove('open'); render(); window.scrollTo(0,0); } });
 $('menuBtn').onclick = () => { $('sidebar').classList.add('open'); $('scrim').classList.add('open'); };
 $('scrim').onclick = () => { $('sidebar').classList.remove('open'); $('scrim').classList.remove('open'); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
