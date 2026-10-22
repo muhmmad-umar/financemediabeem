@@ -474,6 +474,16 @@ function saveAlert(e, enc){
   r.next_alert_date = (!dateChanged && freq !== r.frequency_days && r.last_invoice_date) ? addDays(r.last_invoice_date, freq) : f.next_alert_date;
   r.frequency_days = freq; save(); closeModal(); render(); toast('Reminder updated');
 }
+function salaryDuePanel(){
+  const m = curMonth(), mon = new Date(m + '-01T00:00:00').toLocaleDateString('en-US', {month:'long'});
+  const rows = employees.filter(e => onPayroll(e) && ['unpaid', 'overdue'].includes(empMonthStatus(e)) && today() >= payDueDate(e, m)).sort((a, b) => a.name.localeCompare(b.name));
+  if (!rows.length) return '';
+  return `<div class="card" style="margin-bottom:16px;border-top:4px solid var(--red)"><h3>💼 ${mon} Salaries Due</h3>
+    ${rows.map(e => { const p = proInfo(e), pro = p && p.month === m; return `<div class="trk-row" style="align-items:center"><span><b>${esc(e.name)}</b> <span class="muted">(${pro ? 'Pro-Rata, ' + p.days + ' day' + (p.days > 1 ? 's' : '') : 'Full Month'})</span> ${pro ? '<span class="badge b-due">Pro-Rata</span>' : ''} ${empMonthStatus(e) === 'overdue' ? '<span class="badge b-overdue">Overdue</span>' : '<span class="badge b-due">Due today</span>'}
+      <span class="muted" style="display:block;font-size:12px">Salary due for ${esc(e.name)} — ${fmt(dueAmount(e, m))} · pay date ${fdate(payDueDate(e, m))}</span></span>
+      <span style="display:flex;gap:10px;align-items:center"><b>${fmt(dueAmount(e, m))}</b><button class="btn sm" onclick="salaryForm('${e.id}')">Mark Paid</button></span></div>`; }).join('')}
+    <div class="trk-row last total"><span>Total Due This Month:</span><b>${fmt(sum(rows, e => dueAmount(e, m)))}</b></div></div>`;
+}
 function remindersPanel(){
   const list = recurring.filter(r => r.active).sort((a, b) => a.next_alert_date.localeCompare(b.next_alert_date)), due = recDue().length;
   return `<div class="card" style="margin-bottom:16px">
@@ -587,6 +597,7 @@ function vDashboard(t){
   const recent = [...incomeRows()].sort((a,b) => b.date.localeCompare(a.date)).slice(0,6);
   return `
   ${formulaCard(t)}
+  ${salaryDuePanel()}
   ${remindersPanel()}
   <div class="grid g3" style="margin-bottom:16px">
     <div class="card stat navy"><div class="label">Total Invoiced (billed)</div><div class="value">${fmt(t.invoiced)}</div><div class="sub">${invoicesIn().length} invoices billed in period</div></div>
@@ -1171,14 +1182,24 @@ const curMonth = () => today().slice(0, 7);
 const monthName = m => new Date(m + '-01T00:00:00').toLocaleDateString('en-US', {month:'long', year:'numeric'});
 const onPayroll = e => !e.archived && (e.status === 'Active' || e.status === 'On Leave');
 const empPayments = (id, m) => salaryPay.filter(p => p.employee_id === id && (!m || p.month === m));
+/* Pro-rata for the joining month: (salary ÷ days in month) × days worked, rounded to the nearest rupee. Joining on the 1st = full salary. */
+const monthDays = m => { const [y, mo] = m.split('-').map(Number); return new Date(y, mo, 0).getDate(); };
+function proInfo(e){
+  if (!e.joinDate) return null;
+  const m = e.joinDate.slice(0, 7), day = +e.joinDate.slice(8, 10);
+  if (day <= 1) return null;
+  const total = monthDays(m), days = total - day + 1;
+  return {month:m, days, total, amount:Math.round((+e.salary || 0) / total * days), lastDay: day === total};
+}
+const dueAmount = (e, m) => { const p = proInfo(e); return p && p.month === m ? p.amount : (+e.salary || 0); };
+const proText = p => `${p.days} day${p.days > 1 ? 's' : ''} of ${p.total} — ${fmt(p.amount)}`;
 function payDueDate(e, m){ const [y, mo] = m.split('-').map(Number), last = new Date(y, mo, 0).getDate(); return m + '-' + String(Math.min(+e.payDay || 1, last)).padStart(2, '0'); }
 /* paid = a salary payment has been recorded for this month; overdue = past this month's pay date and still unpaid */
 function empMonthStatus(e){
   const m = curMonth();
   if (empPayments(e.id, m).length) return 'paid';
   if (!onPayroll(e) || (e.joinDate && e.joinDate.slice(0, 7) > m)) return 'na';
-  const due = payDueDate(e, m);
-  return today() > due && !(e.joinDate && e.joinDate > due) ? 'overdue' : 'unpaid';   // joined after this month's pay date → not overdue yet
+  return today() > payDueDate(e, m) ? 'overdue' : 'unpaid';
 }
 const payBadge = st => ({paid:'<span class="badge b-paid">Paid</span>', overdue:'<span class="badge b-overdue">Overdue</span>', unpaid:'<span class="badge b-unpaid">Unpaid</span>', na:'<span class="muted">—</span>'}[st]);
 const stBadge = st => `<span class="badge b-${({'Active':'active','On Leave':'leave','Resigned':'resigned','Terminated':'terminated'})[st] || 'resigned'}">${esc(st)}</span>`;
@@ -1191,7 +1212,7 @@ function empStats(){
   const pay = employees.filter(onPayroll), m = curMonth();
   return {active: employees.filter(e => !e.archived && e.status === 'Active').length, bill: sum(pay, e => +e.salary || 0),
     paid: sum(salaryPay.filter(p => p.month === m), p => p.amount),
-    pending: sum(pay.filter(e => ['unpaid', 'overdue'].includes(empMonthStatus(e))), e => +e.salary || 0)};
+    pending: sum(pay.filter(e => ['unpaid', 'overdue'].includes(empMonthStatus(e))), e => dueAmount(e, m))};
 }
 const maskNum = v => !v ? '—' : v.length <= 4 ? '••••' : '•'.repeat(Math.min(12, v.length - 4)) + v.slice(-4);
 
@@ -1222,7 +1243,7 @@ function vEmpList(){
     <div class="card emp-card" onclick="openEmp('${e.id}')">
       <div class="emp-head">${avatar(e)}<div style="flex:1;min-width:0"><b style="font-size:15px">${esc(e.name)}</b><div class="muted">${esc(e.designation || '—')} · ${esc(e.type)}</div></div>${stBadge(e.status)}</div>
       <div class="emp-meta"><span>Salary</span><b>${fmt(e.salary)} <span class="muted" style="font-weight:400">/ ${esc(e.salaryType === 'Fixed' ? 'month' : e.salaryType.toLowerCase())}</span></b></div>
-      <div class="emp-meta"><span>${monthName(curMonth())}</span>${payBadge(ms)}</div>
+      <div class="emp-meta"><span>${monthName(curMonth())}${proInfo(e) && proInfo(e).month === curMonth() ? ' · <b style="color:#b45309">Pro-Rata ' + fmt(proInfo(e).amount) + '</b>' : ''}</span>${payBadge(ms)}</div>
       ${['unpaid', 'overdue'].includes(ms) ? `<div class="inv-actions" style="margin-top:10px"><button class="btn sm" onclick="event.stopPropagation();salaryForm('${e.id}')">Mark Paid</button></div>` : ''}
     </div>`; }).join('') || '<div class="card empty" style="grid-column:1/-1">No employees found — click “+ Add Employee”.</div>'}</div>
   <div class="card" style="margin-top:16px"><h3>Salary expense entries · ${periodLabel()}</h3>
@@ -1261,11 +1282,18 @@ function empBank(e){
     <div class="muted" style="margin-top:14px;font-size:12px">Account numbers stay hidden until you reveal them, and are hidden again when you leave this tab.</div></div>`;
 }
 function empSalary(e){
-  const list = empPayments(e.id).filter(p => inRange(p.date)).sort((a, b) => b.date.localeCompare(a.date));
+  const pro = proInfo(e);
+  const rows = empPayments(e.id).filter(p => inRange(p.date)).map(p => ({kind:'paid', month:p.month, p}));
+  if (pro && !empPayments(e.id, pro.month).length && (inRange(payDueDate(e, pro.month)) || inRange(e.joinDate)))
+    rows.push({kind:'due', month:pro.month});   // joining month not recorded yet: never let it get missed
+  rows.sort((a, b) => a.month.localeCompare(b.month) || (a.p ? a.p.date : '').localeCompare(b.p ? b.p.date : ''));
+  const paid = rows.filter(r => r.p);
+  const proCell = m => pro && pro.month === m ? ` <span class="badge b-due">Pro-Rata</span><div class="muted" style="font-size:12px;margin-top:2px">${proText(pro)}${pro.lastDay ? ' · ⚠ joined on the last day of the month' : ''}</div>` : '';
   return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h3 style="margin:0">Salary History · ${periodLabel()}</h3><button class="btn sm" onclick="salaryForm('${e.id}')">+ Record Salary Payment</button></div>
-    <div class="muted" style="margin-bottom:10px">${list.length} payments · total paid <b>${fmt(sum(list, p => p.amount))}</b> · salary ${fmt(e.salary)}</div>
+    <div class="muted" style="margin-bottom:10px">${paid.length} payments · total paid <b>${fmt(sum(paid, r => r.p.amount))}</b> · full monthly salary ${fmt(e.salary)}${pro ? ' · joining month is pro-rata' : ''}</div>
     <div class="tablewrap"><table><thead><tr><th>Month</th><th>Date paid</th><th>Method</th><th>Notes</th><th class="num">Amount</th><th></th></tr></thead>
-      <tbody>${list.map(p => `<tr><td><b>${monthName(p.month)}</b></td><td>${fdate(p.date)}</td><td>${esc(p.method)}</td><td style="white-space:normal">${esc(p.notes)}</td><td class="num"><b>${fmt(p.amount)}</b></td><td class="num"><button class="btn sm danger" onclick="delSalary('${p.id}')">✕</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">No salary payments in this period</td></tr>'}</tbody></table></div></div>`;
+      <tbody>${rows.map(r => r.p ? `<tr><td><b>${monthName(r.month)}</b>${proCell(r.month)}</td><td>${fdate(r.p.date)}</td><td>${esc(r.p.method)}</td><td style="white-space:normal">${esc(r.p.notes)}</td><td class="num"><b>${fmt(r.p.amount)}</b></td><td class="num"><button class="btn sm danger" onclick="delSalary('${r.p.id}')">✕</button></td></tr>`
+        : `<tr style="background:#fffbeb"><td><b>${monthName(r.month)}</b>${proCell(r.month)}</td><td colspan="3">${empMonthStatus(e) === 'overdue' && r.month === curMonth() ? '<span class="badge b-overdue">Overdue</span>' : '<span class="badge b-unpaid">Not recorded yet</span>'} · due ${fdate(payDueDate(e, r.month))}</td><td class="num"><b>${fmt(pro.amount)}</b></td><td class="num"><button class="btn sm" onclick="salaryForm('${e.id}','${r.month}')">Record</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">No salary payments in this period</td></tr>'}</tbody></table></div></div>`;
 }
 function empLeave(e){
   const list = empLeaves.filter(l => l.employee_id === e.id).sort((a, b) => b.date.localeCompare(a.date));
@@ -1289,25 +1317,37 @@ function saveLeave(ev, id){
 function delLeave(id){ if (confirm('Delete this leave entry?')) { empLeaves = empLeaves.filter(l => l.id !== id); save(); render(); } }
 
 /* ----- salary payments → agency expense (category Salaries) ----- */
-function salaryForm(id){
+function salaryForm(id, month){
   const e = empById(id); if (!e) return;
-  const m = curMonth(), already = empPayments(id, m).length;
+  const m = month || curMonth(), already = empPayments(id, m).length, pro = proInfo(e), isPro = pro && pro.month === m;
   openModal(`<h2>Record Salary · ${esc(e.name)}</h2><form onsubmit="saveSalary(event,'${id}')">
     <div class="hint">Saving marks the month as Paid and adds the amount to Agency Expenses under “Salaries”, reducing Net Profit and Allah's Share.</div>
+    <div id="salProHint">${isPro ? proHint(pro) : ''}</div>
     ${already ? `<div class="hint" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af">A payment is already recorded for ${monthName(m)}. This will be an additional payment.</div>` : ''}
-    <div class="row2"><div class="field"><label>Salary month</label><input name="month" type="month" value="${m}" required></div>
-    <div class="field"><label>Amount Paid (₨)</label><input name="amount" type="number" min="1" step="any" value="${e.salary || ''}" required></div></div>
+    <div class="row2"><div class="field"><label>Salary month</label><input name="month" type="month" value="${m}" required onchange="salMonthChanged(this,'${id}')"></div>
+    <div class="field"><label>Amount Paid (₨)</label><input name="amount" type="number" min="1" step="any" value="${dueAmount(e, m) || ''}" required></div></div>
     <div class="row2"><div class="field"><label>Date Paid</label><input name="date" type="date" value="${today()}" required></div>
     <div class="field"><label>Payment method</label><select name="method">${PAY_METHODS.map(x => `<option ${x === e.payMethod ? 'selected' : ''}>${x}</option>`).join('')}</select></div></div>
-    <div class="field"><label>Notes</label><input name="notes" placeholder="e.g. included bonus, deducted 2 days leave"></div>
+    <div class="field"><label>Notes</label><input name="notes" value="${isPro ? 'Pro-rata: ' + pro.days + ' of ' + pro.total + ' days' : ''}" placeholder="e.g. included bonus, deducted 2 days leave"></div>
     <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save payment</button></div></form>`);
+}
+const proHint = pro => `<div class="hint" style="background:#fef3c7;border-color:#f4c542;color:#92400e"><span class="badge b-due">Pro-Rata</span> Joining month — ${proText(pro)}${pro.lastDay ? ' · ⚠ joined on the last day of the month (1 day)' : ''}</div>`;
+function salMonthChanged(input, id){
+  const e = empById(id), form = input.form, pro = proInfo(e), isPro = pro && pro.month === input.value;
+  form.amount.value = dueAmount(e, input.value) || '';
+  form.notes.value = isPro ? 'Pro-rata: ' + pro.days + ' of ' + pro.total + ' days' : '';
+  $('salProHint').innerHTML = isPro ? proHint(pro) : '';
+}
+/* a salary payment and its Agency Expense (category Salaries) are always created together */
+function addSalaryPayment(e, month, amount, date, method, notes){
+  const pid = uid(), xid = uid();
+  salaryPay.push({id:pid, employee_id:e.id, month, amount, date, method, notes, expense_id:xid});
+  expenses.push({id:xid, date, category:'Salaries', description:'Salary – ' + e.name + ' (' + monthName(month) + ')' + (notes ? ' · ' + notes : ''), amount, employee_id:e.id, salary_payment_id:pid});
 }
 function saveSalary(ev, id){
   ev.preventDefault(); const e = empById(id); const f = Object.fromEntries(new FormData(ev.target));
   if (!e || !(+f.amount > 0)) { alert('Enter the amount paid.'); return; }
-  const pid = uid(), xid = uid(), notes = (f.notes || '').trim();
-  salaryPay.push({id:pid, employee_id:id, month:f.month, amount:+f.amount, date:f.date, method:f.method, notes, expense_id:xid});
-  expenses.push({id:xid, date:f.date, category:'Salaries', description:'Salary – ' + e.name + ' (' + monthName(f.month) + ')' + (notes ? ' · ' + notes : ''), amount:+f.amount, employee_id:id, salary_payment_id:pid});
+  addSalaryPayment(e, f.month, Math.round(+f.amount * 100) / 100, f.date, f.method, (f.notes || '').trim());
   save(); closeModal(); render(); toast('Salary recorded · added to Agency Expenses');
 }
 function delSalary(pid){
@@ -1354,12 +1394,26 @@ function empForm(id){
     <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">${id ? 'Save changes' : 'Add employee'}</button></div></form>`, 'xl');
 }
 function saveEmp(ev, id){
-  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
+  ev.preventDefault(); let newId = null; const f = Object.fromEntries(new FormData(ev.target));
   const data = {...f, name:f.name.trim(), salary:+f.salary || 0, payDay:+f.payDay || 1};
   if (id) {
     const e = empById(id); if (!e) return; Object.assign(e, data); if (_empPhoto !== undefined) e.photo = _empPhoto;
-  } else employees.push({id:uid(), notes:'', archived:false, photo:_empPhoto || '', ...data});
+  } else { const ne = {id:uid(), notes:'', archived:false, photo:_empPhoto || '', ...data}; employees.push(ne); newId = ne.id; }
   save(); closeModal(); render(); toast(id ? 'Employee updated' : 'Employee added');
+  if (newId && proInfo(empById(newId))) proRataPrompt(newId);
+}
+function proRataPrompt(id){
+  const e = empById(id), p = e && proInfo(e); if (!p) return;
+  const mon = new Date(p.month + '-01T00:00:00').toLocaleDateString('en-US', {month:'long'});
+  openModal(`<h2>Pro-rata salary</h2>
+    <p style="line-height:1.6;margin-bottom:12px"><b>${esc(e.name)}</b> joined on ${fdate(e.joinDate)}. Their pro-rata salary for ${mon} is <b>${fmt(p.amount)}</b> (${p.days} day${p.days > 1 ? 's' : ''} out of ${p.total}). Would you like to record this now?</p>
+    <div class="hint" style="background:#fef3c7;border-color:#f4c542;color:#92400e">(${fmt(e.salary)} ÷ ${p.total}) × ${p.days} = ${fmt(p.amount)}${p.lastDay ? '<br>⚠ Joined on the last day of the month — only 1 day is counted.' : ''}${today() > payDueDate(e, p.month) ? '<br>Their pay date (' + ordinal(e.payDay || 1) + ') has already passed, so this shows as overdue until recorded.' : ''}</div>
+    <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Skip for Now</button><button class="btn" onclick="recordProRata('${id}')">Record This Salary</button></div>`);
+}
+function recordProRata(id){
+  const e = empById(id), p = e && proInfo(e); if (!p) return;
+  addSalaryPayment(e, p.month, p.amount, today(), e.payMethod, 'Pro-rata: ' + p.days + ' of ' + p.total + ' days');
+  save(); closeModal(); render(); toast('Pro-rata salary recorded · added to Agency Expenses');
 }
 function archiveEmp(id){ const e = empById(id); if (e) { e.archived = !e.archived; save(); render(); toast(e.archived ? 'Employee archived' : 'Employee restored'); } }
 function delEmp(id){
