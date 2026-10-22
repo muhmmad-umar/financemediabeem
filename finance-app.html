@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agency Finance Manager</title>
+<title>Media Beem — Agency Manager</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -101,6 +101,27 @@ main{margin-left:240px;flex:1;padding:26px 30px 50px;min-width:0}
 .b-active{background:#dcfce7;color:#166534}.b-leave{background:#fef3c7;color:#92400e}.b-resigned{background:#e2e8f0;color:#475569}.b-terminated{background:#fee2e2;color:#991b1b}
 .profile-head{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .profile-head .grow{flex:1;min-width:200px}
+.brand small{display:block}
+.dsec{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:6px 2px 10px}
+.qa{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.card.stat[onclick]:hover{transform:translateY(-2px)}
+.kanban{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;align-items:start}
+.kcol{background:#e9eef4;border-radius:12px;padding:10px;min-height:120px}
+.khead{display:flex;justify-content:space-between;align-items:center;margin:2px 4px 10px}
+.kcard{background:#fff;border:1px solid var(--line);border-left:4px solid #94a3b8;border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:grab;box-shadow:0 1px 2px rgba(15,23,42,.06);font-size:13px}
+.kcard:hover{box-shadow:0 4px 12px rgba(15,23,42,.12)}
+.kcard.overdue{background:#fef2f2;border-color:#fca5a5}
+.kfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;font-size:12px}
+.tagchip{display:inline-block;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;margin:0 4px 2px 0}
+.qadd{border-style:dashed;background:transparent;font-size:12px;padding:7px 9px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.calh{text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:4px}
+.cald{min-height:92px;border:1px solid var(--line);border-radius:8px;padding:4px 5px;cursor:pointer;background:#fff;overflow:hidden}
+.cald:hover{border-color:var(--teal)}.cald.today{background:#f0fdfa;border-color:var(--teal)}.cald.sel{box-shadow:0 0 0 2px var(--teal)}
+.cald.empty-cell{background:transparent;border:0;cursor:default}
+.dn{font-size:12px;font-weight:700;color:var(--muted)}.cald.today .dn{color:var(--teal)}
+.cchip{color:#fff;font-size:11px;border-radius:5px;padding:1px 6px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+@media(max-width:640px){.cald{min-height:60px}.cchip{font-size:9px;padding:0 3px}}
 /* date filter bar */
 .fbar{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin-bottom:18px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
 .fpills{display:flex;gap:6px;flex-wrap:wrap}
@@ -241,14 +262,20 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
 <body>
 
 <aside class="sidebar" id="sidebar">
-  <div class="brand"><div class="logo">₨</div>Agency Finance</div>
+  <div class="brand"><div class="logo">MB</div><div style="line-height:1.2">Media Beem<small style="display:block;font-size:11px;font-weight:500;color:#94a3b8;letter-spacing:.04em">Agency Manager</small></div></div>
   <nav class="nav" id="nav">
+    <div class="nav-sep" style="margin-top:0">Overview</div>
     <button data-view="dashboard">📊 Dashboard</button>
+    <div class="nav-sep">Work</div>
+    <button data-view="clients">🤝 Clients</button>
+    <button data-view="projects">🗂️ Projects &amp; Tasks</button>
+    <div class="nav-sep">Finance</div>
     <button data-view="income">💰 Income / Cash Flow</button>
     <button data-view="expenses">💸 Expenses</button>
     <button data-view="invoices">🧾 Invoices</button>
     <button data-view="allah" class="allah">🤲 Allah's Share</button>
     <button data-view="reports">📈 Reports</button>
+    <div class="nav-sep">Team</div>
     <button data-view="employees">🧑‍💼 Employees</button>
     <div class="nav-sep">Personal</div>
     <button data-view="personal" class="personal">👤 Personal Finance</button>
@@ -275,7 +302,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
 /* ========= Config & storage ========= */
 const ALLAH_RATE = 0.10;
 const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses', exp:'expenses',
-  pe:'personal_expenses', pi:'personal_income', pw:'personal_withdrawals', ra:'recurring_alerts', emp:'employees', sp:'salary_payments', el:'employee_leaves'};
+  pe:'personal_expenses', pi:'personal_income', pw:'personal_withdrawals', ra:'recurring_alerts', emp:'employees', sp:'salary_payments', el:'employee_leaves',
+  cl:'clients', pj:'projects', tk:'tasks', st:'subtasks', tc:'task_comments'};
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } };
 const save = () => {
   syncIncome();
@@ -291,10 +319,16 @@ const save = () => {
     localStorage.setItem(K.emp, JSON.stringify(employees));
     localStorage.setItem(K.sp, JSON.stringify(salaryPay));
     localStorage.setItem(K.el, JSON.stringify(empLeaves));
+    localStorage.setItem(K.cl, JSON.stringify(clients));
+    localStorage.setItem(K.pj, JSON.stringify(projects));
+    localStorage.setItem(K.tk, JSON.stringify(tasks));
+    localStorage.setItem(K.st, JSON.stringify(subtasks));
+    localStorage.setItem(K.tc, JSON.stringify(taskComments));
   } catch(e){ toast('Could not save to localStorage'); }
 };
 let income, invoices, charity, expenses;
 let personalExp = [], personalInc = [], personalWd = [];
+let clients = [], projects = [], tasks = [], subtasks = [], taskComments = [];   // Agency Manager: clients, projects, tasks
 let employees = [], salaryPay = [], empLeaves = [];   // Employees section: profiles, salary payments, leave log
 let recurring = [];   // recurring invoice reminders: {client_name, frequency_days, last_invoice_date, next_alert_date, active, last_amount}   // Personal Finance: separate world, never used by agency maths
 
@@ -355,6 +389,7 @@ function init(){
   let ver = null; try { ver = localStorage.getItem('data_version'); } catch(e){}
   if (!ver) {   // first run: start completely empty, clearing any pre-loaded data
     income = []; invoices = []; charity = []; expenses = []; personalExp = []; personalInc = []; personalWd = []; recurring = []; employees = []; salaryPay = []; empLeaves = [];
+    clients = []; projects = []; tasks = []; subtasks = []; taskComments = [];
     save(); try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
     return;
   }
@@ -378,6 +413,7 @@ function init(){
     save(); try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
   }
   [employees, salaryPay, empLeaves] = [load(K.emp), load(K.sp), load(K.el)].map(a => Array.isArray(a) ? a : []);
+  [clients, projects, tasks, subtasks, taskComments] = [load(K.cl), load(K.pj), load(K.tk), load(K.st), load(K.tc)].map(a => Array.isArray(a) ? a : []);
   const ra = load(K.ra);
   if (Array.isArray(ra)) recurring = ra;
   else { recurring = []; [...invoices].sort((a, b) => a.date.localeCompare(b.date)).forEach(recOnInvoice); save(); }   // first time: build reminders from existing invoices
@@ -535,7 +571,7 @@ function totals(){
 const $ = id => document.getElementById(id);
 function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2400); }
 function openModal(html, cls = ''){ $('modal').className = 'modal ' + cls; $('modal').innerHTML = html; $('overlay').classList.add('open'); }
-function closeModal(){ $('overlay').classList.remove('open'); }
+function closeModal(){ $('overlay').classList.remove('open'); openTaskId = null; }
 $('overlay').addEventListener('mousedown', e => { if (e.target.id === 'overlay') closeModal(); });
 const badge = s => `<span class="badge b-${s}">${STATUS_LABEL[s] || (s[0].toUpperCase() + s.slice(1))}</span>`;
 const charts = [];
@@ -553,6 +589,8 @@ const meta = {
   invoices:['Invoices','Every income entry is an invoice — only payments received count as income'],
   allah:["Allah's Share Tracker","10% of net profit (income − expenses) — tracked until fully paid"],
   personal:['Personal Finance','Your own money — completely separate from the agency'],
+  clients:['Clients','Profiles, pipeline stages, projects and invoices per client'],
+  projects:['Projects & Tasks','Client → Project → Tasks → Subtasks'],
   employees:['Employees','Profiles, salaries and leave — salaries paid flow into agency expenses'],
   reports:['Reports',"Monthly breakdown, cumulative Allah's Share and top clients"],
 };
@@ -566,16 +604,18 @@ function render(){
   $('filterBar').innerHTML = filterBar();
   $('title').textContent = meta[view][0]; $('subtitle').textContent = meta[view][1];
   $('topActions').innerHTML = {
-    dashboard:'<button class="btn" onclick="incomeForm()">+ Add Income</button>',
+    dashboard:'',
     income:'<button class="btn" onclick="incomeForm()">+ Add Income</button>',
     expenses:'<button class="btn" onclick="expenseForm()">+ Add Expense</button>',
     invoices:'<button class="btn" onclick="invoiceForm()">+ New Invoice</button>',
     allah:'<button class="btn gold" onclick="charityForm()">Record Allah\'s Share Payment</button>',
     reports:'',
     personal:personalActions(),
+    clients: clSel ? '' : '<button class="btn" onclick="clientForm()">+ New Client</button>',
+    projects: pjSel ? '<button class="btn" onclick="taskForm()">+ New Task</button>' : '<button class="btn ghost" onclick="taskForm()">+ New Task</button> <button class="btn" onclick="projectForm()">+ New Project</button>',
     employees: empSel ? '' : '<button class="btn" onclick="empForm()">+ Add Employee</button>'
   }[view];
-  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees}[view](t);
+  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees, clients:vClients, projects:vProjects}[view](t);
   ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah, personal:afterPersonal}[view] || (()=>{}))(t);
 }
 
@@ -593,22 +633,66 @@ function formulaCard(t){
     ${neg ? '<div class="hint" style="margin:12px 0 0">Net profit is zero or negative, so Allah\'s Share is ₨ 0.</div>' : ''}
   </div>`;
 }
+/* ========= Agency HQ dashboard helpers ========= */
+function goTasks(patch){ Object.keys(tf).forEach(k => tf[k] = ''); Object.assign(tf, patch); view = 'projects'; pjSel = 'all'; pjTab = 'list'; render(); window.scrollTo(0, 0); }
+function workStats(){
+  const open = tasks.filter(isOpenT);
+  return {projects: projects.filter(p => p.status === 'Active').length, dueToday: open.filter(t => t.due === today()).length, overdue: open.filter(isOverdueT).length, urgent: open.filter(t => t.priority === 'urgent').length};
+}
+function salaryDueRows(){ const m = curMonth(); return employees.filter(e => onPayroll(e) && ['unpaid', 'overdue'].includes(empMonthStatus(e)) && today() >= payDueDate(e, m)); }
+function snap(label, value, sub, cls = '', go = ''){ return `<div class="card stat ${cls}" ${go ? `onclick="${go}" style="cursor:pointer"` : ''}><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`; }
+function recordPaymentPicker(){
+  const open = invoices.filter(i => invRemaining(i) > 0).sort((a, b) => a.date.localeCompare(b.date));
+  openModal(`<h2>Record Payment</h2>${open.length ? '<p class="muted" style="margin-bottom:10px">Choose the invoice the payment is for:</p>' : '<p>No invoices with an outstanding balance.</p>'}
+    ${open.map(i => `<div class="tx" style="cursor:pointer" onclick="paymentModal('${i.id}')"><div><div class="t1">${esc(i.client)}</div><div class="t2">${esc(i.service)} · ${fdate(i.date)}</div></div><div class="amt">${fmt(invRemaining(i))}<small style="color:var(--muted)">outstanding</small></div></div>`).join('')}
+    <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Close</button></div>`);
+}
+function taskAlertsPanel(){
+  if (!tasks.length) return '';
+  const open = tasks.filter(isOpenT), by = (a, b) => (a.due || '9').localeCompare(b.due || '9');
+  const overdue = open.filter(isOverdueT).sort(by), due = open.filter(t => t.due === today()), urgent = open.filter(t => t.priority === 'urgent').sort(by);
+  const list = (arr, empty) => arr.slice(0, 6).map(t => `<div class="tx" style="cursor:pointer;padding:7px 0" onclick="openTask('${t.id}')"><div><div class="t1" style="font-size:13px">${esc(t.title)}</div><div class="t2">${esc((projById(t.projectId) || {}).name || '')} · ${esc(empName(t.assignee) || 'Unassigned')}${t.due ? ' · ' + fdate(t.due) : ''}</div></div></div>`).join('') + (arr.length > 6 ? `<div class="muted" style="font-size:12px">+${arr.length - 6} more</div>` : '') || `<div class="muted" style="font-size:13px">${empty}</div>`;
+  const per = {}; open.forEach(t => { const n = empName(t.assignee) || 'Unassigned'; per[n] = per[n] || {open:0, od:0}; per[n].open++; if (isOverdueT(t)) per[n].od++; });
+  return `<div class="card" style="margin-bottom:16px"><h3>✅ Task alerts</h3>
+    <div class="grid g3" style="gap:20px"><div><div class="sec-t" style="margin:0 0 6px;color:var(--red)">Overdue (${overdue.length})</div>${list(overdue, 'Nothing overdue 🎉')}</div>
+      <div><div class="sec-t" style="margin:0 0 6px;color:var(--amber)">Due today (${due.length})</div>${list(due, 'Nothing due today')}</div>
+      <div><div class="sec-t" style="margin:0 0 6px">🔴 Urgent (${urgent.length})</div>${list(urgent, 'No urgent tasks')}</div></div>
+    ${Object.keys(per).length ? `<div class="sec-t" style="margin:16px 0 6px">Open tasks per assignee</div><div style="display:flex;flex-wrap:wrap;gap:8px">${Object.entries(per).sort((a, b) => b[1].open - a[1].open).map(([n, v]) => `<span class="badge" style="background:#f1f5f9;color:var(--text);padding:5px 12px;cursor:pointer" onclick="goTasks({assignee:'${(employees.find(e => e.name === n) || {}).id || ''}',status:'open'})">${esc(n)} · ${v.open} open${v.od ? ` · <span style="color:var(--red)">${v.od} overdue</span>` : ''}</span>`).join('')}</div>` : ''}</div>`;
+}
 function vDashboard(t){
-  const recent = [...incomeRows()].sort((a,b) => b.date.localeCompare(a.date)).slice(0,6);
+  const recent = [...incomeRows()].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
+  const ws = workStats(), es = empStats(), due = salaryDueRows(), m = curMonth();
+  const act = clients.filter(c => c.status === 'Active'), per = periodLabel();
   return `
+  <div class="qa"><button class="btn" onclick="taskForm()">+ New Task</button><button class="btn" onclick="incomeForm()">+ New Invoice</button><button class="btn" onclick="clientForm()">+ New Client</button><button class="btn" onclick="recordPaymentPicker()">+ Record Payment</button></div>
   ${formulaCard(t)}
+  <div class="dsec">Finance snapshot · ${per}</div>
+  <div class="grid g4" style="margin-bottom:16px">
+    ${snap('Total Invoiced', fmt(t.invoiced), 'Outstanding ' + fmt(t.outstanding), 'navy', "view='invoices';render()")}
+    ${snap('Total Received', fmt(t.totalIn), 'In hand · ' + per, 'teal', "view='income';render()")}
+    ${snap('Net Profit', fmt(t.net), 'My share ' + fmt(t.mine), 'teal')}
+    ${snap("Allah's Share", fmt(t.allahTotal), 'Remaining ' + fmt(Math.max(0, t.remaining)), 'amber', "view='allah';render()")}
+  </div>
+  <div class="dsec">Work snapshot</div>
+  <div class="grid g4" style="margin-bottom:16px">
+    ${snap('Active Projects', ws.projects, projects.length + ' total', 'navy', "view='projects';pjSel=null;render()")}
+    ${snap('Tasks Due Today', ws.dueToday, 'Open tasks', 'amber', "goTasks({due:'today',status:'open'})")}
+    ${snap('Overdue Tasks', `<span style="color:${ws.overdue ? 'var(--red)' : 'inherit'}">${ws.overdue}</span>`, 'Past due, not done', '', "goTasks({due:'overdue'})")}
+    ${snap('Urgent Tasks', ws.urgent, '🔴 Open urgent', '', "goTasks({priority:'urgent',status:'open'})")}
+  </div>
+  <div class="grid" style="margin-bottom:0;grid-template-columns:1fr;gap:0">
+    <div><div class="dsec">Team snapshot</div><div class="grid g3" style="margin-bottom:16px">
+      ${snap('Active Employees', es.active, 'On payroll', 'teal', "view='employees';empSel=null;render()")}
+      ${snap('Salaries Due', fmt(sum(due, e => dueAmount(e, m))), due.length + ' employee' + (due.length === 1 ? '' : 's') + ' · pay date reached', due.length ? '' : 'teal', "view='employees';empSel=null;render()")}
+      ${snap('Pending Payments', fmt(es.pending), 'Unpaid salaries this month', 'amber', "view='employees';empSel=null;render()")}</div></div>
+    <div><div class="dsec">Client snapshot</div><div class="grid g3" style="margin-bottom:16px">
+      ${snap('Active Clients', act.length, fmt(sum(act, c => +c.retainer || 0)) + ' / mo retainers', 'teal', "view='clients';clSel=null;render()")}
+      ${snap('Leads in Pipeline', clients.filter(c => c.status === 'Lead' || c.status === 'Onboarding').length, 'Lead + Onboarding', 'navy', "view='clients';clSel=null;clMode='pipeline';render()")}
+      ${snap('Up for Renewal', clients.filter(renewalSoon).length, 'Contract anniversary ≤ 30 days', 'amber', "view='clients';clSel=null;render()")}</div></div>
+  </div>
   ${salaryDuePanel()}
   ${remindersPanel()}
-  <div class="grid g3" style="margin-bottom:16px">
-    <div class="card stat navy"><div class="label">Total Invoiced (billed)</div><div class="value">${fmt(t.invoiced)}</div><div class="sub">${invoicesIn().length} invoices billed in period</div></div>
-    <div class="card stat teal"><div class="label">Total Received (in hand)</div><div class="value">${fmt(t.totalIn)}</div><div class="sub">${periodLabel()}</div></div>
-    <div class="card stat amber"><div class="label">Total Outstanding (clients owe)</div><div class="value">${fmt(t.outstanding)}</div><div class="sub">Overdue: ${fmt(t.overdueAmt)} · not counted as income</div></div>
-  </div>
-  <div class="grid g3" style="margin-bottom:16px">
-    <div class="card stat navy"><div class="label">Expenses</div><div class="value">${fmt(t.totalExp)}</div><div class="sub">${periodLabel()}</div></div>
-    <div class="card stat teal"><div class="label">Net Profit</div><div class="value">${fmt(t.net)}</div><div class="sub">Received − Expenses</div></div>
-    <div class="card stat teal"><div class="label">My Share (90%)</div><div class="value">${fmt(t.mine)}</div><div class="sub">From received money only</div></div>
-  </div>
+  ${taskAlertsPanel()}
   <div class="card allah-card" style="margin-bottom:16px">
     <div class="grid g3" style="gap:20px">
       <div><div class="label">🤲 Allah's Share Owed (10% of net)</div><div class="value" style="font-size:30px">${fmt(t.allahTotal)}</div></div>
@@ -692,7 +776,7 @@ function incomeForm(pre = {}){
     <div class="hint">Saving creates the invoice automatically. Only <b>Amount Received</b> counts toward net profit, My Share and Allah's Share.</div>
     <div class="field"><label>Total Amount (Invoiced)</label><input id="income_total_amount" name="total_amount" type="number" min="1" step="any" placeholder="Full amount expected from client" value="${pre.total || ''}" required></div>
     <div class="field"><label>Amount Received</label><input id="income_received_amount" name="received_amount" type="number" min="0" step="any" placeholder="What you have actually received" value="${pre.received ?? ''}" required></div>
-    <div class="row2"><div class="field"><label>Client Name</label><input name="client" value="${esc(pre.client || '')}" required></div>
+    <div class="row2"><div class="field"><label>Client Name</label><input name="client" list="clientList" value="${esc(pre.client || '')}" required><datalist id="clientList">${clients.map(c => `<option value="${esc(c.company)}">`).join('')}</datalist></div>
     <div class="field"><label>Date</label><input name="date" type="date" value="${today()}" required></div></div>
     <div class="field"><label>Service Description</label><input name="service" required></div>
     <div class="row2"><div class="field"><label>Category</label><select name="category">${CATEGORIES.map(c => `<option>${c}</option>`).join('')}</select></div>
@@ -1423,12 +1507,361 @@ function delEmp(id){
   save(); empSel = null; render(); toast('Employee deleted');
 }
 
+/* ========= Clients ========= */
+const CL_STATUS = ['Lead','Onboarding','Active','Paused','Churned'];
+const CL_COLORS = {Lead:'#64748b', Onboarding:'#3b82f6', Active:'#16a34a', Paused:'#f59e0b', Churned:'#dc2626'};
+let clSel = null, clMode = 'list';
+const clf = {q:'', s:''};
+const clById = id => clients.find(c => c.id === id);
+const clName = id => (clById(id) || {}).company || '—';
+const clientInvoices = c => invoices.filter(i => ckey(i.client) === ckey(c.company));
+const clBadge = st => `<span class="badge" style="background:${CL_COLORS[st]}22;color:${CL_COLORS[st]}">${st}</span>`;
+/* renewal = the next anniversary of the contract start date (annual contracts) */
+function nextRenewal(c){
+  if (!c.contractStart || c.status !== 'Active') return null;
+  const [sy, m, d] = c.contractStart.split('-').map(Number);
+  for (let y = sy + 1; y < sy + 100; y++) { const r = iso(new Date(y, m - 1, d)); if (r >= today()) return r; }
+  return null;
+}
+const renewalSoon = c => { const r = nextRenewal(c); return r && r <= addDays(today(), 30); };
+const fmtTs = t => { const d = new Date(t); return d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) + ', ' + d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}).toLowerCase().replace(' ', ''); };
+const initials = n => n.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+const hueOf = n => [...n].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 0);
+const miniAv = (n, size = 24) => `<span class="av" title="${esc(n)}" style="width:${size}px;height:${size}px;font-size:${size * .4}px;background:hsl(${hueOf(n)} 45% 42%)">${esc(initials(n))}</span>`;
+
+function vClients(){
+  if (clSel && clById(clSel)) return vClientProfile(clById(clSel));
+  const q = clf.q.toLowerCase();
+  const list = clients.filter(c => (!clf.s || c.status === clf.s) && (!q || (c.company + ' ' + c.contact + ' ' + c.industry + ' ' + c.email).toLowerCase().includes(q))).sort((a, b) => a.company.localeCompare(b.company));
+  const act = clients.filter(c => c.status === 'Active');
+  const newIn = clients.filter(c => c.onboardingDate && inRange(c.onboardingDate)).length;
+  return `
+  <div class="grid g4" style="margin-bottom:16px">
+    <div class="card stat teal"><div class="label">Active Clients</div><div class="value">${act.length}</div><div class="sub">${clients.length} total</div></div>
+    <div class="card stat navy"><div class="label">Leads in Pipeline</div><div class="value">${clients.filter(c => c.status === 'Lead' || c.status === 'Onboarding').length}</div><div class="sub">Lead + Onboarding</div></div>
+    <div class="card stat amber"><div class="label">Monthly Retainer (Active)</div><div class="value">${fmt(sum(act, c => +c.retainer || 0))}</div><div class="sub">Expected monthly revenue</div></div>
+    <div class="card stat"><div class="label">Onboarded · ${periodLabel()}</div><div class="value">${newIn}</div><div class="sub">By onboarding date</div></div>
+  </div>
+  <div class="psub" style="margin-bottom:12px">${[['list','☰ List'],['pipeline','▥ Pipeline']].map(([k, l]) => `<button class="${clMode === k ? 'on' : ''}" style="${clMode === k ? 'background:var(--teal);border-color:var(--teal)' : 'color:var(--teal)'}" onclick="clMode='${k}';render()">${l}</button>`).join('')}</div>
+  ${clMode === 'pipeline' ? clPipeline() : `
+  <div class="card"><div class="filters">
+      <input placeholder="Search company, contact, industry…" value="${esc(clf.q)}" oninput="clf.q=this.value;renderKeep(this)">
+      <select onchange="clf.s=this.value;render()"><option value="">All statuses</option>${CL_STATUS.map(s => `<option ${clf.s === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+    <div class="tablewrap"><table><thead><tr><th>Company</th><th>Contact</th><th>Status</th><th class="num">Retainer / mo</th><th class="num">Invoiced · period</th><th class="num">Received · period</th><th class="num">Projects</th></tr></thead>
+      <tbody>${list.map(c => { const inv = clientInvoices(c).filter(i => inRange(i.date)), rec = sum(clientInvoices(c).flatMap(i => i.payments || []).filter(p => inRange(p.date)), p => p.amount);
+        return `<tr style="cursor:pointer" onclick="openClient('${c.id}')"><td><b>${esc(c.company)}</b><div class="muted" style="font-size:12px">${esc(c.industry)}</div></td><td>${esc(c.contact)}<div class="muted" style="font-size:12px">${esc(c.phone)}</div></td><td>${clBadge(c.status)}</td>
+          <td class="num">${fmt(c.retainer)}</td><td class="num">${fmt(sum(inv, i => i.total_amount))}</td><td class="num" style="color:var(--green)">${fmt(rec)}</td><td class="num">${projects.filter(p => p.clientId === c.id).length}</td></tr>`; }).join('') || '<tr><td colspan="7" class="empty">No clients found — click “+ New Client”</td></tr>'}</tbody></table></div></div>`}`;
+}
+function clPipeline(){
+  return `<div class="kanban">${CL_STATUS.map(st => { const list = clients.filter(c => c.status === st);
+    return `<div class="kcol" ondragover="event.preventDefault()" ondrop="dropClient(event,'${st}')"><div class="khead"><b style="color:${CL_COLORS[st]}">${st}</b><span class="badge b-draft">${list.length}</span></div>
+      ${list.map(c => `<div class="kcard" draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${c.id}')" onclick="openClient('${c.id}')" style="border-left-color:${CL_COLORS[st]}"><b>${esc(c.company)}</b><div class="muted" style="font-size:12px">${esc(c.contact) || '—'}</div>${c.retainer ? `<div style="font-size:12px;margin-top:4px">${fmt(c.retainer)} / mo</div>` : ''}</div>`).join('') || '<div class="muted" style="font-size:12px;padding:8px">Empty</div>'}</div>`; }).join('')}</div>
+    <div class="muted" style="margin-top:8px;font-size:12px">Drag a client card to another column to change its stage.</div>`;
+}
+function dropClient(ev, st){ ev.preventDefault(); const c = clById(ev.dataTransfer.getData('text/plain')); if (c && c.status !== st) { c.status = st; save(); render(); toast(c.company + ' → ' + st); } }
+function openClient(id){ clSel = id; render(); window.scrollTo(0, 0); }
+function vClientProfile(c){
+  const invs = clientInvoices(c).sort((a, b) => b.date.localeCompare(a.date)), prj = projects.filter(p => p.clientId === c.id), notes = [...(c.notes || [])];
+  const ren = nextRenewal(c);
+  return `<button class="btn ghost sm" onclick="clSel=null;render()" style="margin-bottom:12px">← All clients</button>
+  <div class="card" style="margin-bottom:16px"><div class="profile-head">${miniAv(c.company, 64)}<div class="grow"><h2 style="font-size:22px">${esc(c.company)}</h2><div class="muted">${esc(c.industry) || '—'}${c.website ? ' · ' + esc(c.website) : ''}</div><div style="margin-top:8px">${clBadge(c.status)}${renewalSoon(c) ? ' <span class="badge b-due">Renewal ' + fdate(ren) + '</span>' : ''}</div></div>
+    <div class="inv-actions"><button class="btn sm" onclick="incomeForm({client:decodeURIComponent('${encAttr(c.company)}')})">+ Invoice</button><button class="btn sm ghost" onclick="projectForm(null,'${c.id}')">+ Project</button><button class="btn sm ghost" onclick="clientForm('${c.id}')">Edit</button><button class="btn sm danger" onclick="delClient('${c.id}')">Delete</button></div></div>
+    <div style="margin-top:14px"><div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">Pipeline stage</div><div class="fpills">${CL_STATUS.map(s => `<button class="${c.status === s ? 'on' : ''}" style="${c.status === s ? 'background:' + CL_COLORS[s] + ';border-color:' + CL_COLORS[s] : ''}" onclick="setClStatus('${c.id}','${s}')">${s}</button>`).join('')}</div></div></div>
+  <div class="grid g-main">
+    <div>
+      <div class="card" style="margin-bottom:16px"><h3>Details</h3><div class="kv">${kv('Contact person', c.contact)}${kv('Phone', c.phone)}${kv('Email', c.email)}${kv('Website', c.website)}${kv('Onboarding date', c.onboardingDate && fdate(c.onboardingDate))}${kv('Contract start', c.contractStart && fdate(c.contractStart))}${kv('Monthly retainer', c.retainer ? fmt(c.retainer) : '')}${kv('Next renewal', ren && fdate(ren))}</div></div>
+      <div class="card" style="margin-bottom:16px"><h3>Invoices <span class="muted" style="font-weight:400">· ${invs.length} · billed ${fmt(sum(invs, i => i.total_amount))} · received ${fmt(sum(invs, invReceived))}</span></h3>
+        <div class="tablewrap"><table><tbody>${invs.map(i => `<tr style="cursor:pointer" onclick="viewInvoice('${i.id}')"><td>${fdate(i.date)}</td><td>${esc(i.service)}</td><td>${badge(invStatus(i))}</td><td class="num"><b>${fmt(i.total_amount)}</b></td></tr>`).join('') || '<tr><td class="empty">No invoices for this client yet — invoices match by company name</td></tr>'}</tbody></table></div></div>
+      <div class="card"><h3>Projects</h3>${prj.map(p => `<div class="tx" style="cursor:pointer" onclick="view='projects';pjSel='${p.id}';render()"><div><div class="t1">${esc(p.name)}</div><div class="t2">${p.status} · deadline ${fdate(p.deadline)}</div></div>${projProgress(p)}</div>`).join('') || '<div class="muted">No projects yet.</div>'}</div>
+    </div>
+    <div class="card"><h3>Communication log</h3>
+      <form onsubmit="addClNote(event,'${c.id}')"><textarea name="text" rows="3" placeholder="Add a note — call, meeting, email sent…" required></textarea><div class="modal-actions" style="margin-top:8px"><button class="btn sm">Add note</button></div></form>
+      ${notes.reverse().map(n => `<div class="tx" style="display:block"><div class="t2">${fmtTs(n.at)}</div><div style="white-space:pre-wrap;margin-top:2px">${esc(n.text)}</div></div>`).join('') || '<div class="muted" style="margin-top:10px">No notes yet.</div>'}</div>
+  </div>`;
+}
+function addClNote(ev, id){ ev.preventDefault(); const c = clById(id); const t = new FormData(ev.target).get('text').trim(); if (c && t) { (c.notes = c.notes || []).push({id:uid(), at:new Date().toISOString(), text:t}); save(); render(); } }
+function setClStatus(id, st){ const c = clById(id); if (c) { c.status = st; if (st === 'Active' && !c.onboardingDate) c.onboardingDate = today(); save(); render(); } }
+function clientForm(id){
+  const c = id ? clById(id) : {status:'Lead'};
+  const inp = (l, n, t = 'text', x = '') => `<div class="field"><label>${l}</label><input name="${n}" type="${t}" value="${esc(c[n] ?? '')}" ${x}></div>`;
+  openModal(`<h2>${id ? 'Edit Client' : 'New Client'}</h2><form onsubmit="saveClient(event,'${id || ''}')">
+    <div class="row2">${inp('Company Name', 'company', 'text', 'required')}${inp('Contact Person', 'contact')}</div>
+    <div class="row2">${inp('Phone', 'phone', 'tel')}${inp('Email', 'email', 'email')}</div>
+    <div class="row2">${inp('Industry', 'industry')}${inp('Website', 'website')}</div>
+    <div class="row2"><div class="field"><label>Client Status</label><select name="status">${CL_STATUS.map(s => `<option ${s === c.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div>${inp('Monthly Retainer (₨)', 'retainer', 'number', 'min="0" step="any"')}</div>
+    <div class="row2">${inp('Onboarding Date', 'onboardingDate', 'date')}${inp('Contract Start Date', 'contractStart', 'date')}</div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">${id ? 'Save changes' : 'Add client'}</button></div></form>`, 'xl');
+}
+function saveClient(ev, id){
+  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); const data = {...f, company:f.company.trim(), retainer:+f.retainer || 0};
+  if (id) Object.assign(clById(id), data); else clients.push({id:uid(), notes:[], ...data});
+  save(); closeModal(); render(); toast(id ? 'Client updated' : 'Client added');
+}
+function delClient(id){ const c = clById(id); if (c && confirm('Delete ' + c.company + '? Their invoices stay in the books; projects will show no client.')) { clients = clients.filter(x => x.id !== id); clSel = null; save(); render(); } }
+
+/* ========= Projects & Tasks ========= */
+const PRI = {urgent:{l:'Urgent', i:'🔴', c:'#dc2626', o:0}, high:{l:'High', i:'🟠', c:'#f59e0b', o:1}, normal:{l:'Normal', i:'🔵', c:'#3b82f6', o:2}, low:{l:'Low', i:'⚪', c:'#94a3b8', o:3}};
+const TS = {todo:'To Do', progress:'In Progress', review:'In Review', done:'Done', cancelled:'Cancelled'};
+const BOARD_COLS = ['todo', 'progress', 'review', 'done'];
+const PJ_STATUS = ['Planning', 'Active', 'On Hold', 'Completed'];
+let pjSel = null, pjTab = 'board', calMonth = today().slice(0, 7), calDay = '', dragTaskId = null, openTaskId = null;
+const tf = {q:'', assignee:'', priority:'', status:'', client:'', tag:'', due:''};
+let tsort = {key:'due', dir:1};
+const selT = new Set();
+let commentAuthor = 'owner';
+const taskById = id => tasks.find(t => t.id === id);
+const projById = id => projects.find(p => p.id === id);
+const isOpenT = t => t.status !== 'done' && t.status !== 'cancelled';
+const isOverdueT = t => isOpenT(t) && t.due && t.due < today();
+const isBlockedT = t => { const b = t.blockedBy && taskById(t.blockedBy); return !!(b && isOpenT(b)); };
+const empName = id => (empById(id) || {}).name || '';
+const empOpts = cur => '<option value="">Unassigned</option>' + employees.filter(e => !e.archived || e.id === cur).map(e => `<option value="${e.id}" ${e.id === cur ? 'selected' : ''}>${esc(e.name)}</option>`).join('');
+const priBadge = p => `<span class="badge" style="background:${PRI[p].c}22;color:${PRI[p].c}">${PRI[p].i} ${PRI[p].l}</span>`;
+const allTags = () => [...new Set(tasks.flatMap(t => t.tags || []))].sort();
+function weekRange(){ const n = new Date(), dow = (n.getDay() + 6) % 7; return {from:iso(new Date(n.getFullYear(), n.getMonth(), n.getDate() - dow)), to:iso(new Date(n.getFullYear(), n.getMonth(), n.getDate() - dow + 6))}; }
+function projProgress(p){
+  const ts = tasks.filter(t => t.projectId === p.id && t.status !== 'cancelled'), d = ts.filter(t => t.status === 'done').length, pct = ts.length ? d / ts.length * 100 : 0;
+  return `<div style="min-width:110px"><div class="bar light" style="height:7px;margin:0"><div style="width:${pct}%"></div></div><div class="muted" style="font-size:11px;margin-top:3px">${d}/${ts.length} tasks done</div></div>`;
+}
+
+function filteredTasks(useDate = true){
+  const q = tf.q.toLowerCase(), wk = weekRange();
+  return tasks.filter(t => {
+    if (pjSel && pjSel !== 'all' && t.projectId !== pjSel) return false;
+    const p = projById(t.projectId);
+    if (tf.assignee && t.assignee !== tf.assignee) return false;
+    if (tf.priority && t.priority !== tf.priority) return false;
+    if (tf.status === 'open' ? !isOpenT(t) : (tf.status && t.status !== tf.status)) return false;
+    if (tf.client && (!p || p.clientId !== tf.client)) return false;
+    if (tf.tag && !(t.tags || []).includes(tf.tag)) return false;
+    if (tf.due === 'today' && t.due !== today()) return false;
+    if (tf.due === 'overdue' && !isOverdueT(t)) return false;
+    if (tf.due === 'week' && !(t.due && t.due >= wk.from && t.due <= wk.to)) return false;
+    if (tf.due === 'none' && t.due) return false;
+    if (q && !(t.title + ' ' + (t.description || '') + ' ' + (t.tags || []).join(' ')).toLowerCase().includes(q)) return false;
+    if (useDate && !(!t.due || inRange(t.due) || isOverdueT(t))) return false;   // date filter: due in period, plus undated and overdue-open tasks
+    return true;
+  });
+}
+
+function vProjects(){
+  if (!pjSel) return vProjectOverview();
+  const p = pjSel === 'all' ? null : projById(pjSel);
+  if (pjSel !== 'all' && !p) { pjSel = null; return vProjectOverview(); }
+  const tabs = [['board', '▥ Board'], ['list', '☰ List'], ['calendar', '📅 Calendar']];
+  const list = filteredTasks(pjTab !== 'calendar');
+  return `<button class="btn ghost sm" onclick="pjSel=null;selT.clear();render()" style="margin-bottom:12px">← All projects</button>
+  ${p ? `<div class="card" style="margin-bottom:14px"><div class="profile-head"><div class="grow"><h2 style="font-size:20px">${esc(p.name)}</h2><div class="muted">${esc(clName(p.clientId))} · ${fdate(p.start)} → ${fdate(p.deadline)}</div>${p.description ? `<div style="margin-top:6px;white-space:pre-wrap">${esc(p.description)}</div>` : ''}</div>
+      <div style="display:flex;gap:4px">${(p.team || []).map(id => miniAv(empName(id) || '?', 30)).join('')}</div>
+      <select style="width:auto" onchange="setProjStatus('${p.id}',this.value)">${PJ_STATUS.map(s => `<option ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
+      <div class="inv-actions"><button class="btn sm" onclick="taskForm({project:'${p.id}'})">+ Task</button><button class="btn sm ghost" onclick="projectForm('${p.id}')">Edit</button><button class="btn sm danger" onclick="delProject('${p.id}')">Delete</button></div></div></div>`
+    : '<div class="card" style="margin-bottom:14px"><h2 style="font-size:20px">All tasks</h2><div class="muted">Across every project</div></div>'}
+  <div class="psub">${tabs.map(([k, l]) => `<button class="${pjTab === k ? 'on' : ''}" onclick="pjTab='${k}';render()">${l}</button>`).join('')}</div>
+  ${taskFilterBar()}
+  <div class="muted" style="margin:0 0 10px;font-size:12px">${list.length} task${list.length === 1 ? '' : 's'}${pjTab === 'calendar' ? ' · calendar ignores the date filter' : ' · due ' + periodLabel() + ', plus overdue and undated tasks'}</div>
+  ${pjTab === 'board' ? taskBoard(list) : pjTab === 'list' ? taskTable(list) : taskCalendar(list)}`;
+}
+function taskFilterBar(){
+  const sel = (k, label, opts) => `<select onchange="tf.${k}=this.value;render()"><option value="">${label}</option>${opts.map(([v, l]) => `<option value="${v}" ${tf[k] === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+  const active = Object.values(tf).some(Boolean);
+  return `<div class="card" style="margin-bottom:12px;padding:12px"><div class="filters" style="margin:0">
+    <input placeholder="Search tasks…" value="${esc(tf.q)}" oninput="tf.q=this.value;renderKeep(this)">
+    ${sel('assignee', '👤 My Tasks / Assignee', employees.map(e => [e.id, e.name]))}
+    ${sel('priority', 'Priority', Object.entries(PRI).map(([k, v]) => [k, v.i + ' ' + v.l]))}
+    ${sel('status', 'Status', [['open', 'Open (not done)'], ...Object.entries(TS)])}
+    ${pjSel === 'all' ? sel('client', 'Client', clients.map(c => [c.id, c.company])) : ''}
+    ${sel('tag', 'Tag', allTags().map(t => [t, t]))}
+    ${sel('due', 'Due date', [['today', 'Due today'], ['overdue', 'Overdue'], ['week', 'This week'], ['none', 'No due date']])}
+    ${active ? '<button class="btn sm ghost" onclick="Object.keys(tf).forEach(k=>tf[k]=\'\');render()">Clear filters</button>' : ''}</div></div>`;
+}
+
+/* ----- project overview ----- */
+const pjf = {q:''};
+function vProjectOverview(){
+  const list = projects.filter(p => !pjf.q || (p.name + clName(p.clientId)).toLowerCase().includes(pjf.q.toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
+  return `<div class="card" style="margin-bottom:16px"><div class="filters" style="margin:0"><input placeholder="Search projects or clients…" value="${esc(pjf.q)}" oninput="pjf.q=this.value;renderKeep(this)">
+    <button class="btn ghost" style="flex:none" onclick="pjSel='all';render()">View all tasks</button></div></div>
+  <div class="emp-grid">${list.map(p => { const n = tasks.filter(t => t.projectId === p.id && isOpenT(t)).length, od = tasks.filter(t => t.projectId === p.id && isOverdueT(t)).length;
+    return `<div class="card emp-card" onclick="pjSel='${p.id}';render()"><div style="display:flex;justify-content:space-between;gap:8px"><div><b style="font-size:15px">${esc(p.name)}</b><div class="muted">${esc(clName(p.clientId))}</div></div><span class="badge ${p.status === 'Active' ? 'b-active' : p.status === 'Completed' ? 'b-paid' : p.status === 'On Hold' ? 'b-leave' : 'b-draft'}">${p.status}</span></div>
+      <div class="emp-meta" style="margin-top:12px"><span>Deadline</span><b>${fdate(p.deadline)}</b></div><div class="emp-meta"><span>Open tasks</span><b>${n}${od ? ` · <span style="color:var(--red)">${od} overdue</span>` : ''}</b></div>
+      <div style="margin:10px 0">${projProgress(p)}</div><div style="display:flex;gap:4px">${(p.team || []).map(id => miniAv(empName(id) || '?')).join('')}</div></div>`; }).join('') || '<div class="card empty" style="grid-column:1/-1">No projects yet — click “+ New Project”.</div>'}</div>`;
+}
+function projectForm(id, clientId){
+  const p = id ? projById(id) : {status:'Planning', clientId:clientId || '', team:[], start:today()};
+  openModal(`<h2>${id ? 'Edit Project' : 'New Project'}</h2><form onsubmit="saveProject(event,'${id || ''}')">
+    <div class="field"><label>Project name</label><input name="name" value="${esc(p.name || '')}" required></div>
+    <div class="row2"><div class="field"><label>Client</label><select name="clientId" required><option value="">Select client…</option>${clients.map(c => `<option value="${c.id}" ${c.id === p.clientId ? 'selected' : ''}>${esc(c.company)}</option>`).join('')}</select></div>
+    <div class="field"><label>Status</label><select name="status">${PJ_STATUS.map(s => `<option ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div></div>
+    <div class="row2"><div class="field"><label>Start date</label><input name="start" type="date" value="${p.start || ''}"></div><div class="field"><label>Deadline</label><input name="deadline" type="date" value="${p.deadline || ''}"></div></div>
+    <div class="field"><label>Description</label><textarea name="description" rows="3">${esc(p.description || '')}</textarea></div>
+    <div class="field"><label>Assigned team members</label><div style="display:flex;flex-wrap:wrap;gap:6px 14px">${employees.filter(e => !e.archived).map(e => `<label style="font-weight:500;color:var(--text);display:flex;gap:6px;align-items:center"><input type="checkbox" name="team" value="${e.id}" style="width:auto" ${(p.team || []).includes(e.id) ? 'checked' : ''}>${esc(e.name)}</label>`).join('') || '<span class="muted">Add employees first</span>'}</div></div>
+    ${clients.length ? '' : '<div class="hint">Create a client first — every project belongs to a client.</div>'}
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">${id ? 'Save changes' : 'Create project'}</button></div></form>`, 'xl');
+}
+function saveProject(ev, id){
+  ev.preventDefault(); const fd = new FormData(ev.target), f = Object.fromEntries(fd);
+  const data = {name:f.name.trim(), clientId:f.clientId, status:f.status, start:f.start, deadline:f.deadline, description:f.description.trim(), team:fd.getAll('team')};
+  if (id) Object.assign(projById(id), data); else { const p = {id:uid(), ...data}; projects.push(p); pjSel = p.id; }
+  save(); closeModal(); render(); toast(id ? 'Project updated' : 'Project created');
+}
+function setProjStatus(id, st){ const p = projById(id); if (p) { p.status = st; save(); render(); } }
+function delProject(id){
+  const p = projById(id); if (!p || !confirm('Delete project "' + p.name + '" with all its tasks, subtasks and comments?')) return;
+  tasks.filter(t => t.projectId === id).forEach(removeTaskData); projects = projects.filter(x => x.id !== id); pjSel = null; save(); render();
+}
+function removeTaskData(t){ subtasks = subtasks.filter(s => s.taskId !== t.id); taskComments = taskComments.filter(c => c.taskId !== t.id); tasks = tasks.filter(x => x.id !== t.id); tasks.forEach(x => { if (x.blockedBy === t.id) x.blockedBy = ''; }); selT.delete(t.id); }
+
+/* ----- tasks: create / status / recurring ----- */
+function taskForm(o = {}){
+  if (!projects.length) { openModal('<h2>New Task</h2><p style="margin-bottom:14px">Every task lives inside a project. Create a project first.</p><div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" onclick="projectForm()">New project</button></div>'); return; }
+  const pid = o.project || (pjSel && pjSel !== 'all' ? pjSel : '');
+  openModal(`<h2>New Task</h2><form onsubmit="saveNewTask(event)">
+    <div class="field"><label>Title</label><input name="title" value="${esc(o.title || '')}" required></div>
+    <div class="row2"><div class="field"><label>Project</label><select name="projectId" required><option value="">Select project…</option>${projects.map(p => `<option value="${p.id}" ${p.id === pid ? 'selected' : ''}>${esc(p.name)} · ${esc(clName(p.clientId))}</option>`).join('')}</select></div>
+    <div class="field"><label>Assigned to</label><select name="assignee">${empOpts('')}</select></div></div>
+    <div class="row2"><div class="field"><label>Due date</label><input name="due" type="date" value="${o.due || ''}"></div>
+    <div class="field"><label>Time estimate (hours)</label><input name="estimate" type="number" min="0" step="any"></div></div>
+    <div class="row2"><div class="field"><label>Priority</label><select name="priority">${Object.entries(PRI).map(([k, v]) => `<option value="${k}" ${k === 'normal' ? 'selected' : ''}>${v.i} ${v.l}</option>`).join('')}</select></div>
+    <div class="field"><label>Status</label><select name="status">${Object.entries(TS).map(([k, v]) => `<option value="${k}" ${k === (o.status || 'todo') ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
+    <div class="field"><label>Tags (comma separated)</label><input name="tags" placeholder="Design, Content…"></div>
+    <div class="field"><label>Description</label><textarea name="description" rows="3"></textarea></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Create task</button></div></form>`, 'xl');
+}
+const parseTags = s => [...new Set(String(s || '').split(',').map(x => x.trim()).filter(Boolean))];
+function newTask(o){ const t = {id:uid(), title:'', description:'', assignee:'', due:'', priority:'normal', status:'todo', tags:[], estimate:0, attachments:'', blockedBy:'', recurring:'', created:new Date().toISOString(), ...o}; tasks.push(t); return t; }
+function saveNewTask(ev){
+  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
+  newTask({title:f.title.trim(), projectId:f.projectId, assignee:f.assignee, due:f.due, priority:f.priority, status:f.status, tags:parseTags(f.tags), estimate:+f.estimate || 0, description:f.description.trim()});
+  save(); closeModal(); render(); toast('Task created');
+}
+function quickAdd(status, input){
+  const title = input.value.trim(); if (!title) return;
+  if (!pjSel || pjSel === 'all') { taskForm({status, title}); return; }
+  newTask({title, projectId:pjSel, status}); save(); render(); toast('Task added');
+}
+function nextDue(t){
+  const base = t.due || today();
+  if (t.recurring === 'daily') return addDays(base, 1);
+  if (t.recurring === 'weekly') return addDays(base, 7);
+  const d = new Date(base + 'T00:00:00'), day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth() + 1); d.setDate(Math.min(day, monthDays(iso(d).slice(0, 7)))); return iso(d);
+}
+function spawnRecurring(t){
+  const n = newTask({...t, id:uid(), status:'todo', due:nextDue(t), blockedBy:'', recurSpawned:false, created:new Date().toISOString()});
+  subtasks.filter(s => s.taskId === t.id).forEach(s => subtasks.push({id:uid(), taskId:n.id, title:s.title, done:false}));
+  t.recurSpawned = true; toast('Recurring task — next one created for ' + fdate(n.due));
+}
+function setTaskStatus(t, st){
+  if (st === 'done' && isBlockedT(t) && !confirm('This task is blocked by "' + taskById(t.blockedBy).title + '", which is not done yet. Mark it Done anyway?')) return false;
+  t.status = st;
+  if (st === 'done' && t.recurring && !t.recurSpawned) spawnRecurring(t);
+  return true;
+}
+function changeStatus(id, st){ const t = taskById(id); if (t && setTaskStatus(t, st)) { save(); render(); if (openTaskId === id) refreshTask(id); } else render(); }
+function dropTask(ev, st){ ev.preventDefault(); const id = dragTaskId || ev.dataTransfer.getData('text/plain'); dragTaskId = null; if (id) changeStatus(id, st); }
+
+/* ----- board ----- */
+function taskCard(t){
+  const p = PRI[t.priority], od = isOverdueT(t), subs = subtasks.filter(s => s.taskId === t.id), done = subs.filter(s => s.done).length, name = empName(t.assignee);
+  return `<div class="kcard ${od ? 'overdue' : ''}" draggable="true" ondragstart="dragTaskId='${t.id}';event.dataTransfer.setData('text/plain','${t.id}')" onclick="openTask('${t.id}')" style="border-left-color:${p.c}">
+    <div style="display:flex;justify-content:space-between;gap:6px"><b>${esc(t.title)}</b>${isBlockedT(t) ? '<span title="Blocked by another task">🔒</span>' : ''}</div>
+    ${(t.tags || []).length ? `<div style="margin:5px 0">${t.tags.map(x => `<span class="tagchip">${esc(x)}</span>`).join('')}</div>` : ''}
+    <div class="kfoot"><span style="color:${od ? 'var(--red)' : 'var(--muted)'};font-weight:${od ? 700 : 400}">${t.due ? '📅 ' + fdate(t.due) : ''}${t.recurring ? ' 🔁' : ''}</span><span class="muted">${subs.length ? '☑ ' + done + '/' + subs.length : ''}</span>${name ? miniAv(name) : '<span class="av" style="width:24px;height:24px;background:#e2e8f0"></span>'}</div></div>`;
+}
+function taskBoard(list){
+  return `<div class="kanban">${BOARD_COLS.map(st => { const col = list.filter(t => t.status === st).sort((a, b) => PRI[a.priority].o - PRI[b.priority].o || (a.due || '9').localeCompare(b.due || '9'));
+    return `<div class="kcol" ondragover="event.preventDefault()" ondrop="dropTask(event,'${st}')"><div class="khead"><b>${TS[st]}</b><span class="badge b-draft">${col.length}</span></div>
+      ${col.map(taskCard).join('')}<input class="qadd" placeholder="+ Quick add task" onkeydown="if(event.key==='Enter')quickAdd('${st}',this)"></div>`; }).join('')}</div>
+    ${list.filter(t => t.status === 'cancelled').length ? `<div class="muted" style="margin-top:8px;font-size:12px">${list.filter(t => t.status === 'cancelled').length} cancelled task(s) hidden — see List view.</div>` : ''}`;
+}
+
+/* ----- list ----- */
+function setSort(k){ tsort = {key:k, dir:tsort.key === k ? -tsort.dir : 1}; render(); }
+function taskTable(list){
+  const val = {title:t => t.title.toLowerCase(), assignee:t => empName(t.assignee).toLowerCase() || '~', priority:t => PRI[t.priority].o, due:t => t.due || '9999', status:t => Object.keys(TS).indexOf(t.status)};
+  const rows = [...list].sort((a, b) => { const x = val[tsort.key](a), y = val[tsort.key](b); return (x < y ? -1 : x > y ? 1 : 0) * tsort.dir; });
+  const th = (k, l) => `<th style="cursor:pointer" onclick="setSort('${k}')">${l}${tsort.key === k ? (tsort.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`;
+  const n = [...selT].filter(id => taskById(id)).length;
+  return `${n ? `<div class="card" style="margin-bottom:10px;padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f0fdfa"><b>${n} selected</b>
+      <select style="width:auto" onchange="bulkSet('status',this.value)"><option value="">Set status…</option>${Object.entries(TS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+      <select style="width:auto" onchange="bulkSet('priority',this.value)"><option value="">Set priority…</option>${Object.entries(PRI).map(([k, v]) => `<option value="${k}">${v.i} ${v.l}</option>`).join('')}</select>
+      <select style="width:auto" onchange="bulkSet('assignee',this.value)"><option value="">Assign to…</option>${employees.map(e => `<option value="${e.id}">${esc(e.name)}</option>`).join('')}<option value="__none">Unassigned</option></select>
+      <button class="btn sm danger" onclick="bulkDelete()">Delete</button><button class="btn sm ghost" onclick="selT.clear();render()">Clear</button></div>` : ''}
+  <div class="card"><div class="tablewrap"><table><thead><tr><th style="width:30px"><input type="checkbox" style="width:auto" onchange="toggleAllT(this.checked)" ${rows.length && rows.every(t => selT.has(t.id)) ? 'checked' : ''}></th>${th('title', 'Task')}${pjSel === 'all' ? '<th>Project</th>' : ''}${th('assignee', 'Assignee')}${th('priority', 'Priority')}${th('due', 'Due date')}${th('status', 'Status')}<th>Tags</th></tr></thead>
+    <tbody>${rows.map(t => `<tr style="${isOverdueT(t) ? 'background:#fef2f2' : ''}"><td><input type="checkbox" style="width:auto" ${selT.has(t.id) ? 'checked' : ''} onchange="toggleT('${t.id}',this.checked)"></td>
+      <td style="cursor:pointer;white-space:normal;min-width:180px" onclick="openTask('${t.id}')"><b>${esc(t.title)}</b>${isBlockedT(t) ? ' 🔒' : ''}${t.recurring ? ' 🔁' : ''}</td>${pjSel === 'all' ? `<td>${esc((projById(t.projectId) || {}).name || '—')}</td>` : ''}
+      <td>${empName(t.assignee) ? `<span style="display:flex;gap:6px;align-items:center">${miniAv(empName(t.assignee))}${esc(empName(t.assignee))}</span>` : '<span class="muted">—</span>'}</td><td>${priBadge(t.priority)}</td>
+      <td style="color:${isOverdueT(t) ? 'var(--red)' : 'inherit'};font-weight:${isOverdueT(t) ? 700 : 400}">${fdate(t.due)}</td>
+      <td><select style="width:auto;padding:5px 8px" onchange="changeStatus('${t.id}',this.value)">${Object.entries(TS).map(([k, v]) => `<option value="${k}" ${k === t.status ? 'selected' : ''}>${v}</option>`).join('')}</select></td>
+      <td>${(t.tags || []).map(x => `<span class="tagchip">${esc(x)}</span>`).join('')}</td></tr>`).join('') || `<tr><td colspan="8" class="empty">No tasks match</td></tr>`}</tbody></table></div></div>`;
+}
+const toggleT = (id, on) => { on ? selT.add(id) : selT.delete(id); render(); };
+function toggleAllT(on){ filteredTasks().forEach(t => on ? selT.add(t.id) : selT.delete(t.id)); render(); }
+function bulkSet(field, v){
+  if (!v) return;
+  [...selT].map(taskById).filter(Boolean).forEach(t => { if (field === 'status') setTaskStatus(t, v); else t[field] = v === '__none' ? '' : v; });
+  save(); render(); toast('Updated ' + selT.size + ' tasks');
+}
+function bulkDelete(){ if (!confirm('Delete ' + selT.size + ' selected tasks with their subtasks and comments?')) return; [...selT].map(taskById).filter(Boolean).forEach(removeTaskData); selT.clear(); save(); render(); }
+
+/* ----- calendar ----- */
+function calNav(d){ if (d === 0) calMonth = today().slice(0, 7); else { const [y, m] = calMonth.split('-').map(Number), x = new Date(y, m - 1 + d, 1); calMonth = iso(x).slice(0, 7); } calDay = ''; render(); }
+function taskCalendar(list){
+  const [y, mo] = calMonth.split('-').map(Number), lead = (new Date(y, mo - 1, 1).getDay() + 6) % 7, days = monthDays(calMonth);
+  const by = {}; list.filter(t => t.due && t.due.startsWith(calMonth)).forEach(t => (by[t.due] = by[t.due] || []).push(t));
+  const cells = [...Array(lead).fill(null), ...Array.from({length:days}, (_, i) => calMonth + '-' + String(i + 1).padStart(2, '0'))];
+  const dayList = calDay ? list.filter(t => t.due === calDay) : [];
+  return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px"><button class="btn sm ghost" onclick="calNav(-1)">‹</button><b style="font-size:16px">${monthName(calMonth)}</b><div><button class="btn sm ghost" onclick="calNav(0)">Today</button> <button class="btn sm ghost" onclick="calNav(1)">›</button></div></div>
+    <div class="cal">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => `<div class="calh">${d}</div>`).join('')}
+    ${cells.map(d => !d ? '<div class="cald empty-cell"></div>' : `<div class="cald ${d === today() ? 'today' : ''} ${d === calDay ? 'sel' : ''}" onclick="calDay='${d}';render()"><span class="dn">${+d.slice(8)}</span>
+      ${(by[d] || []).slice(0, 3).map(t => `<div class="cchip" style="background:${PRI[t.priority].c}${isOpenT(t) ? '' : ';opacity:.45;text-decoration:line-through'}" onclick="event.stopPropagation();openTask('${t.id}')" title="${esc(t.title)}">${esc(t.title)}</div>`).join('')}${(by[d] || []).length > 3 ? `<div class="muted" style="font-size:11px">+${by[d].length - 3} more</div>` : ''}</div>`).join('')}</div>
+    <div class="muted" style="margin-top:8px;font-size:12px">${Object.values(PRI).map(p => `<span style="margin-right:10px"><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${p.c}"></span> ${p.l}</span>`).join('')}</div></div>
+  ${calDay ? `<div class="card" style="margin-top:14px"><h3>Tasks due ${fdate(calDay)}</h3>${dayList.map(t => `<div class="tx" style="cursor:pointer" onclick="openTask('${t.id}')"><div><div class="t1">${esc(t.title)}</div><div class="t2">${TS[t.status]} · ${esc(empName(t.assignee) || 'Unassigned')}</div></div>${priBadge(t.priority)}</div>`).join('') || '<div class="muted">Nothing due on this day.</div>'}
+    <div class="modal-actions"><button class="btn sm" onclick="taskForm({due:'${calDay}'})">+ Task on this day</button></div></div>` : ''}`;
+}
+
+/* ----- task detail ----- */
+function refreshTask(id){ const sc = $('modal').scrollTop; openTask(id); $('modal').scrollTop = sc; }
+function openTask(id){
+  const t = taskById(id); if (!t) return; openTaskId = id;
+  const p = projById(t.projectId), subs = subtasks.filter(s => s.taskId === id), cms = taskComments.filter(c => c.taskId === id).sort((a, b) => a.at.localeCompare(b.at));
+  const done = subs.filter(s => s.done).length, others = tasks.filter(x => x.projectId === t.projectId && x.id !== id), blocker = t.blockedBy && taskById(t.blockedBy);
+  const row = (l, inner) => `<div class="field"><label>${l}</label>${inner}</div>`;
+  openModal(`<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div class="muted" style="font-size:12px">${esc(clName(p && p.clientId))} › ${esc(p ? p.name : '—')}</div><button class="btn sm ghost" onclick="closeModal()">✕ Close</button></div>
+    <input value="${esc(t.title)}" style="font-size:19px;font-weight:700;margin:8px 0 6px;border-color:transparent" onchange="setTF('${id}','title',this.value)">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${priBadge(t.priority)} ${isOverdueT(t) ? '<span class="badge b-overdue">Overdue</span>' : ''} ${blocker && isOpenT(blocker) ? `<span class="badge b-leave">🔒 Blocked by “${esc(blocker.title)}”</span>` : ''} ${t.recurring ? `<span class="badge b-upcoming">🔁 ${t.recurring}</span>` : ''}</div>
+    <div class="row2">${row('Status', `<select onchange="changeStatus('${id}',this.value)">${Object.entries(TS).map(([k, v]) => `<option value="${k}" ${k === t.status ? 'selected' : ''}>${v}</option>`).join('')}</select>`)}
+      ${row('Priority', `<select onchange="setTF('${id}','priority',this.value,true)">${Object.entries(PRI).map(([k, v]) => `<option value="${k}" ${k === t.priority ? 'selected' : ''}>${v.i} ${v.l}</option>`).join('')}</select>`)}</div>
+    <div class="row2">${row('Assigned to', `<select onchange="setTF('${id}','assignee',this.value)">${empOpts(t.assignee)}</select>`)}${row('Due date', `<input type="date" value="${t.due || ''}" onchange="setTF('${id}','due',this.value,true)">`)}</div>
+    <div class="row2">${row('Time estimate (hours)', `<input type="number" min="0" step="any" value="${t.estimate || ''}" onchange="setTF('${id}','estimate',+this.value||0)">`)}${row('Tags (comma separated)', `<input value="${esc((t.tags || []).join(', '))}" onchange="setTF('${id}','tags',parseTags(this.value))">`)}</div>
+    <div class="row2">${row('Blocked by', `<select onchange="setTF('${id}','blockedBy',this.value,true)"><option value="">— none —</option>${others.map(o => `<option value="${o.id}" ${o.id === t.blockedBy ? 'selected' : ''}>${esc(o.title)}${isOpenT(o) ? '' : ' (done)'}</option>`).join('')}</select>`)}
+      ${row('Recurring', `<select onchange="setTF('${id}','recurring',this.value,true)">${[['', 'Not recurring'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly']].map(([v, l]) => `<option value="${v}" ${v === (t.recurring || '') ? 'selected' : ''}>${l}</option>`).join('')}</select>`)}</div>
+    ${row('Description', `<textarea rows="4" onchange="setTF('${id}','description',this.value)">${esc(t.description || '')}</textarea>`)}
+    ${row('Attachment notes (describe what is attached)', `<input value="${esc(t.attachments || '')}" placeholder="e.g. Logo files shared on Drive, brief PDF" onchange="setTF('${id}','attachments',this.value)">`)}
+    <h3 style="margin:14px 0 8px">Subtasks <span class="muted" style="font-weight:400">${subs.length ? done + '/' + subs.length : ''}</span></h3>
+    ${subs.map(s => `<div class="tx" style="padding:6px 0"><label style="display:flex;gap:8px;align-items:center;color:var(--text);font-weight:500;margin:0"><input type="checkbox" style="width:auto" ${s.done ? 'checked' : ''} onchange="toggleSub('${s.id}')"><span style="${s.done ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(s.title)}</span></label><button class="btn sm danger" onclick="delSub('${s.id}')">✕</button></div>`).join('')}
+    <input placeholder="+ Add subtask (press Enter)" style="margin-top:6px" onkeydown="if(event.key==='Enter'){event.preventDefault();addSub('${id}',this)}">
+    <h3 style="margin:18px 0 8px">Comments &amp; updates <span class="muted" style="font-weight:400">· log is append-only</span></h3>
+    ${cms.map(c => `<div class="tx" style="align-items:flex-start;justify-content:flex-start;gap:10px">${miniAv(c.by, 30)}<div><div class="t2"><b style="color:var(--text)">${esc(c.by)}</b> · ${fmtTs(c.at)}</div><div style="white-space:pre-wrap;margin-top:2px">${esc(c.text)}</div></div></div>`).join('') || '<div class="muted">No updates yet.</div>'}
+    <form onsubmit="addComment(event,'${id}')" style="margin-top:12px"><div class="row2" style="grid-template-columns:180px 1fr;gap:8px"><select name="by">${commentAuthors().map(a => `<option value="${esc(a)}" ${a === commentAuthor ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select><textarea name="text" rows="2" placeholder="Add an update — e.g. Sent draft to client for review" required></textarea></div>
+    <div class="modal-actions" style="margin-top:8px"><button type="button" class="btn sm danger" onclick="delTask('${id}')" style="margin-right:auto">Delete task</button><button class="btn sm">Post update</button></div></form>`, 'xl');
+}
+const commentAuthors = () => ['Owner', ...employees.filter(e => !e.archived).map(e => e.name)];
+function setTF(id, field, val, refresh){ const t = taskById(id); if (!t) return; t[field] = val; save(); render(); if (refresh) refreshTask(id); }
+function addSub(id, input){ const v = input.value.trim(); if (!v) return; subtasks.push({id:uid(), taskId:id, title:v, done:false}); save(); render(); refreshTask(id); }
+function toggleSub(sid){ const s = subtasks.find(x => x.id === sid); if (s) { s.done = !s.done; save(); render(); refreshTask(s.taskId); } }
+function delSub(sid){ const s = subtasks.find(x => x.id === sid); if (s) { subtasks = subtasks.filter(x => x.id !== sid); save(); render(); refreshTask(s.taskId); } }
+function addComment(ev, id){
+  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); if (!f.text.trim()) return;
+  commentAuthor = f.by; taskComments.push({id:uid(), taskId:id, at:new Date().toISOString(), by:f.by, text:f.text.trim()}); save(); refreshTask(id);
+}
+function delTask(id){ const t = taskById(id); if (t && confirm('Delete "' + t.title + '" with its subtasks and comments?')) { removeTaskData(t); save(); closeModal(); render(); } }
+
 /* ========= Wiring ========= */
 /* keep the app name out of the printed page header */
 let _title = document.title;
 window.addEventListener('beforeprint', () => { _title = document.title; document.title = ' '; });
 window.addEventListener('afterprint', () => { document.title = _title; });
-$('nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { view = b.dataset.view; if (view === 'employees') { empSel = null; bankShown = false; } $('sidebar').classList.remove('open'); $('scrim').classList.remove('open'); render(); window.scrollTo(0,0); } });
+$('nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { view = b.dataset.view; if (view === 'employees') { empSel = null; bankShown = false; } if (view === 'clients') clSel = null; if (view === 'projects') { pjSel = null; selT.clear(); } $('sidebar').classList.remove('open'); $('scrim').classList.remove('open'); render(); window.scrollTo(0,0); } });
 $('menuBtn').onclick = () => { $('sidebar').classList.add('open'); $('scrim').classList.add('open'); };
 $('scrim').onclick = () => { $('sidebar').classList.remove('open'); $('scrim').classList.remove('open'); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
