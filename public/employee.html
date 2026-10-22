@@ -20,11 +20,13 @@
   const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const isDone = t => t.status_kind === 'done' || t.status_kind === 'closed';
 
+  MB.att.injectCss();
+  const A = MB.att;
   const shell = MB.shell({
     user, role: 'employee',
-    items: [{ key: 'tasks', label: 'My Tasks', icon: '✅' }, { key: 'channels', label: 'Channels', icon: '#' }, { key: 'dms', label: 'Direct Messages', icon: '💬' }, { key: 'profile', label: 'Profile', icon: '👤' }],
-    titles: { tasks: ['My Tasks', 'Everything assigned to you'], channels: ['Channels', 'Team channels you have been added to'], dms: ['Direct Messages', 'Chat with the admin and your teammates'], profile: ['Profile', 'Your details and salary history'] },
-    onView: key => { stopPane(); ({ tasks: viewTasks, channels: viewChannels, dms: viewDms, profile: viewProfile })[key](); },
+    items: [{ key: 'tasks', label: 'My Tasks', icon: '✅' }, { key: 'attendance', label: 'Attendance', icon: '🕘' }, { key: 'channels', label: 'Channels', icon: '#' }, { key: 'dms', label: 'Direct Messages', icon: '💬' }, { key: 'profile', label: 'Profile', icon: '👤' }],
+    titles: { tasks: ['My Tasks', 'Everything assigned to you'], attendance: ['Attendance', 'Check in, log your day and see your history'], channels: ['Channels', 'Team channels you have been added to'], dms: ['Direct Messages', 'Chat with the admin and your teammates'], profile: ['Profile', 'Your details and salary history'] },
+    onView: key => { stopPane(); ({ tasks: viewTasks, attendance: viewAttendance, channels: viewChannels, dms: viewDms, profile: viewProfile })[key](); },
   });
 
   /* ---------------- My Tasks ---------------- */
@@ -69,6 +71,51 @@
     const db = $('doneBtn'); if (db) db.onclick = async () => { const d = sts.find(s => s.kind === 'done'); if (!d) return MB.toast('This list has no “done” status'); try { upd(await MB.api('/api/employee/tasks/' + id, { method: 'PATCH', body: { status: d.id } })); } catch (er) { MB.toast(er.message); } };
     $('modal').querySelectorAll('[data-sub]').forEach(cb => cb.onchange = async () => { try { await MB.api('/api/employee/subtasks/' + cb.dataset.sub, { method: 'PATCH', body: { done: cb.checked } }); t.subtasks.find(s => s.id === cb.dataset.sub).done = cb.checked; paintTasks(); openTask(id); } catch (er) { MB.toast(er.message); cb.checked = !cb.checked; } });
     $('cmForm').onsubmit = async e => { e.preventDefault(); const text = $('cmIn').value.trim(); if (!text) return; try { const c = await MB.api('/api/employee/tasks/' + id + '/comments', { method: 'POST', body: { text } }); t.comments.push({ id: c.id, by: c.by, text: c.text, at: c.at, kind: 'comment' }); openTask(id); } catch (er) { MB.toast(er.message); } };
+  }
+
+
+  /* ---------------- Attendance ---------------- */
+  let attMonth = null;
+  async function viewAttendance() {
+    const v = $('view'); v.innerHTML = '<div class="empty">Loading…</div>';
+    let td, hist;
+    try { td = await MB.api('/api/employee/attendance/today'); } catch (e) { v.innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
+    attMonth = attMonth || td.now.date.slice(0, 7);
+    try { hist = await MB.api('/api/employee/attendance?month=' + attMonth); } catch (e) { hist = null; }
+    paintAttendance(td, hist);
+  }
+  function paintAttendance(td, hist) {
+    stopPane();
+    const s = td.settings, tz = s.timezone, log = td.log, open = A.isOpen(log), dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const label = !log ? 'Check In' : open ? 'Check Out' : 'Check In again';
+    const mine = td.my_tasks.slice().sort((a, b) => (a.due || '9').localeCompare(b.due || '9')), picked = new Set(log ? log.task_ids : []);
+    const rec = hist ? (() => { const byDate = {}; hist.logs.forEach(l => { byDate[l.date] = l; }); return { byDate, ctx: { settings: hist.settings, now: hist.now, logsByDate: byDate, leaves: new Set(hist.leaves.map(l => l.date)), join: hist.join_date } }; })() : null;
+    $('view').innerHTML = `<div class="card"><div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.07em">Today · ${dayNames[A.dow(td.now.date)]}</div><div style="font-size:22px;font-weight:700;color:#fff">${A.longDate(td.now.date)}</div>
+          <div class="muted" style="margin-top:4px">Work hours ${A.t12(s.start_time)} – ${A.t12(s.end_time)}${log ? ' · ' + A.pill(log.status) : ''}</div>
+          <div style="margin-top:10px;font-size:26px;font-weight:700;color:#fff" id="liveH">${A.fmtH(A.liveHours(log, td.now.iso))}</div><div class="muted" style="font-size:12px">${open ? 'Checked in — timer running' : log ? 'Checked out' : 'Not checked in yet'}</div></div>
+        <button class="btn ac-big ${open ? 'out' : ''}" id="punchBtn">${open ? '⏹ ' : '▶ '}${label}</button></div>
+      ${td.stale_open ? `<div class="login-err" style="margin-top:14px">You did not check out on ${A.longDate(td.stale_open.date)}. It will be closed at the official end time when you next check in or out.</div>` : ''}
+      ${log && log.sessions.length ? `<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:8px">${log.sessions.map(x => `<div class="row" style="padding:6px 0"><div class="grow">🟢 In <b>${A.fmtTime(x.check_in, tz)}</b></div><div class="grow">${x.check_out ? '🔴 Out <b>' + A.fmtTime(x.check_out, tz) + '</b>' : '<span class="muted">working…</span>'}</div></div>`).join('')}</div>` : ''}</div>
+    <div class="card"><h3>📝 Today's report</h3>${log ? '' : '<div class="muted" style="margin-bottom:10px">Check in first, then write what you worked on today.</div>'}
+      <textarea id="actNote" rows="4" maxlength="4000" placeholder="What did you work on today?" ${log ? '' : 'disabled'}>${esc(log ? log.activity_note : '')}</textarea>
+      <div class="task-sec" style="margin-top:14px"><h4>Tasks I worked on</h4>${mine.map(t => `<label class="sub"><input type="checkbox" data-t="${esc(t.id)}" ${picked.has(t.id) ? 'checked' : ''} ${log ? '' : 'disabled'}><span>${esc(t.title)}</span></label>`).join('') || '<div class="muted">No tasks are assigned to you.</div>'}</div>
+      <button class="btn" id="saveRep" ${log ? '' : 'disabled'}>Save report</button></div>
+    <div class="card"><h3>History</h3>${rec ? `<div class="ac-nav"><button class="btn ghost sm" id="mPrev">‹</button><b>${A.monthLabel(attMonth)}</b><button class="btn ghost sm" id="mNext">›</button></div>${A.summaryHtml(A.summary(attMonth, rec.ctx))}${A.calendar(attMonth, rec.ctx)}` : '<div class="muted">Could not load history.</div>'}</div>`;
+    const reload = () => viewAttendance();
+    $('punchBtn').onclick = async () => {
+      const b = $('punchBtn'); b.disabled = true;
+      try { const r = await MB.api('/api/employee/attendance/' + (open ? 'check-out' : 'check-in'), { method: 'POST' }); if (r.notice) MB.toast(r.notice); else MB.toast(open ? 'Checked out — have a good evening' : 'Checked in — have a productive day'); await reload(); }
+      catch (e) { MB.toast(e.message); b.disabled = false; reload(); }
+    };
+    $('saveRep').onclick = async () => {
+      try { await MB.api('/api/employee/attendance/report', { method: 'PUT', body: { activity_note: $('actNote').value, task_ids: [...document.querySelectorAll('[data-t]:checked')].map(c => c.dataset.t) } }); MB.toast('Report saved'); } catch (e) { MB.toast(e.message); }
+    };
+    if (open) { const base = Date.now(); pane = { timer: setInterval(() => { const el = $('liveH'); if (el) el.textContent = A.fmtH(A.liveHours(log, new Date(Date.parse(td.now.iso) + Date.now() - base).toISOString())); }, 15000), stop() { clearInterval(this.timer); } }; }
+    if (rec) {
+      $('mPrev').onclick = () => { attMonth = A.shiftMonth(attMonth, -1); reload(); }; $('mNext').onclick = () => { attMonth = A.shiftMonth(attMonth, 1); reload(); };
+      $('view').querySelectorAll('.ac-click').forEach(c => c.onclick = () => { const d = c.dataset.date; MB.openModal(`<h2>${A.longDate(d)}</h2>${A.dayDetail(rec.byDate[d], tz, hist.task_titles, hist.now.iso)}<div class="modal-actions"><button class="btn ghost" id="cx">Close</button></div>`); $('cx').onclick = MB.closeModal; });
+    }
   }
 
   /* ---------------- Channels / DMs ---------------- */

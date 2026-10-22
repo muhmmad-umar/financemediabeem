@@ -18,6 +18,7 @@
 body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;display:flex;min-height:100vh}
 button{font-family:inherit;cursor:pointer}
 /* sidebar */
+.att-alert{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:13px}.att-n{color:#c4b5fd;cursor:pointer;text-decoration:none}.att-n:hover{text-decoration:underline}
 .side-foot{margin-top:auto;border-top:1px solid #2a2a2a;padding:12px 6px 0;font-size:12px}.side-foot .who{color:#ccc;margin-bottom:4px;word-break:break-all}
 .sidebar{width:240px;background:var(--side);color:#cbd5e1;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column;padding:20px 14px;z-index:30;transition:transform .25s}
 .brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:17px;padding:4px 8px 22px}
@@ -638,6 +639,7 @@ tfoot td{border-top:1px solid #2a2a2a}
     <button data-view="reports">📈 Reports</button>
     <div class="nav-sep">Team</div>
     <button data-view="employees">🧑‍💼 Employees</button>
+    <button data-view="attendance">🕘 Attendance</button>
     <div class="nav-sep">Personal</div>
     <button data-view="personal" class="personal">👤 Personal Finance</button>
   </nav>
@@ -1116,6 +1118,7 @@ const meta = {
   personal:['Personal Finance','Your own money — completely separate from the agency'],
   clients:['Clients','Profiles, pipeline stages, task lists and invoices per client'],
   tasks:['Tasks','Space › List › Task › Subtask'],
+  attendance:['Attendance','Daily check-ins, work hours and attendance history'],
   employees:['Employees','Profiles, salaries and leave — salaries paid flow into agency expenses'],
   reports:['Reports',"Monthly breakdown, cumulative Allah's Share and top clients"],
 };
@@ -1126,7 +1129,8 @@ function render(){
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   const nb = document.querySelector('#nav button[data-view="dashboard"]'), nDue = recDue().length;
   if (nb) nb.innerHTML = '📊 Dashboard' + (nDue ? `<span class="nbadge" title="${nDue} reminder${nDue > 1 ? 's' : ''} due">${nDue}</span>` : '');
-  $('filterBar').innerHTML = view === 'tasks' ? '' : filterBar();   // Tasks has its own top bar
+  attBadge();
+  $('filterBar').innerHTML = (view === 'tasks' || view === 'attendance') ? '' : filterBar();   // Tasks has its own top bar
   document.querySelector('main').classList.toggle('cu', view === 'tasks');
   if (view !== 'tasks') cuPanelId = null;
   document.body.classList.toggle('cu-mode', view === 'tasks');
@@ -1141,9 +1145,10 @@ function render(){
     personal:personalActions(),
     clients: clSel ? '' : '<button class="btn" onclick="clientForm()">+ New Client</button>',
     tasks: '',
-    employees: empSel ? '' : '<button class="btn" onclick="empForm()">+ Add Employee</button>'
+    employees: empSel ? '' : '<button class="btn" onclick="empForm()">+ Add Employee</button>',
+    attendance: ''
   }[view];
-  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees, clients:vClients, tasks:vTasks}[view](t);
+  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees, attendance:vAttendance, clients:vClients, tasks:vTasks}[view](t);
   ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah, personal:afterPersonal}[view] || (()=>{}))(t);
   if (view === 'tasks') { const ed = document.querySelector('[data-edit], #cuAddIn'); if (ed) ed.focus(); const cf2 = document.querySelector('.chat-feed'); if (cf2) { cf2.scrollTop = cf2.scrollHeight; const ci = document.getElementById('chatInput'); if (ci) chatGrow(ci); } }
 }
@@ -1193,6 +1198,7 @@ function vDashboard(t){
   const act = clients.filter(c => c.status === 'Active'), per = periodLabel();
   return `
   <div class="qa"><button class="btn" onclick="taskForm()">+ New Task</button><button class="btn" onclick="incomeForm()">+ New Invoice</button><button class="btn" onclick="clientForm()">+ New Client</button><button class="btn" onclick="recordPaymentPicker()">+ Record Payment</button></div>
+  ${attendanceCard()}
   ${formulaCard(t)}
   <div class="dsec">Finance snapshot · ${per}</div>
   <div class="grid g4" style="margin-bottom:16px">
@@ -2951,6 +2957,184 @@ async function pollChanges(){
   } catch (e) { /* offline — try again next tick */ }
 }
 
+/* ========= Attendance (data lives on the server; employees write it from their portal) ========= */
+const AT = MB.att;
+let attOv = null;   // today's records + anything left open (dashboard card, alerts, nav badge)
+let attView = {tab:'daily', date:null, month:null, emp:'', data:null, key:'', pending:'', err:'', draft:null};
+/* only employees who can check in (active portal account) are tracked — others would just show as absent */
+const attAcct = e => portalOf('employee', e.id);
+const attEmps = () => employees.filter(e => onPayroll(e) && attAcct(e) && attAcct(e).active).sort((a, b) => a.name.localeCompare(b.name));
+const attJoin = e => [e.joinDate || '', ((attAcct(e) || {}).created_at || '').slice(0, 10)].sort().pop();
+const attNoAccess = () => employees.filter(e => onPayroll(e) && !(attAcct(e) && attAcct(e).active));
+const attLeaveSet = () => new Set(empLeaves.map(l => l.employee_id + '|' + l.date));
+function attLogsBy(logs){ const m = {}; logs.forEach(l => { (m[l.date] = m[l.date] || {})[l.employee_id] = l; }); return m; }
+async function attPoll(){
+  if (document.hidden) return;
+  await attLoadOverview();
+  if (view === 'attendance' && attView.key && attView.tab !== 'settings') {   // refresh the open report quietly
+    try { const [f, t] = attView.key.split('|'); attView.data = await MB.api('/api/admin/attendance?from=' + f + '&to=' + t); const ae = document.activeElement; if (!$('overlay').classList.contains('open') && !(ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName))) render(); } catch (e) {}
+  }
+}
+async function attLoadOverview(){
+  try { attOv = await MB.api('/api/admin/attendance/overview'); } catch (e) { return; }
+  const ae = document.activeElement, typing = ae && (/INPUT|TEXTAREA|SELECT/.test(ae.tagName) || ae.isContentEditable);
+  if (!$('overlay').classList.contains('open') && !typing && view === 'dashboard') render(); else attBadge();
+}
+/* ----- classification of one employee on one day ----- */
+function attStatusOf(e, date, log, ov){
+  return AT.classify(date, {settings:ov.settings, now:ov.now, log, leave:attLeaveSet().has(e.id + '|' + date) || (e.status === 'On Leave' && date === ov.now.date), join:attJoin(e)});
+}
+function attAlerts(ov = attOv){
+  if (!ov) return [];
+  const s = ov.settings, now = ov.now, out = [], start = AT.minOf(s.start_time), end = AT.minOf(s.end_time), logs = attLogsBy(ov.logs), tz = s.timezone;
+  const todays = logs[now.date] || {};
+  attEmps().forEach(e => {
+    const c = attStatusOf(e, now.date, todays[e.id], ov);
+    if (c.key === 'pending' && now.min >= start + s.alert_minutes) { const late = now.min - start, h = Math.floor(late / 60), m = late % 60; out.push({kind:'missing', emp:e.id, text:`${e.name} hasn't checked in — ${h ? h + 'h ' : ''}${m}m after the ${AT.t12(s.start_time)} start`}); }
+  });
+  ov.logs.forEach(l => { const e = empById(l.employee_id); if (!e || !AT.isOpen(l)) return;
+    if (l.date < now.date || now.min >= end) out.push({kind:'forgot', emp:e.id, date:l.date, text:`${e.name} is still clocked in${l.date < now.date ? ' from ' + fdate(l.date) : ''} (in at ${AT.fmtTime(l.check_in, tz)}) — forgot to check out?`}); });
+  return out;
+}
+function attBadge(){ const b = document.querySelector('#nav button[data-view="attendance"]'); if (!b) return; const n = attAlerts().length; b.innerHTML = '🕘 Attendance' + (n ? `<span class="nbadge" title="${n} attendance alert${n > 1 ? 's' : ''}">${n}</span>` : ''); }
+/* ----- the end-of-day report (dashboard card + Daily tab) ----- */
+function attReport(date, logsOfDay, ov){
+  const s = ov.settings, tz = s.timezone, g = {present:[], late:[], half:[], absent:[], pending:[], leave:[], working:[]};
+  let hours = 0, off = false;
+  attEmps().forEach(e => {
+    const log = logsOfDay[e.id], c = attStatusOf(e, date, log, ov);
+    if (log) hours += AT.liveHours(log, ov.now.iso);
+    if (c.key === 'off' || c.key === 'before' || c.key === 'future') { if (c.key === 'off') off = true; return; }
+    if (c.key === 'present' && !AT.isOpen(log)) g.present.push({e, log});
+    else if (c.key in g && c.key !== 'present') g[c.key].push({e, log});
+    if (log && AT.isOpen(log)) g.working.push({e, log});
+  });
+  return {date, g, hours:Math.round(hours * 100) / 100, off, tz, s, ov};
+}
+const attName = (e, date, extra = '') => `<a class="att-n" onclick="attOpenDay('${e.id}','${date}')">${esc(e.name)}</a>${extra ? ' <span class="muted">' + extra + '</span>' : ''}`;
+function attReportHtml(r){
+  const {g, date, tz} = r, line = (icon, label, arr, fn) => arr.length ? `<div class="trk-row" style="align-items:flex-start"><span>${icon} ${label}</span><span style="text-align:right">${arr.map(fn).join(', ')}</span></div>` : '';
+  const body = [
+    line('✅', 'Present (on time):', g.present, x => attName(x.e, date)),
+    line('⚠️', 'Late:', g.late, x => attName(x.e, date, '(checked in ' + AT.fmtTime(x.log.check_in, tz) + ')')),
+    line('🌓', 'Half day:', g.half, x => attName(x.e, date, '(' + AT.fmtH(AT.liveHours(x.log, r.ov.now.iso)) + ')')),
+    line('❌', 'Absent:', g.absent, x => attName(x.e, date)),
+    line('⏳', 'Not checked in yet:', g.pending, x => attName(x.e, date)),
+    line('🌴', 'On leave:', g.leave, x => attName(x.e, date)),
+    line('🕐', 'Still working:', g.working, x => attName(x.e, date, '(checked in ' + AT.fmtTime(x.log.check_in, tz) + ', no checkout)')),
+  ].join('');
+  return (body || `<div class="muted" style="padding:6px 0">${r.off ? 'Day off — no attendance expected.' : 'No employees to show.'}</div>`) + `<div class="trk-row last total"><span>Total hours logged${date === r.ov.now.date ? ' today' : ''}:</span><b>${r.hours} hrs</b></div>`;
+}
+function attendanceCard(){
+  if (!attOv) return '';
+  const ov = attOv, day = ov.now.date, r = attReport(day, attLogsBy(ov.logs)[day] || {}, ov), alerts = attAlerts(ov);
+  return `<div class="card" style="margin-bottom:16px;border-top:4px solid ${alerts.length ? 'var(--red)' : 'var(--teal)'}">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">🕘 Today — ${AT.longDate(day)}</h3><button class="btn sm ghost" onclick="view='attendance';render()">Open Attendance →</button></div>
+    ${alerts.map(a => `<div class="att-alert">${a.kind === 'missing' ? '🔴' : '⚠️'} ${esc(a.text)} <a class="att-n" onclick="${a.kind === 'forgot' ? `attOpenDay('${a.emp}','${a.date}')` : `attOpenDay('${a.emp}','${day}')`}">${a.kind === 'forgot' ? 'Fix' : 'View'}</a></div>`).join('')}
+    <div style="margin-top:10px">${attReportHtml(r)}</div></div>`;
+}
+/* ----- one employee's day ----- */
+async function attOpenDay(empId, date){
+  const e = empById(empId); if (!e) return;
+  openModal(`<h2>${esc(e.name)} · ${AT.longDate(date)}</h2><div class="muted">Loading…</div>`, 'wide');
+  try {
+    const d = await MB.api('/api/admin/attendance?from=' + date + '&to=' + date), log = d.logs.find(l => l.employee_id === empId);
+    openModal(`<h2>${esc(e.name)} · ${AT.longDate(date)}</h2>${AT.dayDetail(log, d.settings.timezone, d.task_titles, d.now.iso)}
+      <div class="modal-actions">${log ? `<button class="btn danger" style="margin-right:auto" onclick="attDeleteDay('${log.id}')">Delete record</button>` : ''}<button class="btn ghost" onclick="closeModal()">Close</button><button class="btn" onclick='attFixForm(${JSON.stringify({empId, date, in:log && log.check_in ? AT.hhmm(log.check_in, d.settings.timezone) : '', out:log && log.check_out ? AT.hhmm(log.check_out, d.settings.timezone) : '', note:log ? log.activity_note : ''}).replace(/'/g, '&#39;')})'>${log ? 'Edit times' : 'Add attendance'}</button></div>`, 'wide');
+  } catch (er) { closeModal(); toast(er.message); }
+}
+function attFixForm(x){
+  const e = empById(x.empId);
+  openModal(`<h2>${x.in ? 'Edit' : 'Add'} attendance · ${esc(e.name)}</h2><p class="muted" style="margin-bottom:10px;font-size:13px">${AT.longDate(x.date)}. This replaces the day's check-ins with one session. Leave Check-out empty if they are still working.</p>
+    <form onsubmit="attSaveDay(event,'${x.empId}','${x.date}')"><div class="row2"><div class="field"><label>Check-in</label><input type="time" name="in" value="${x.in}" required></div><div class="field"><label>Check-out</label><input type="time" name="out" value="${x.out}"></div></div>
+    <div class="field"><label>Daily note (optional)</label><textarea name="note" rows="3">${esc(x.note || '')}</textarea></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="attOpenDay('${x.empId}','${x.date}')">Back</button><button class="btn">Save</button></div></form>`);
+}
+async function attSaveDay(ev, empId, date){
+  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
+  try { await MB.api('/api/admin/attendance', {method:'PUT', body:{employee_id:empId, date, check_in:f.in, check_out:f.out || '', activity_note:f.note}}); attView.key = ''; await attLoadOverview(); toast('Attendance saved'); render(); attOpenDay(empId, date); }
+  catch (e) { toast(e.message); }
+}
+async function attDeleteDay(id){
+  if (!confirm('Delete this attendance record?')) return;
+  try { await MB.api('/api/admin/attendance/' + id, {method:'DELETE'}); closeModal(); attView.key = ''; await attLoadOverview(); toast('Record deleted'); render(); } catch (e) { toast(e.message); }
+}
+/* ----- Attendance view ----- */
+function attNeed(from, to){
+  const key = from + '|' + to;
+  if (attView.key === key && attView.data) return attView.data;
+  if (attView.pending !== key && !attView.err) {
+    attView.pending = key;
+    MB.api('/api/admin/attendance?from=' + from + '&to=' + to).then(d => { attView.data = d; attView.key = key; attView.pending = ''; if (view === 'attendance') render(); })
+      .catch(e => { attView.pending = ''; attView.err = e.message; if (view === 'attendance') render(); });
+  }
+  return null;
+}
+function vAttendance(){
+  const day = (attOv && attOv.now.date) || today();
+  attView.date = attView.date || day; attView.month = attView.month || day.slice(0, 7);
+  const tabs = [['daily', 'Daily report'], ['history', 'History & calendar'], ['settings', 'Work hours']];
+  const noAcc = attNoAccess(), hint = noAcc.length && attView.tab !== 'settings' ? `<div class="muted" style="font-size:12px;margin:-6px 0 14px">${noAcc.length} employee${noAcc.length > 1 ? 's' : ''} can't check in yet (no portal access): ${noAcc.map(e => esc(e.name)).join(', ')}. Open an employee and click “Create Portal Access”.</div>` : '';
+  const head = `<div class="fpills" style="margin-bottom:16px">${tabs.map(([k, l]) => `<button class="${attView.tab === k ? 'on' : ''}" onclick="attView.tab='${k}';attView.err='';render()">${l}</button>`).join('')}</div>${hint}`;
+  if (attView.err) return head + `<div class="card empty">${esc(attView.err)}<br><br><button class="btn" onclick="attView.err='';render()">Retry</button></div>`;
+  if (attView.tab === 'settings') return head + attSettingsHtml();
+  const range = attView.tab === 'daily' ? [attView.date, attView.date] : [attView.month + '-01', attView.month + '-31'];
+  const d = attNeed(range[0], range[1]);
+  if (!d) return head + '<div class="card empty">Loading attendance…</div>';
+  return head + (attView.tab === 'daily' ? attDailyHtml(d) : attHistoryHtml(d));
+}
+function attDailyHtml(d){
+  const date = attView.date, logs = attLogsBy(d.logs)[date] || {}, r = attReport(date, logs, d), tz = d.settings.timezone;
+  const rows = attEmps().map(e => { const l = logs[e.id], c = attStatusOf(e, date, l, d); return `<tr style="cursor:pointer" onclick="attOpenDay('${e.id}','${date}')"><td><b>${esc(e.name)}</b></td>
+      <td>${l ? AT.pill(l.status) : `<span class="muted">${esc(c.label || '—')}</span>`}</td><td>${l ? AT.fmtTime(l.check_in, tz) : '—'}</td><td>${l ? (AT.isOpen(l) ? '<span class="muted">working…</span>' : AT.fmtTime(l.check_out, tz)) : '—'}</td>
+      <td class="num">${l ? AT.fmtH(AT.liveHours(l, d.now.iso)) : '—'}</td><td class="muted">${l && l.activity_note ? esc(l.activity_note.slice(0, 80)) + (l.activity_note.length > 80 ? '…' : '') : ''}</td></tr>`; }).join('');
+  return `<div class="ac-nav"><button class="btn ghost sm" onclick="attView.date=AT.shiftDay(attView.date,-1);render()">‹</button><b>${AT.longDate(date)}</b><button class="btn ghost sm" onclick="attView.date=AT.shiftDay(attView.date,1);render()">›</button>
+      <input type="date" value="${date}" style="width:auto" onchange="if(this.value){attView.date=this.value;render()}"><button class="btn ghost sm" onclick="attView.date=(attOv?attOv.now.date:today());render()">Today</button></div>
+    <div class="card" style="margin-bottom:16px"><h3>${date === d.now.date ? 'Today' : 'Report'} — ${AT.longDate(date)}</h3>${attReportHtml(r)}</div>
+    <div class="card"><h3>Everyone on ${fdate(date)}</h3><div class="tablewrap"><table><thead><tr><th>Employee</th><th>Status</th><th>Check-in</th><th>Check-out</th><th class="num">Hours</th><th>Daily note</th></tr></thead><tbody>${rows || '<tr><td colspan="6" class="empty">No employees yet</td></tr>'}</tbody></table></div></div>`;
+}
+function attHistoryHtml(d){
+  const ym = attView.month, emps = attEmps(), eid = attView.emp && empById(attView.emp) ? attView.emp : (emps[0] || {}).id, tz = d.settings.timezone;
+  const byEmp = {}; d.logs.forEach(l => { (byEmp[l.employee_id] = byEmp[l.employee_id] || {})[l.date] = l; });
+  const ctxFor = e => ({settings:d.settings, now:d.now, logsByDate:byEmp[e.id] || {}, leaves:new Set(empLeaves.filter(l => l.employee_id === e.id).map(l => l.date)), join:attJoin(e), clickAll:true});
+  const sel = eid ? empById(eid) : null;
+  const team = emps.map(e => ({e, s:AT.summary(ym, ctxFor(e))}));
+  return `<div class="ac-nav"><button class="btn ghost sm" onclick="attView.month=AT.shiftMonth(attView.month,-1);render()">‹</button><b>${AT.monthLabel(ym)}</b><button class="btn ghost sm" onclick="attView.month=AT.shiftMonth(attView.month,1);render()">›</button>
+      <button class="btn sm" style="margin-left:auto" onclick="attExport()">⬇ Export month (CSV)</button></div>
+    <div class="card" style="margin-bottom:16px"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><h3 style="margin:0">Calendar</h3>
+      <select style="width:auto" onchange="attView.emp=this.value;render()">${emps.map(e => `<option value="${e.id}" ${e.id === eid ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}</select></div>
+      ${sel ? AT.summaryHtml(AT.summary(ym, ctxFor(sel))) + AT.calendar(ym, ctxFor(sel)) : '<div class="muted">Add employees to see their attendance.</div>'}</div>
+    <div class="card"><h3>Monthly summary · everyone</h3><div class="tablewrap"><table><thead><tr><th>Employee</th><th class="num">Days present</th><th class="num">On time</th><th class="num">Late</th><th class="num">Half days</th><th class="num">Absent</th><th class="num">Leave</th><th class="num">Hours</th></tr></thead><tbody>
+      ${team.map(({e, s}) => `<tr style="cursor:pointer" onclick="attView.emp='${e.id}';render()"><td><b>${esc(e.name)}</b></td><td class="num">${s.attended}</td><td class="num">${s.present}</td><td class="num">${s.late}</td><td class="num">${s.half}</td><td class="num" style="color:${s.absent ? '#ef4444' : ''}">${s.absent}</td><td class="num">${s.leave}</td><td class="num"><b>${s.hours}</b></td></tr>`).join('') || '<tr><td colspan="8" class="empty">No employees</td></tr>'}</tbody></table></div></div>`;
+}
+function attExport(){
+  const d = attView.data; if (!d || attView.tab !== 'history') return;
+  const ym = attView.month, tz = d.settings.timezone, q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"', rows = [['Employee', 'Date', 'Day', 'Status', 'First check-in', 'Last check-out', 'Hours', 'Daily note', 'Tasks worked on']];
+  const byEmp = {}; d.logs.forEach(l => { (byEmp[l.employee_id] = byEmp[l.employee_id] || {})[l.date] = l; });
+  attEmps().forEach(e => AT.daysOf(ym).forEach(date => {
+    const l = (byEmp[e.id] || {})[date], c = AT.classify(date, {settings:d.settings, now:d.now, log:l, leave:empLeaves.some(x => x.employee_id === e.id && x.date === date), join:attJoin(e)});
+    if (!l && ['future', 'before', 'pending'].includes(c.key)) return;
+    rows.push([e.name, date, ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][AT.dow(date)], l ? l.status : (c.key === 'off' ? 'Off' : c.key === 'leave' ? 'Leave' : 'Absent'), l ? AT.hhmm(l.check_in, tz) : '', l && l.check_out ? AT.hhmm(l.check_out, tz) : '', l ? AT.liveHours(l, d.now.iso).toFixed(2) : '', l ? l.activity_note : '', l ? l.task_ids.map(id => d.task_titles[id] || '').filter(Boolean).join('; ') : '']);
+  }));
+  saveBlobAs(new Blob(['﻿' + rows.map(r => r.map(q).join(',')).join('\r\n')], {type:'text/csv'}), 'attendance-' + ym + '.csv');
+}
+function attSettingsHtml(){
+  const s = (attOv && attOv.settings) || {start_time:'10:00', end_time:'18:00', working_days:[1, 2, 3, 4, 5], alert_minutes:60, half_day_hours:4, timezone:'Asia/Karachi'};
+  const dn = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']];
+  return `<div class="card" style="max-width:640px"><h3>Work hours</h3><p class="muted" style="margin-bottom:14px;font-size:13px">These settings decide who is Late, Half Day or Absent, and when dashboard alerts appear.</p>
+    <form onsubmit="attSaveSettings(event)"><div class="row2"><div class="field"><label>Official start time</label><input type="time" name="start" value="${s.start_time}" required></div><div class="field"><label>Official end time</label><input type="time" name="end" value="${s.end_time}" required></div></div>
+    <div class="field"><label>Working days</label><div style="display:flex;gap:8px;flex-wrap:wrap">${dn.map(([n, l]) => `<label class="chk" style="margin:0"><input type="checkbox" name="d${n}" ${s.working_days.includes(n) ? 'checked' : ''}> ${l}</label>`).join('')}</div></div>
+    <div class="row2"><div class="field"><label>Alert if not checked in after (minutes past start)</label><input type="number" name="alert" min="0" max="480" value="${s.alert_minutes}"></div><div class="field"><label>Half day = fewer than (hours)</label><input type="number" name="half" min="0" max="12" step="0.5" value="${s.half_day_hours}"></div></div>
+    <div class="field"><label>Start counting attendance from</label><input type="date" name="track" value="${s.tracking_start}" required><div class="muted" style="font-size:12px;margin-top:4px">Days before this date are never marked absent.</div></div>
+    <div class="field"><label>Timezone</label><input name="tz" list="tzList" value="${esc(s.timezone)}" required><datalist id="tzList">${['Asia/Karachi', 'Asia/Dubai', 'Asia/Riyadh', 'Asia/Kolkata', 'Asia/Dhaka', 'Europe/London', 'Europe/Berlin', 'America/New_York', 'America/Chicago', 'America/Los_Angeles', 'Australia/Sydney', 'UTC'].map(z => `<option value="${z}">`).join('')}</datalist></div>
+    <div class="modal-actions" style="justify-content:flex-start"><button class="btn">Save settings</button></div></form></div>`;
+}
+async function attSaveSettings(ev){
+  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
+  try { await MB.api('/api/admin/work-settings', {method:'PUT', body:{start_time:f.start, end_time:f.end, working_days:[0, 1, 2, 3, 4, 5, 6].filter(n => f['d' + n]), alert_minutes:+f.alert, half_day_hours:+f.half, timezone:f.tz, tracking_start:f.track}}); attView.key = ''; await attLoadOverview(); toast('Work hours saved — statuses recalculated'); render(); }
+  catch (e) { toast(e.message); }
+}
+
 /* ========= Boot ========= */
 (async function boot(){
   try {
@@ -2958,7 +3142,7 @@ async function pollChanges(){
     $('whoAmI').textContent = me.email;
     let state = await MB.api('/api/admin/state');
     store.hydrate(state); portalUsers = state.users || []; chanMembers = state.members || {}; lastChanges = state.now - 3000;
-    init(); render();
+    MB.att.injectCss(); init(); render(); attLoadOverview(); setInterval(attPoll, 60000);
     $('syncStat').textContent = '✓ All changes saved';
     if (backfillNote) setTimeout(() => toast(backfillNote), 600);
     setInterval(pollChanges, 6000); setInterval(chatSync, 4000);

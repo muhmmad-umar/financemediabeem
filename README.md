@@ -65,3 +65,9 @@ npm run dev:web                           # frontend on :8080 (clean URLs: /admi
 * Login is rate-limited (8 failures / 15 min per email). CORS only allows the origins in `ALLOWED_ORIGINS`.
 * Employee and client endpoints only query the caller's own rows (tasks assigned to them, their own salary rows, invoices of their client); clients only see task comments flagged *Visible to client*.
 * The token lives in `localStorage` (as specified) — it is exposed to any XSS, so keep third-party scripts to a minimum.
+
+## Attendance & time tracking
+* **Employees** check in / out from *Attendance* in their portal (extra check-ins during the day = breaks), write a daily note and tick the tasks they worked on.
+* **Admin** → *Attendance*: daily report, per-employee calendar + monthly summary (CSV export), and *Work hours* settings (start/end time, working days, alert delay, half-day hours, timezone, "count attendance from" date). The dashboard shows today's report card and red alerts (nobody checked in an hour after start, or still clocked in after the end time).
+* Only employees with an active portal account are tracked. Days before the "count attendance from" date are never marked absent.
+* Needs migration `0002_attendance.sql` (`npm run db:migrate`) and a Worker deploy.

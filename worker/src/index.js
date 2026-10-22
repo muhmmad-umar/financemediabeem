@@ -528,6 +528,177 @@ async function getDm(env, user, other, url) {
   return { messages: rs.results.reverse(), me: user.id };
 }
 
+/* ------------------------------------------------------------- attendance */
+async function getWorkSettings(env) {
+  const r = (await env.DB.prepare('SELECT * FROM work_settings WHERE id=1').first()) || {};
+  return { start_time: r.start_time || '10:00', end_time: r.end_time || '18:00', working_days: String(r.working_days ?? '1,2,3,4,5').split(',').filter(x => x !== '').map(Number),
+    alert_minutes: r.alert_minutes ?? 60, half_day_hours: r.half_day_hours ?? 4, timezone: r.timezone || 'Asia/Karachi', tracking_start: r.tracking_start || '1970-01-01' };
+}
+const hmToMin = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(s || '')); if (!m) return null; const h = +m[1], mi = +m[2]; return h < 24 && mi < 60 ? h * 60 + mi : null; };
+function zoneParts(ms, tz) {
+  const o = {}; new Intl.DateTimeFormat('en-CA', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    .formatToParts(new Date(ms)).forEach(p => { o[p.type] = p.value; });
+  return { date: `${o.year}-${o.month}-${o.day}`, min: (+o.hour) * 60 + (+o.minute), utc: Date.UTC(+o.year, +o.month - 1, +o.day, +o.hour, +o.minute, +o.second) };
+}
+const zoneOffset = (ms, tz) => zoneParts(ms, tz).utc - Math.floor(ms / 1000) * 1000;
+/** "10:30" on a local date in the work timezone → ISO UTC */
+function zonedToIso(date, hm, tz) {
+  const [y, m, d] = date.split('-').map(Number), mins = hmToMin(hm), guess = Date.UTC(y, m - 1, d, Math.floor(mins / 60), mins % 60);
+  let t = guess - zoneOffset(guess, tz); t = guess - zoneOffset(t, tz); return new Date(t).toISOString();
+}
+const attNow = settings => { const ms = Date.now(), z = zoneParts(ms, settings.timezone); return { date: z.date, min: z.min, iso: new Date(ms).toISOString() }; };
+const isDate = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')) && !isNaN(Date.parse(s + 'T00:00:00Z'));
+const addDays = (date, n) => { const d = new Date(date + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+
+/** first check-in decides Late; a finished day under the half-day threshold is a Half Day */
+function summarize(sessions, settings) {
+  const s = sessions.slice().sort((a, b) => a.check_in.localeCompare(b.check_in));
+  const open = s.some(x => !x.check_out);
+  const hours = s.reduce((t, x) => x.check_out ? t + Math.max(0, (Date.parse(x.check_out) - Date.parse(x.check_in)) / 36e5) : t, 0);
+  const first = s[0] ? s[0].check_in : null;
+  const late = first ? zoneParts(Date.parse(first), settings.timezone).min > hmToMin(settings.start_time) : false;
+  const status = (!open && s.length && hours < settings.half_day_hours) ? 'Half Day' : late ? 'Late' : 'Present';
+  return { check_in: first, check_out: open || !s.length ? null : s[s.length - 1].check_out, total_hours: Math.round(hours * 100) / 100, status };
+}
+async function refreshLog(env, logId, settings) {
+  const sessions = (await env.DB.prepare('SELECT id,check_in,check_out FROM attendance_sessions WHERE attendance_id=?').bind(logId).all()).results;
+  const r = summarize(sessions, settings);
+  await env.DB.prepare('UPDATE attendance_logs SET check_in=?,check_out=?,total_hours=?,status=?,updated_at=? WHERE id=?').bind(r.check_in, r.check_out, r.total_hours, r.status, Date.now(), logId).run();
+}
+async function attLogs(env, where, binds) {
+  const logs = (await env.DB.prepare(`SELECT id,employee_id,date,check_in,check_out,total_hours,status,activity_note FROM attendance_logs WHERE ${where} ORDER BY date, check_in`).bind(...binds).all()).results;
+  const sess = {}, tasks = {};
+  for (const part of chunk(logs.map(l => l.id), 80)) {
+    const q = part.map(() => '?').join(',');
+    (await env.DB.prepare(`SELECT id,attendance_id,check_in,check_out FROM attendance_sessions WHERE attendance_id IN (${q}) ORDER BY check_in`).bind(...part).all()).results.forEach(x => { (sess[x.attendance_id] = sess[x.attendance_id] || []).push({ id: x.id, check_in: x.check_in, check_out: x.check_out }); });
+    (await env.DB.prepare(`SELECT attendance_id,task_id FROM attendance_task_logs WHERE attendance_id IN (${q})`).bind(...part).all()).results.forEach(x => { (tasks[x.attendance_id] = tasks[x.attendance_id] || []).push(x.task_id); });
+  }
+  return logs.map(l => ({ ...l, sessions: sess[l.id] || [], task_ids: tasks[l.id] || [] }));
+}
+async function taskTitles(env, logs) {
+  const ids = [...new Set(logs.flatMap(l => l.task_ids))], out = {};
+  for (const part of chunk(ids, 80)) (await env.DB.prepare(`SELECT id,title FROM tasks WHERE id IN (${part.map(() => '?').join(',')})`).bind(...part).all()).results.forEach(t => { out[t.id] = t.title; });
+  return out;
+}
+const needEmp = user => { if (!user.linked_id) throw forbidden('Your account is not linked to an employee record'); return user.linked_id; };
+
+/** sessions left open from an earlier day are closed at that day's official end (never later than now) */
+async function closeStale(env, empId, settings, todayDate) {
+  const rows = (await env.DB.prepare(`SELECT x.id, x.check_in, l.id AS log_id, l.date FROM attendance_sessions x JOIN attendance_logs l ON l.id=x.attendance_id WHERE l.employee_id=? AND x.check_out IS NULL AND l.date<?`).bind(empId, todayDate).all()).results;
+  for (const r of rows) {
+    const endIso = zonedToIso(r.date, settings.end_time, settings.timezone), at = endIso > r.check_in ? endIso : r.check_in;
+    await env.DB.prepare('UPDATE attendance_sessions SET check_out=? WHERE id=?').bind(at, r.id).run();
+    await refreshLog(env, r.log_id, settings);
+  }
+  return rows.length;
+}
+async function empAttendanceToday(env, user) {
+  const empId = needEmp(user), settings = await getWorkSettings(env), now = attNow(settings);
+  const [log] = await attLogs(env, 'employee_id=? AND date=?', [empId, now.date]);
+  const stale = await env.DB.prepare(`SELECT l.date, x.check_in FROM attendance_sessions x JOIN attendance_logs l ON l.id=x.attendance_id WHERE l.employee_id=? AND x.check_out IS NULL AND l.date<? LIMIT 1`).bind(empId, now.date).first();
+  const rows = await empTaskRows(env, empId);
+  const my_tasks = rows.map(r => safeJson(r.data, null)).filter(Boolean).map(t => ({ id: t.id, title: t.title, due: t.due || '', status: t.status }));
+  return { settings, now, log: log || null, stale_open: stale || null, my_tasks };
+}
+async function empCheckIn(env, user) {
+  const empId = needEmp(user), settings = await getWorkSettings(env), now = attNow(settings);
+  await closeStale(env, empId, settings, now.date);
+  await env.DB.prepare('INSERT OR IGNORE INTO attendance_logs (id,employee_id,date,status,updated_at) VALUES (?,?,?,?,?)').bind(uid(), empId, now.date, 'Present', Date.now()).run();
+  const log = await env.DB.prepare('SELECT id FROM attendance_logs WHERE employee_id=? AND date=?').bind(empId, now.date).first();
+  const ins = await env.DB.prepare(`INSERT INTO attendance_sessions (id,attendance_id,check_in) SELECT ?,?,? WHERE NOT EXISTS (SELECT 1 FROM attendance_sessions WHERE attendance_id=? AND check_out IS NULL)`).bind(uid(), log.id, now.iso, log.id).run();
+  if (!ins.meta.changes) throw new HttpError(409, 'You are already checked in');
+  await refreshLog(env, log.id, settings);
+  return empAttendanceToday(env, user);
+}
+async function empCheckOut(env, user) {
+  const empId = needEmp(user), settings = await getWorkSettings(env), now = attNow(settings);
+  const open = await env.DB.prepare(`SELECT x.id, x.check_in, l.id AS log_id, l.date FROM attendance_sessions x JOIN attendance_logs l ON l.id=x.attendance_id WHERE l.employee_id=? AND x.check_out IS NULL ORDER BY x.check_in DESC LIMIT 1`).bind(empId).first();
+  if (!open) throw new HttpError(409, 'You are not checked in');
+  let at = now.iso, note = null;
+  if (open.date < now.date) { const endIso = zonedToIso(open.date, settings.end_time, settings.timezone); at = endIso > open.check_in ? endIso : open.check_in; note = 'You did not check out on ' + open.date + ' — it was closed at the official end time. Ask an admin to correct it if that is wrong.'; }
+  await env.DB.prepare('UPDATE attendance_sessions SET check_out=? WHERE id=?').bind(at, open.id).run();
+  await refreshLog(env, open.log_id, settings);
+  return { ...(await empAttendanceToday(env, user)), notice: note };
+}
+async function empReport(req, env, user) {
+  const empId = needEmp(user), b = await readBody(req), settings = await getWorkSettings(env), now = attNow(settings);
+  const date = b.date ? String(b.date) : now.date;
+  if (!isDate(date) || date > now.date || date < addDays(now.date, -7)) throw bad('You can only edit reports from the last 7 days');
+  const log = await env.DB.prepare('SELECT id FROM attendance_logs WHERE employee_id=? AND date=?').bind(empId, date).first();
+  if (!log) throw bad('Check in first — there is no attendance record for that day');
+  const note = String(b.activity_note || '').slice(0, 4000);
+  const mine = new Set((await empTaskRows(env, empId)).map(r => safeJson(r.data, {}).id));
+  const ids = [...new Set((Array.isArray(b.task_ids) ? b.task_ids : []).map(String))].filter(id => mine.has(id)).slice(0, 100);
+  await env.DB.batch([env.DB.prepare('UPDATE attendance_logs SET activity_note=?,updated_at=? WHERE id=?').bind(note, Date.now(), log.id), env.DB.prepare('DELETE FROM attendance_task_logs WHERE attendance_id=?').bind(log.id),
+    ...ids.map(t => env.DB.prepare('INSERT INTO attendance_task_logs (attendance_id,task_id) VALUES (?,?)').bind(log.id, t))]);
+  return empAttendanceToday(env, user);
+}
+async function empAttendanceMonth(env, user, month) {
+  const empId = needEmp(user), settings = await getWorkSettings(env), now = attNow(settings);
+  if (!/^\d{4}-\d{2}$/.test(month || '')) month = now.date.slice(0, 7);
+  const logs = await attLogs(env, 'employee_id=? AND date>=? AND date<=?', [empId, month + '-01', month + '-31']);
+  const emp = safeJson((await env.DB.prepare('SELECT data FROM employees WHERE id=?').bind(empId).first() || {}).data, {});
+  const acct = await env.DB.prepare('SELECT u.created_at FROM users u JOIN employee_user eu ON eu.user_id=u.id WHERE eu.employee_id=?').bind(empId).first();
+  const since = String((acct && acct.created_at) || '').slice(0, 10);
+  const leaves = (await env.DB.prepare('SELECT date,type FROM employee_leaves WHERE employee_id=? AND date>=? AND date<=?').bind(empId, month + '-01', month + '-31').all()).results;
+  return { settings, now, month, logs, join_date: [emp.joinDate || '', since].sort().pop(), leaves, task_titles: await taskTitles(env, logs) };
+}
+
+async function adminAttendance(env, url) {
+  const settings = await getWorkSettings(env), now = attNow(settings);
+  let from = url.searchParams.get('from') || now.date, to = url.searchParams.get('to') || from;
+  if (!isDate(from) || !isDate(to) || to < from) throw bad('Invalid date range');
+  if (Date.parse(to) - Date.parse(from) > 400 * 864e5) throw bad('Range too large');
+  const logs = await attLogs(env, 'date>=? AND date<=?', [from, to]);
+  return { settings, now, from, to, logs, task_titles: await taskTitles(env, logs) };
+}
+/** today's records + anything still open from the last 2 weeks (for the dashboard + alerts) */
+async function adminAttendanceOverview(env) {
+  const settings = await getWorkSettings(env), now = attNow(settings), since = addDays(now.date, -14);
+  const logs = await attLogs(env, `date=? OR (check_out IS NULL AND date>=? AND date<?)`, [now.date, since, now.date]);
+  return { settings, now, logs, task_titles: await taskTitles(env, logs) };
+}
+async function putWorkSettings(req, env) {
+  const b = await readBody(req), cur = await getWorkSettings(env);
+  const start = b.start_time ?? cur.start_time, end = b.end_time ?? cur.end_time;
+  if (hmToMin(start) === null || hmToMin(end) === null) throw bad('Times must look like 10:00');
+  if (hmToMin(end) <= hmToMin(start)) throw bad('End time must be after the start time');
+  const days = b.working_days !== undefined ? [...new Set((Array.isArray(b.working_days) ? b.working_days : String(b.working_days).split(',')).map(Number))].filter(d => Number.isInteger(d) && d >= 0 && d <= 6).sort() : cur.working_days;
+  if (!days.length) throw bad('Pick at least one working day');
+  const alertMin = b.alert_minutes !== undefined ? Math.round(+b.alert_minutes) : cur.alert_minutes, half = b.half_day_hours !== undefined ? +b.half_day_hours : cur.half_day_hours, tz = b.timezone ?? cur.timezone;
+  if (!(alertMin >= 0 && alertMin <= 480)) throw bad('Alert delay must be 0–480 minutes');
+  if (!(half >= 0 && half <= 12)) throw bad('Half-day hours must be 0–12');
+  try { new Intl.DateTimeFormat('en-CA', { timeZone: tz }); } catch { throw bad('Unknown timezone'); }
+  const ts = b.tracking_start !== undefined ? String(b.tracking_start) : cur.tracking_start;
+  if (!isDate(ts)) throw bad('Pick a valid date to start counting attendance from');
+  await env.DB.prepare('UPDATE work_settings SET start_time=?,end_time=?,working_days=?,alert_minutes=?,half_day_hours=?,timezone=?,tracking_start=? WHERE id=1').bind(start, end, days.join(','), alertMin, half, tz, ts).run();
+  // statuses depend on the settings → recompute recent logs so Late / Half Day stay consistent
+  const s = await getWorkSettings(env), logs = (await env.DB.prepare('SELECT id FROM attendance_logs WHERE date>=?').bind(addDays(attNow(s).date, -62)).all()).results;
+  for (const l of logs) await refreshLog(env, l.id, s);
+  return { ok: true, settings: s };
+}
+/** admin: replace one employee's day with a single session (fix a forgotten check-out, or add a missed day) */
+async function adminSetDay(req, env) {
+  const b = await readBody(req), settings = await getWorkSettings(env), date = String(b.date || '');
+  if (!isDate(date)) throw bad('Pick a date');
+  if (!(await env.DB.prepare('SELECT 1 FROM employees WHERE id=?').bind(String(b.employee_id || '')).first())) throw notFound('Employee not found');
+  if (hmToMin(b.check_in) === null) throw bad('Check-in time looks like 10:00');
+  const hasOut = b.check_out !== undefined && b.check_out !== null && b.check_out !== '';
+  if (hasOut && hmToMin(b.check_out) === null) throw bad('Check-out time looks like 18:00');
+  const inIso = zonedToIso(date, b.check_in, settings.timezone), outIso = hasOut ? zonedToIso(date, b.check_out, settings.timezone) : null;
+  if (outIso && outIso <= inIso) throw bad('Check-out must be after check-in');
+  await env.DB.prepare('INSERT OR IGNORE INTO attendance_logs (id,employee_id,date,status,updated_at) VALUES (?,?,?,?,?)').bind(uid(), b.employee_id, date, 'Present', Date.now()).run();
+  const log = await env.DB.prepare('SELECT id FROM attendance_logs WHERE employee_id=? AND date=?').bind(b.employee_id, date).first();
+  const stmts = [env.DB.prepare('DELETE FROM attendance_sessions WHERE attendance_id=?').bind(log.id), env.DB.prepare('INSERT INTO attendance_sessions (id,attendance_id,check_in,check_out) VALUES (?,?,?,?)').bind(uid(), log.id, inIso, outIso)];
+  if (b.activity_note !== undefined) stmts.push(env.DB.prepare('UPDATE attendance_logs SET activity_note=? WHERE id=?').bind(String(b.activity_note).slice(0, 4000), log.id));
+  await env.DB.batch(stmts); await refreshLog(env, log.id, settings);
+  return { ok: true, id: log.id };
+}
+async function adminDeleteDay(env, id) {
+  await env.DB.batch([env.DB.prepare('DELETE FROM attendance_sessions WHERE attendance_id=?').bind(id), env.DB.prepare('DELETE FROM attendance_task_logs WHERE attendance_id=?').bind(id), env.DB.prepare('DELETE FROM attendance_logs WHERE id=?').bind(id)]);
+  return { ok: true };
+}
+
 /* ------------------------------------------------------------------ router */
 async function route(req, env, url) {
   const path = url.pathname.replace(/\/+$/, '') || '/', method = req.method, seg = path.split('/').filter(Boolean);
@@ -566,6 +737,12 @@ async function route(req, env, url) {
     if (seg[2] === 'users' && seg[3] && method === 'PATCH') return patchUser(req, env, admin, seg[3]);
     if (r === 'channel_members' && method === 'POST') return setChannelMembers(req, env);
     if (seg[2] === 'dm' && seg[3] && method === 'DELETE') return clearDm(env, admin, decodeURIComponent(seg[3]));
+    if (r === 'attendance' && method === 'GET') return adminAttendance(env, url);
+    if (r === 'attendance/overview' && method === 'GET') return adminAttendanceOverview(env);
+    if (r === 'attendance' && method === 'PUT') return adminSetDay(req, env);
+    if (seg[2] === 'attendance' && seg[3] && seg.length === 4 && method === 'DELETE') return adminDeleteDay(env, seg[3]);
+    if (r === 'work-settings' && method === 'GET') return { settings: await getWorkSettings(env) };
+    if (r === 'work-settings' && method === 'PUT') return putWorkSettings(req, env);
     throw notFound();
   }
 
@@ -590,6 +767,11 @@ async function route(req, env, url) {
       await upsertStmt(env, c).bind(s.id, ...c.row(s), JSON.stringify(s), Date.now()).run();
       return { ok: true, subtask: { id: s.id, title: s.title, done: s.done } };
     }
+    if (r === 'attendance/today' && method === 'GET') return empAttendanceToday(env, user);
+    if (r === 'attendance/check-in' && method === 'POST') return empCheckIn(env, user);
+    if (r === 'attendance/check-out' && method === 'POST') return empCheckOut(env, user);
+    if (r === 'attendance/report' && method === 'PUT') return empReport(req, env, user);
+    if (r === 'attendance' && method === 'GET') return empAttendanceMonth(env, user, url.searchParams.get('month'));
     if (r === 'channels' && method === 'GET') return { channels: await employeeChannels(env, user) };
     if (r === 'contacts' && method === 'GET') return { contacts: await contacts(env, user) };
     throw notFound();
