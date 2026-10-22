@@ -145,7 +145,7 @@ body.cu-mode .modal .tx{border-color:#2a2a2a}body.cu-mode .modal .tx .t2{color:#
 .cu-tree{width:260px;flex:none;background:#111;border-right:1px solid #1d1d1d;color:#d4d4d4;height:100vh;position:sticky;top:0;overflow:auto;padding:10px 8px}
 .tr-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;cursor:pointer;min-height:26px;color:#cfcfcf}
 .tr-row:hover{background:#1a1a1a}.tr-row.sel{background:#232323;color:#fff}
-.tr-row.top{font-weight:600}.tr-row.ch{padding-left:30px;color:#a3a3a3}.tr-row.li{padding-left:30px}.tr-row.addl{padding-left:30px;color:#6b7280;font-size:12px}.tr-row.addl:hover{color:#c4b5fd}.hash{color:#888;font-weight:700;width:12px;text-align:center}.lico{font-size:12px;cursor:pointer}.tr-row.dm{padding-left:10px}
+.tr-row.top{font-weight:600}.tr-row.ch{padding-left:30px;color:#a3a3a3}.tr-row.li{padding-left:30px}.tr-row.rf{padding-left:30px}.tr-row.addl{padding-left:30px;color:#6b7280;font-size:12px}.tr-row.addl:hover{color:#c4b5fd}.hash{color:#888;font-weight:700;width:12px;text-align:center}.lico{font-size:12px;cursor:pointer}.tr-row.dm{padding-left:10px}
 .tr-row.newmsg{color:#888;font-size:12px}.tr-row.newmsg:hover{color:#fff}
 .tr-row .arr{font-size:10px;color:#666;width:10px}.tr-row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tr-row .cnt{font-size:11px;color:#777}
@@ -289,6 +289,13 @@ main:not(.cu) .fab{display:none}
   .cu-detail{display:block}.dcom{width:100%;height:auto;position:static;border-left:0;border-top:1px solid #222}.cfeed{max-height:320px}
   .dgrid{grid-template-columns:1fr}.dmain{padding:12px 14px 30px}
 }
+.dropzone{border:2px dashed #2f2f2f;border-radius:12px;padding:22px;text-align:center;margin-bottom:14px;background:#111;transition:.15s}
+.dropzone.dropping{border-color:#7c3aed;background:#1a1626}
+.rtable{background:#141414;border:1px solid #232323;border-radius:10px}
+.rrow{display:flex;align-items:center;gap:12px;padding:9px 12px;border-bottom:1px solid #1c1c1c}.rrow:last-child{border-bottom:0}.rrow:hover{background:#1c1c1c}
+.rrow .ri{font-size:20px}.rrow .rn{flex:1;min-width:0}.rrow .rn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rrow .rm{font-size:12px;white-space:nowrap}
+.rrow .ra{display:flex;gap:6px}.rrow .ra a{text-decoration:none}
+@media(max-width:700px){.rrow{flex-wrap:wrap}.rrow .rm{display:none}}
 /* date filter bar */
 .fbar{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin-bottom:18px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
 .fpills{display:flex;gap:6px;flex-wrap:wrap}
@@ -472,7 +479,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
 const ALLAH_RATE = 0.10;
 const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses', exp:'expenses',
   pe:'personal_expenses', pi:'personal_income', pw:'personal_withdrawals', ra:'recurring_alerts', emp:'employees', sp:'salary_payments', el:'employee_leaves',
-  cl:'clients', cus:'cu_spaces', cul:'cu_lists', cut:'cu_tasks', cusb:'cu_subtasks', cuc:'cu_comments', cutl:'cu_time_logs', cum:'cu_messages', chn:'channels', chm:'channels_messages'};
+  cl:'clients', cus:'cu_spaces', cul:'cu_lists', cut:'cu_tasks', cusb:'cu_subtasks', cuc:'cu_comments', cutl:'cu_time_logs', cum:'cu_messages', chn:'channels', chm:'channels_messages', rsf:'resource_folders', rsi:'resource_files'};
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } };
 const save = () => {
   syncIncome();
@@ -498,11 +505,14 @@ const save = () => {
     localStorage.setItem(K.cum, JSON.stringify(cuMessages));
     localStorage.setItem(K.chn, JSON.stringify(cuChannels));
     localStorage.setItem(K.chm, JSON.stringify(cuChanMsgs));
+    localStorage.setItem(K.rsf, JSON.stringify(resFolders));
+    localStorage.setItem(K.rsi, JSON.stringify(resFiles));
   } catch(e){ toast('Could not save to localStorage'); }
 };
 let income, invoices, charity, expenses;
 let personalExp = [], personalInc = [], personalWd = [];
 let clients = [];
+let resFolders = [], resFiles = [];   // client resource folders + file records (file contents live in IndexedDB)
 let cuChannels = [], cuChanMsgs = [];   // client channels + their messages
 let cuSpaces = [], cuLists = [], cuTasks = [], cuSubs = [], cuComments = [], cuTimeLogs = [], cuMessages = [];   // Tasks: Space › List › Task › Subtask
 let employees = [], salaryPay = [], empLeaves = [];   // Employees section: profiles, salary payments, leave log
@@ -565,7 +575,7 @@ function init(){
   let ver = null; try { ver = localStorage.getItem('data_version'); } catch(e){}
   if (!ver) {   // first run: start completely empty, clearing any pre-loaded data
     income = []; invoices = []; charity = []; expenses = []; personalExp = []; personalInc = []; personalWd = []; recurring = []; employees = []; salaryPay = []; empLeaves = [];
-    clients = []; cuSpaces = []; cuChannels = []; cuChanMsgs = []; cuLists = []; cuTasks = []; cuSubs = []; cuComments = []; cuTimeLogs = []; cuMessages = [];
+    clients = []; cuSpaces = []; cuChannels = []; cuChanMsgs = []; resFolders = []; resFiles = []; cuLists = []; cuTasks = []; cuSubs = []; cuComments = []; cuTimeLogs = []; cuMessages = [];
     save(); try { localStorage.setItem('cu_migrated', '1'); localStorage.setItem('cu_nofolders', '1'); } catch(e){} try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
     return;
   }
@@ -590,6 +600,7 @@ function init(){
   }
   [employees, salaryPay, empLeaves] = [load(K.emp), load(K.sp), load(K.el)].map(a => Array.isArray(a) ? a : []);
   [clients, cuSpaces, cuLists, cuTasks, cuSubs, cuComments, cuTimeLogs, cuMessages, cuChannels, cuChanMsgs] = [K.cl, K.cus, K.cul, K.cut, K.cusb, K.cuc, K.cutl, K.cum, K.chn, K.chm].map(k => { const a = load(k); return Array.isArray(a) ? a : []; });
+  [resFolders, resFiles] = [load(K.rsf), load(K.rsi)].map(a => Array.isArray(a) ? a : []);
   cuMigrateOld(); cuNormalize(); cuDropFolders();
   cuSpaces.forEach(cuEnsureChannel);   // every client Space has its permanent general channel
   const ra = load(K.ra);
@@ -1848,6 +1859,7 @@ function vClientProfile(c){
         <div class="kv">${c.clientType === 'retainer' ? kv('Monthly value', fmt(+c.retainer || (invs[0] ? invs[0].total_amount : 0))) + kv('Next invoice due', (recFind(c.company) || {}).next_alert_date ? fdate(recFind(c.company).next_alert_date) : '') : kv('Total billed', fmt(sum(invs, i => i.total_amount))) + kv('Last invoice', invs[0] && fdate(invs[0].date))}${kv('First invoice', c.firstInvoiceDate && fdate(c.firstInvoiceDate))}${kv('Contact person', c.contact)}${kv('Phone', c.phone)}${kv('Email', c.email)}${kv('Website', c.website)}${kv('Onboarding date', c.onboardingDate && fdate(c.onboardingDate))}${kv('Contract start', c.contractStart && fdate(c.contractStart))}${kv('Retainer amount', c.retainer ? fmt(c.retainer) : '')}${kv('Next renewal', ren && fdate(ren))}</div></div>
       <div class="card" style="margin-bottom:16px"><h3>Invoices <span class="muted" style="font-weight:400">· ${invs.length} · billed ${fmt(sum(invs, i => i.total_amount))} · received ${fmt(sum(invs, invReceived))}</span></h3>
         <div class="tablewrap"><table><tbody>${invs.map(i => `<tr style="cursor:pointer" onclick="viewInvoice('${i.id}')"><td>${fdate(i.date)}</td><td>${esc(i.service)}</td><td>${badge(invStatus(i))}</td><td class="num"><b>${fmt(i.total_amount)}</b></td></tr>`).join('') || '<tr><td class="empty">No invoices for this client yet — invoices match by company name</td></tr>'}</tbody></table></div></div>
+      <div class="card" style="margin-bottom:16px"><h3>Files &amp; resources</h3>${(() => { const sp = cuSpaces.find(x => x.clientId === c.id), fs = sp ? resFolders.filter(f => f.spaceId === sp.id) : []; return fs.map(f => `<div class="tx" style="cursor:pointer" onclick="view='tasks';cuGo({type:'resfolder',id:'${f.id}'})"><div><div class="t1">📁 ${esc(f.name)}</div><div class="t2">${resFiles.filter(x => x.folderId === f.id).length} item(s)</div></div></div>`).join('') + `<div class="modal-actions" style="margin-top:8px"><button class="btn sm ghost" onclick="${sp ? `resFolderForm('${sp.id}')` : `cuEnsureClientSpace(clById('${c.id}'));save();resFolderForm(cuSpaces.find(x=>x.clientId==='${c.id}').id)`}">+ New folder</button></div>`; })()}</div>
       <div class="card"><h3>Task lists</h3>${prj.map(l => `<div class="tx" style="cursor:pointer" onclick="cuOpenList('${l.id}')"><div><div class="t1"><span class="dot" style="background:${l.color};display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px"></span>${esc(l.name)}</div><div class="t2">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length} open tasks</div></div>${listProgress(l)}</div>`).join('') || '<div class="muted">No lists yet — a List groups this client\'s tasks.</div>'}</div>
     </div>
     <div class="card"><h3>Communication log</h3>
@@ -1976,6 +1988,7 @@ const cuBtn = (label, name) => `<span class="cu-menuwrap"><button class="tbtn ${
 function cuMainArea(){
   if (cuScope.type === 'dm') return cuDmView();
   if (cuScope.type === 'channel') return cuChannelView();
+  if (cuScope.type === 'resfolder') return cuResView();
   if (cuScope.type === 'list' && !listById(cuScope.id)) cuScope = {type:'none'};
   if (cuScope.type === 'none') return '<div class="cu-empty"><h2>Pick a List</h2><p class="muted">Choose a List from the sidebar — or open <b>My Tasks</b> / <b>All Tasks</b>.</p></div>';
   const l = cuScope.type === 'list' ? listById(cuScope.id) : null, sp = l && spaceById(l.spaceId);
@@ -2021,10 +2034,12 @@ function cuTree(){
   ${row('top ' + (cuScope.type === 'mine' ? 'sel' : ''), '<span class="nm">👤 My Tasks</span>', "cuGo({type:'mine'})")}
   ${favs.length ? `<div class="tr-sec"><span>FAVORITES</span></div>${favs.map(l => row('li fav ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `<span class="dot" style="background:${l.color}"></span><span class="nm">${esc(l.name)}</span>`, `cuOpenList('${l.id}')`)).join('')}` : ''}
   ${cuSpaces.map(sp => { const open = !cuCollapsed.has(sp.id);
-    return `${row('sp', `<span class="sq" style="background:${sp.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">${esc(initials(sp.name))}</span><span class="nm">${esc(sp.name)}</span><span class="acts"><button title="New List" onclick="event.stopPropagation();cuNodeForm('list',null,'${sp.id}')">+</button><button title="New channel" onclick="event.stopPropagation();cuChannelForm('${sp.id}')">#</button><button title="Edit Space" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">✎</button></span><span class="arr">${open ? '▾' : '▸'}</span>`, `cuToggle('${sp.id}')`)}
+    return `${row('sp', `<span class="sq" style="background:${sp.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">${esc(initials(sp.name))}</span><span class="nm">${esc(sp.name)}</span><span class="acts"><button title="New List" onclick="event.stopPropagation();cuNodeForm('list',null,'${sp.id}')">+</button><button title="New channel" onclick="event.stopPropagation();cuChannelForm('${sp.id}')">#</button><button title="New folder for client files" onclick="event.stopPropagation();resFolderForm('${sp.id}')">📁</button><button title="Edit Space" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">✎</button></span><span class="arr">${open ? '▾' : '▸'}</span>`, `cuToggle('${sp.id}')`)}
     ${open ? `${cuChannels.filter(c => c.spaceId === sp.id).map(c => row('ch ' + (cuScope.type === 'channel' && cuScope.id === c.id ? 'sel' : ''), `<span class="hash">#</span><span class="nm">${esc(c.name)}</span>${c.permanent ? '<span class="cnt" title="Permanent channel">🔒</span>' : ''}`, `cuGo({type:'channel',id:'${c.id}'})`)).join('')}
       ${cuLists.filter(l => l.spaceId === sp.id).map(l => row('li ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `<span class="lico" style="color:${l.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('list','${l.id}')">📋</span><span class="nm">${esc(l.name)}</span><span class="cnt">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length || ''}</span>`, `cuOpenList('${l.id}')`)).join('')}
-      ${row('addl', '<span class="nm">[+] New List</span>', `cuNodeForm('list',null,'${sp.id}')`)}` : ''}`; }).join('')}`;
+      ${resFolders.filter(f => f.spaceId === sp.id).map(f => row('rf ' + (cuScope.type === 'resfolder' && cuScope.id === f.id ? 'sel' : ''), `<span class="lico">📁</span><span class="nm">${esc(f.name)}</span><span class="cnt">${resFiles.filter(x => x.folderId === f.id).length || ''}</span>`, `cuGo({type:'resfolder',id:'${f.id}'})`)).join('')}
+      ${row('addl', '<span class="nm">[+] New List</span>', `cuNodeForm('list',null,'${sp.id}')`)}
+      ${row('addl', '<span class="nm">[+] New Folder <span style="opacity:.6">(files)</span></span>', `resFolderForm('${sp.id}')`)}` : ''}`; }).join('')}`;
 }
 const cuToggle = id => { cuCollapsed.has(id) ? cuCollapsed.delete(id) : cuCollapsed.add(id); render(); };
 /* one Space per client (no duplicates): the Space + its permanent #general-<client> channel — nothing else. Lists are always created manually. */
@@ -2067,10 +2082,84 @@ function cuDelNode(kind, id){
   if (!confirm('Delete this ' + kind + (kind === 'space' ? ' with its lists and channels' : '') + (n ? ' and its ' + n + ' task(s)' : '') + '? This cannot be undone.')) return;
   cuTasks.filter(t => lists.includes(t.listId)).forEach(cuRemoveTaskData);
   cuLists = cuLists.filter(l => !lists.includes(l.id)); cuMessages = cuMessages.filter(m => !lists.some(i => m.scope === 'list:' + i));
-  if (kind === 'space') { const chs = cuChannels.filter(c => c.spaceId === id).map(c => c.id); cuChanMsgs = cuChanMsgs.filter(m => !chs.includes(m.channel_id)); cuChannels = cuChannels.filter(c => c.spaceId !== id); cuSpaces = cuSpaces.filter(s => s.id !== id); }
+  if (kind === 'space') { resFiles.filter(x => x.spaceId === id).forEach(x => idbDel(x.id)); resFiles = resFiles.filter(x => x.spaceId !== id); resFolders = resFolders.filter(f => f.spaceId !== id);
+    const chs = cuChannels.filter(c => c.spaceId === id).map(c => c.id); cuChanMsgs = cuChanMsgs.filter(m => !chs.includes(m.channel_id)); cuChannels = cuChannels.filter(c => c.spaceId !== id); cuSpaces = cuSpaces.filter(s => s.id !== id); }
   if (cuScope.type === 'list' && !listById(cuScope.id)) cuScope = {type:'none'};
   save(); closeModal(); render();
 }
+/* ----- resource folders & files (store anything for a client; contents kept in this browser's IndexedDB) ----- */
+const RES_MAX = 50 * 1024 * 1024;
+const resFolderById = id => resFolders.find(f => f.id === id);
+const _idb = () => new Promise((res, rej) => { const r = indexedDB.open('mb_files', 1); r.onupgradeneeded = () => r.result.createObjectStore('blobs'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const idbPut = async (id, blob) => { const db = await _idb(); return new Promise((res, rej) => { const tx = db.transaction('blobs', 'readwrite'); tx.objectStore('blobs').put(blob, id); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); };
+const idbGet = async id => { const db = await _idb(); return new Promise((res, rej) => { const r = db.transaction('blobs').objectStore('blobs').get(id); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); };
+const idbDel = async id => { try { const db = await _idb(); db.transaction('blobs', 'readwrite').objectStore('blobs').delete(id); } catch(e){} };
+const fmtSize = n => n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(0) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
+function resIcon(f){
+  if (f.kind === 'link') return '🔗'; const t = (f.type || '') + ' ' + f.name.toLowerCase();
+  return /image|\.(png|jpe?g|gif|webp|svg)/.test(t) ? '🖼️' : /pdf/.test(t) ? '📄' : /video|\.(mp4|mov|webm)/.test(t) ? '🎬' : /zip|rar|7z/.test(t) ? '🗜️' : /sheet|excel|\.(xlsx|csv)/.test(t) ? '📊' : /word|\.(docx?|txt|md)/.test(t) ? '📝' : /audio|\.(mp3|wav)/.test(t) ? '🎵' : '📎';
+}
+function resFolderForm(spId, id){
+  const f = id ? resFolderById(id) : {name:''}, sp = spaceById(spId || f.spaceId), cl = sp && sp.clientId && clById(sp.clientId);
+  openModal(`<h2>${id ? 'Rename folder' : 'New folder'}</h2><p class="muted" style="margin-bottom:10px;font-size:13px">A folder for files and links — brand assets, briefs, contracts, anything ${cl ? esc(cl.company) : 'this Space'} shares with you.</p>
+    <form onsubmit="resSaveFolder(event,'${spId || f.spaceId}','${id || ''}')"><div class="field"><label>Folder name</label><input name="name" value="${esc(f.name)}" placeholder="e.g. Brand Assets" required></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">${id ? 'Save' : 'Create folder'}</button></div></form>`);
+  setTimeout(() => { const i = document.querySelector('#modal input[name=name]'); if (i) i.focus(); }, 30);
+}
+function resSaveFolder(ev, spId, id){
+  ev.preventDefault(); const name = new FormData(ev.target).get('name').trim(); if (!name) return;
+  if (id) resFolderById(id).name = name; else { const f = {id:uid(), spaceId:spId, name, created:new Date().toISOString()}; resFolders.push(f); cuCollapsed.delete(spId); cuScope = {type:'resfolder', id:f.id}; view = 'tasks'; cuPanelId = null; }
+  save(); closeModal(); render();
+}
+function resDelFolder(id){
+  const f = resFolderById(id), n = resFiles.filter(x => x.folderId === id).length;
+  if (!f || !confirm('Delete folder "' + f.name + '"' + (n ? ' and its ' + n + ' file(s)' : '') + '? This cannot be undone.')) return;
+  resFiles.filter(x => x.folderId === id).forEach(x => idbDel(x.id)); resFiles = resFiles.filter(x => x.folderId !== id); resFolders = resFolders.filter(x => x.id !== id); cuScope = {type:'none'}; save(); render();
+}
+async function resUpload(list, fid){
+  const f = resFolderById(fid); if (!f) return; let ok = 0; const skipped = [];
+  for (const file of [...list]) {
+    if (file.size > RES_MAX) { skipped.push(file.name + ' (over ' + fmtSize(RES_MAX) + ')'); continue; }
+    const id = uid();
+    try { await idbPut(id, file); } catch(e) { skipped.push(file.name + ' (storage full or blocked)'); continue; }
+    resFiles.push({id, folderId:fid, spaceId:f.spaceId, kind:'file', name:file.name, size:file.size, type:file.type || '', uploadedAt:new Date().toISOString(), by:cuAuthor}); ok++;
+  }
+  save(); render(); toast((ok ? ok + ' file' + (ok > 1 ? 's' : '') + ' uploaded' : 'Nothing uploaded') + (skipped.length ? ' · skipped: ' + skipped.join(', ') : ''));
+}
+function resDrop(ev, fid){ ev.preventDefault(); ev.currentTarget.classList.remove('dropping'); if (ev.dataTransfer.files.length) resUpload(ev.dataTransfer.files, fid); }
+function resLinkForm(fid){
+  openModal(`<h2>Add a link</h2><p class="muted" style="margin-bottom:10px;font-size:13px">For big files — paste a Google Drive, Dropbox or any web link.</p><form onsubmit="resSaveLink(event,'${fid}')">
+    <div class="field"><label>Title</label><input name="name" placeholder="e.g. Brand guidelines (Drive)" required></div><div class="field"><label>URL</label><input name="url" type="url" placeholder="https://…" required></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Add link</button></div></form>`);
+}
+function resSaveLink(ev, fid){
+  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)), fo = resFolderById(fid); if (!fo || !/^https?:\/\//i.test(f.url)) { alert('Enter a link starting with http:// or https://'); return; }
+  resFiles.push({id:uid(), folderId:fid, spaceId:fo.spaceId, kind:'link', name:f.name.trim(), url:f.url.trim(), size:0, type:'link', uploadedAt:new Date().toISOString(), by:cuAuthor}); save(); closeModal(); render(); toast('Link added');
+}
+async function resDownload(id){
+  const r = resFiles.find(x => x.id === id); if (!r) return; const blob = await idbGet(id); if (!blob) { toast('File data not found on this device'); return; }
+  try { const dl = window.claude ? await window.claude.use('downloads') : null; if (dl) { await dl.save({filename:r.name, data:blob}); toast('Saved'); return; } }
+  catch(e){ if (e && e.code === 'declined') return; if (e && e.code === 'rejected_extension') { toast('This file type can\'t be saved from the app viewer — open the app as a file to download it'); return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = r.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+async function resPreview(id){
+  const r = resFiles.find(x => x.id === id); if (!r) return; const blob = await idbGet(id); if (!blob) { toast('File data not found on this device'); return; }
+  const u = URL.createObjectURL(blob); openModal(`<h2>${esc(r.name)}</h2><img src="${u}" style="max-width:100%;max-height:70vh;border-radius:8px;display:block;margin:auto"><div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Close</button><button class="btn" onclick="resDownload('${id}')">Download</button></div>`, 'xl');
+}
+function resDelFile(id){ const r = resFiles.find(x => x.id === id); if (!r || !confirm('Delete "' + r.name + '"?')) return; idbDel(id); resFiles = resFiles.filter(x => x.id !== id); save(); render(); }
+function cuResView(){
+  const fo = resFolderById(cuScope.id); if (!fo) { cuScope = {type:'none'}; return '<div class="cu-empty">Folder not found.</div>'; }
+  const sp = spaceById(fo.spaceId) || {}, cl = sp.clientId && clById(sp.clientId), files = resFiles.filter(x => x.folderId === fo.id).sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+  return `<div class="cu-crumb"><span>${esc(sp.name || '')}</span><i>/</i><span class="cur">📁 ${esc(fo.name)}</span><span style="margin-left:auto;display:flex;gap:6px"><button class="tbtn" onclick="resFolderForm('${fo.spaceId}','${fo.id}')">Rename</button><button class="tbtn" style="color:#ef4444" onclick="resDelFolder('${fo.id}')">Delete folder</button></span></div>
+    <div class="muted" style="margin-bottom:12px">Files and resources for ${esc(cl ? cl.company : sp.name || 'this Space')} · ${files.length} item${files.length === 1 ? '' : 's'} · ${fmtSize(sum(files, x => x.size || 0))}</div>
+    <div class="dropzone" ondragover="event.preventDefault();this.classList.add('dropping')" ondragleave="this.classList.remove('dropping')" ondrop="resDrop(event,'${fo.id}')">
+      <div><b>Drag &amp; drop files here</b> <span class="muted">or</span></div>
+      <div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><label class="addbtn" style="cursor:pointer">⬆ Upload files<input type="file" multiple style="display:none" onchange="resUpload(this.files,'${fo.id}');this.value=''"></label><button class="tbtn" onclick="resLinkForm('${fo.id}')">🔗 Add link</button></div>
+      <div class="muted" style="font-size:11px;margin-top:8px">Files are stored in this browser on this device (up to ${fmtSize(RES_MAX)} each). Use “Add link” for bigger files.</div></div>
+    ${files.length ? `<div class="rtable">${files.map(x => `<div class="rrow"><span class="ri">${resIcon(x)}</span><div class="rn"><b>${esc(x.name)}</b>${x.kind === 'link' ? `<div class="muted" style="font-size:11px;overflow:hidden;text-overflow:ellipsis">${esc(x.url)}</div>` : ''}</div><span class="muted rm">${x.kind === 'link' ? 'Link' : fmtSize(x.size)}</span><span class="muted rm">${fdate(x.uploadedAt.slice(0, 10))} · ${esc(x.by || '')}</span>
+      <span class="ra">${x.kind === 'link' ? `<a class="tbtn" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">Open</a>` : `${/image/.test(x.type) ? `<button class="tbtn" onclick="resPreview('${x.id}')">Preview</button>` : ''}<button class="tbtn" onclick="resDownload('${x.id}')">Download</button>`}<button class="tbtn" style="color:#ef4444" onclick="resDelFile('${x.id}')">✕</button></span></div>`).join('')}</div>` : '<div class="muted" style="padding:18px 4px">No files yet.</div>'}`;
+}
+
 /* ----- channels (chat per client Space) ----- */
 function cuChannelForm(spId){
   openModal(`<h2>New channel</h2><form onsubmit="cuSaveChannel(event,'${spId}')"><div class="field"><label>Channel name</label><input name="name" placeholder="e.g. design-reviews" required></div>
