@@ -145,7 +145,7 @@ body.cu-mode .modal .tx{border-color:#2a2a2a}body.cu-mode .modal .tx .t2{color:#
 .cu-tree{width:260px;flex:none;background:#111;border-right:1px solid #1d1d1d;color:#d4d4d4;height:100vh;position:sticky;top:0;overflow:auto;padding:10px 8px}
 .tr-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;cursor:pointer;min-height:26px;color:#cfcfcf}
 .tr-row:hover{background:#1a1a1a}.tr-row.sel{background:#232323;color:#fff}
-.tr-row.top{font-weight:600}.tr-row.fo{padding-left:20px;color:#a3a3a3}.tr-row.li{padding-left:34px}.tr-row.dm{padding-left:10px}
+.tr-row.top{font-weight:600}.tr-row.ch{padding-left:30px;color:#a3a3a3}.tr-row.li{padding-left:30px}.tr-row.addl{padding-left:30px;color:#6b7280;font-size:12px}.tr-row.addl:hover{color:#c4b5fd}.hash{color:#888;font-weight:700;width:12px;text-align:center}.lico{font-size:12px;cursor:pointer}.tr-row.dm{padding-left:10px}
 .tr-row.newmsg{color:#888;font-size:12px}.tr-row.newmsg:hover{color:#fff}
 .tr-row .arr{font-size:10px;color:#666;width:10px}.tr-row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tr-row .cnt{font-size:11px;color:#777}
@@ -472,7 +472,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
 const ALLAH_RATE = 0.10;
 const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses', exp:'expenses',
   pe:'personal_expenses', pi:'personal_income', pw:'personal_withdrawals', ra:'recurring_alerts', emp:'employees', sp:'salary_payments', el:'employee_leaves',
-  cl:'clients', cus:'cu_spaces', cuf:'cu_folders', cul:'cu_lists', cut:'cu_tasks', cusb:'cu_subtasks', cuc:'cu_comments', cutl:'cu_time_logs', cum:'cu_messages'};
+  cl:'clients', cus:'cu_spaces', cul:'cu_lists', cut:'cu_tasks', cusb:'cu_subtasks', cuc:'cu_comments', cutl:'cu_time_logs', cum:'cu_messages', chn:'channels', chm:'channels_messages'};
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } };
 const save = () => {
   syncIncome();
@@ -490,19 +490,21 @@ const save = () => {
     localStorage.setItem(K.el, JSON.stringify(empLeaves));
     localStorage.setItem(K.cl, JSON.stringify(clients));
     localStorage.setItem(K.cus, JSON.stringify(cuSpaces));
-    localStorage.setItem(K.cuf, JSON.stringify(cuFolders));
     localStorage.setItem(K.cul, JSON.stringify(cuLists));
     localStorage.setItem(K.cut, JSON.stringify(cuTasks));
     localStorage.setItem(K.cusb, JSON.stringify(cuSubs));
     localStorage.setItem(K.cuc, JSON.stringify(cuComments));
     localStorage.setItem(K.cutl, JSON.stringify(cuTimeLogs));
     localStorage.setItem(K.cum, JSON.stringify(cuMessages));
+    localStorage.setItem(K.chn, JSON.stringify(cuChannels));
+    localStorage.setItem(K.chm, JSON.stringify(cuChanMsgs));
   } catch(e){ toast('Could not save to localStorage'); }
 };
 let income, invoices, charity, expenses;
 let personalExp = [], personalInc = [], personalWd = [];
 let clients = [];
-let cuSpaces = [], cuFolders = [], cuLists = [], cuTasks = [], cuSubs = [], cuComments = [], cuTimeLogs = [], cuMessages = [];   // Tasks: Space › Folder › List › Task › Subtask
+let cuChannels = [], cuChanMsgs = [];   // client channels + their messages
+let cuSpaces = [], cuLists = [], cuTasks = [], cuSubs = [], cuComments = [], cuTimeLogs = [], cuMessages = [];   // Tasks: Space › List › Task › Subtask
 let employees = [], salaryPay = [], empLeaves = [];   // Employees section: profiles, salary payments, leave log
 let recurring = [];   // recurring invoice reminders: {client_name, frequency_days, last_invoice_date, next_alert_date, active, last_amount}   // Personal Finance: separate world, never used by agency maths
 
@@ -563,8 +565,8 @@ function init(){
   let ver = null; try { ver = localStorage.getItem('data_version'); } catch(e){}
   if (!ver) {   // first run: start completely empty, clearing any pre-loaded data
     income = []; invoices = []; charity = []; expenses = []; personalExp = []; personalInc = []; personalWd = []; recurring = []; employees = []; salaryPay = []; empLeaves = [];
-    clients = []; cuSpaces = []; cuFolders = []; cuLists = []; cuTasks = []; cuSubs = []; cuComments = []; cuTimeLogs = []; cuMessages = [];
-    save(); try { localStorage.setItem('cu_migrated', '1'); } catch(e){} try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
+    clients = []; cuSpaces = []; cuChannels = []; cuChanMsgs = []; cuLists = []; cuTasks = []; cuSubs = []; cuComments = []; cuTimeLogs = []; cuMessages = [];
+    save(); try { localStorage.setItem('cu_migrated', '1'); localStorage.setItem('cu_nofolders', '1'); } catch(e){} try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
     return;
   }
   income = load(K.inc); invoices = load(K.inv); charity = load(K.ch); expenses = load(K.exp);
@@ -587,8 +589,9 @@ function init(){
     save(); try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
   }
   [employees, salaryPay, empLeaves] = [load(K.emp), load(K.sp), load(K.el)].map(a => Array.isArray(a) ? a : []);
-  [clients, cuSpaces, cuFolders, cuLists, cuTasks, cuSubs, cuComments, cuTimeLogs, cuMessages] = [K.cl, K.cus, K.cuf, K.cul, K.cut, K.cusb, K.cuc, K.cutl, K.cum].map(k => { const a = load(k); return Array.isArray(a) ? a : []; });
-  cuMigrateOld(); cuNormalize();
+  [clients, cuSpaces, cuLists, cuTasks, cuSubs, cuComments, cuTimeLogs, cuMessages, cuChannels, cuChanMsgs] = [K.cl, K.cus, K.cul, K.cut, K.cusb, K.cuc, K.cutl, K.cum, K.chn, K.chm].map(k => { const a = load(k); return Array.isArray(a) ? a : []; });
+  cuMigrateOld(); cuNormalize(); cuDropFolders();
+  cuSpaces.forEach(cuEnsureChannel);   // every client Space has its permanent general channel
   const ra = load(K.ra);
   if (Array.isArray(ra)) recurring = ra;
   else { recurring = []; [...invoices].sort((a, b) => a.date.localeCompare(b.date)).forEach(recOnInvoice); save(); }   // first time: build reminders from existing invoices
@@ -634,15 +637,25 @@ function filterBar(){
     ${period.mode === 'custom' ? `<div class="fcustom"><label>From <input type="date" value="${period.from}" max="${period.to}" onchange="setCustom('from',this.value)"></label><label>To <input type="date" value="${period.to}" min="${period.from}" onchange="setCustom('to',this.value)"></label></div>` : ''}</div>`;
 }
 
-/* one-time: bring the earlier Projects & Tasks data into the new Space › Folder › List structure */
+/* one-time: folders are gone — lists move straight under their Space; empty auto-made "General Tasks" lists are dropped (lists are manual now) */
+function cuDropFolders(){
+  let done = null; try { done = localStorage.getItem('cu_nofolders'); } catch(e){}
+  if (done === '1') return;
+  const oldF = load('cu_folders') || [];
+  cuLists.forEach(l => { if (!l.spaceId) { const f = oldF.find(x => x.id === l.folderId); l.spaceId = f ? f.spaceId : (cuSpaces[0] || {}).id; } delete l.folderId; });
+  cuLists = cuLists.filter(l => l.spaceId && !(l.name === 'General Tasks' && l.clientId && !cuTasks.some(t => t.listId === l.id)));
+  try { localStorage.setItem('cu_nofolders', '1'); } catch(e){}
+  save();
+}
+/* one-time: bring the earlier Projects & Tasks data into the Space › List structure */
 function cuMigrateOld(){
   let done = null; try { done = localStorage.getItem('cu_migrated'); } catch(e){}
   if (done === '1') return;
   const op = load('projects'), ot = load('tasks'), os = load('subtasks'), oc = load('task_comments');
   if (Array.isArray(op) && op.length) {
-    const sp = {id:uid(), name:'Media Beem Agency', color:CU_COLORS[0]}, fo = {id:uid(), spaceId:sp.id, name:'Client Projects', color:CU_COLORS[1]}, idx = ['todo', 'progress', 'review', 'done', 'cancelled'], map = {};
-    cuSpaces.push(sp); cuFolders.push(fo);
-    op.forEach(p => { const l = {id:uid(), folderId:fo.id, name:p.name, color:CU_COLORS[2], clientId:p.clientId || '', statuses:defaultStatuses()}; cuLists.push(l); map[p.id] = l; });
+    const sp = {id:uid(), name:'Media Beem Agency', color:CU_COLORS[0]}, idx = ['todo', 'progress', 'review', 'done', 'cancelled'], map = {};
+    cuSpaces.push(sp);
+    op.forEach(p => { const l = {id:uid(), spaceId:sp.id, name:p.name, color:CU_COLORS[2], clientId:p.clientId || '', statuses:defaultStatuses()}; cuLists.push(l); map[p.id] = l; });
     const tmap = {};
     (ot || []).forEach(t => { const l = map[t.projectId]; if (!l) return; const nt = {id:uid(), listId:l.id, title:t.title, description:t.description ? '<p>' + esc(t.description) + '</p>' : '', assignee:t.assignee || '', due:t.due || '', priority:t.priority || 'normal', status:l.statuses[Math.max(0, idx.indexOf(t.status))].id, tags:t.tags || [], estimate:t.estimate || 0, repeat:t.recurring || '', repeatDays:7, created:t.created || new Date().toISOString()}; cuTasks.push(nt); tmap[t.id] = nt; });
     (os || []).forEach(x => { if (tmap[x.taskId]) cuSubs.push({id:uid(), taskId:tmap[x.taskId].id, title:x.title, done:!!x.done}); });
@@ -832,7 +845,7 @@ const meta = {
   allah:["Allah's Share Tracker","10% of net profit (income − expenses) — tracked until fully paid"],
   personal:['Personal Finance','Your own money — completely separate from the agency'],
   clients:['Clients','Profiles, pipeline stages, task lists and invoices per client'],
-  tasks:['Tasks','Space › Folder › List › Task › Subtask'],
+  tasks:['Tasks','Space › List › Task › Subtask'],
   employees:['Employees','Profiles, salaries and leave — salaries paid flow into agency expenses'],
   reports:['Reports',"Monthly breakdown, cumulative Allah's Share and top clients"],
 };
@@ -1843,7 +1856,7 @@ function vClientProfile(c){
   </div>`;
 }
 function addClNote(ev, id){ ev.preventDefault(); const c = clById(id); const t = new FormData(ev.target).get('text').trim(); if (c && t) { (c.notes = c.notes || []).push({id:uid(), at:new Date().toISOString(), text:t}); save(); render(); } }
-function cuClientList(cid){ if (!cuFolders.length) { toast('Set up your Tasks workspace first (Tasks → Set up workspace)'); view = 'tasks'; render(); return; } cuNodeForm('list', null, ''); setTimeout(() => { const s = document.querySelector('#modal select[name=clientId]'); if (s) s.value = cid; const n = document.querySelector('#modal input[name=name]'); if (n) n.value = clName(cid); }, 20); }
+function cuClientList(cid){ const c = clById(cid); if (!c) return; cuEnsureClientSpace(c); save(); const sp = cuSpaces.find(x => x.clientId === c.id); view = 'tasks'; render(); cuNodeForm('list', null, sp.id); }
 function setClientType(id, type){
   const c = clById(id); if (!c || (c.clientType || 'onetime') === type) return;
   applyClientType(c, type); save(); render(); toast(type === 'retainer' ? c.company + ' is now a Retainer — 30-day reminder ON from today' : c.company + ' is now One-Time — recurring reminder OFF');
@@ -1869,7 +1882,7 @@ function saveClient(ev, id){
 }
 function delClient(id){ const c = clById(id); if (c && confirm('Delete ' + c.company + '? Their invoices stay in the books; task lists stay but lose the client link.')) { clients = clients.filter(x => x.id !== id); clSel = null; save(); render(); } }
 
-/* ========= Tasks — ClickUp replica (dark): Space › Folder › List › Task › Subtask ========= */
+/* ========= Tasks — ClickUp replica (dark): Space › List › Task › Subtask ========= */
 const CU_COLORS = ['#7c3aed', '#3b82f6', '#14b8a6', '#22c55e', '#f59e0b', '#f97316', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
 const PRI = {urgent:{l:'Urgent', i:'🔴', c:'#ef4444', cal:'#ef4444', o:0}, high:{l:'High', i:'🟠', c:'#eab308', cal:'#f97316', o:1}, normal:{l:'Normal', i:'🔵', c:'#3b82f6', cal:'#3b82f6', o:2}, low:{l:'Low', i:'⚪', c:'#9ca3af', cal:'#6b7280', o:3}};
 const defaultStatuses = () => [['To Do', '#6b7280', 'open'], ['In Progress', '#7c3aed', 'open'], ['In Review', '#f59e0b', 'open'], ['Done', '#22c55e', 'done'], ['Cancelled', '#ef4444', 'closed']].map(([name, color, kind]) => ({id:uid(), name, color, kind}));
@@ -1878,7 +1891,7 @@ let cuPanelId = null, cuEdit = null, cuAddCol = null, cuTreeOpen = false, cuPers
 const cuCollapsed = new Set(), cuExpanded = new Set(), cuGroupHidden = new Set(), cuCols = new Set();
 const cf = {q:'', assignee:'', priority:'', status:'', tag:'', due:''};
 
-const spaceById = id => cuSpaces.find(x => x.id === id), folderById = id => cuFolders.find(x => x.id === id), listById = id => cuLists.find(x => x.id === id), taskById = id => cuTasks.find(x => x.id === id);
+const spaceById = id => cuSpaces.find(x => x.id === id), listById = id => cuLists.find(x => x.id === id), taskById = id => cuTasks.find(x => x.id === id);
 const listOf = t => listById(t.listId);
 const statusOf = t => { const l = listOf(t); return (l && l.statuses.find(s => s.id === t.status)) || (l && l.statuses[0]) || {name:'—', color:'#6b7280', kind:'open'}; };
 const isOpenT = t => statusOf(t).kind === 'open';
@@ -1952,7 +1965,7 @@ function vTasks(){
   const body = !cuSpaces.length ? cuWelcome() : detail ? cuDetail(detail) : cuMainArea();
   return `<div class="cu-wrap"><aside class="cu-tree ${cuTreeOpen ? 'open' : ''}">${cuTree()}</aside><section class="cu-main ${detail ? 'has-detail' : ''}"><button class="btn sm ghost cu-treebtn" onclick="cuTreeOpen=!cuTreeOpen;render()">📂 Lists</button>${body}</section></div>${detail ? '' : '<button class="fab" onclick="cuQuickAdd()" title="Quick add task">+</button>'}`;
 }
-const cuWelcome = () => `<div class="cu-empty"><h2>Welcome to Tasks</h2><p class="muted">Organise work as Space › Folder › List › Task › Subtask, just like ClickUp.</p>
+const cuWelcome = () => `<div class="cu-empty"><h2>Welcome to Tasks</h2><p class="muted">Organise work as Space › List › Task › Subtask. Client Spaces appear automatically when you invoice a client; Lists are always created by you with the + on a Space.</p>
   <button class="btn" onclick="cuSetupDefault()">Set up “Media Beem Agency” workspace</button> <button class="btn ghost" onclick="cuNodeForm('space')">Create a Space</button></div>`;
 const cuMenuBox = (name, inner) => cuMenu === name ? `<div class="cu-menu" onclick="event.stopPropagation()">${inner}</div>` : '';
 const cuBtn = (label, name) => `<span class="cu-menuwrap"><button class="tbtn ${cuMenu === name ? 'on' : ''}" onclick="event.stopPropagation();cuMenu=cuMenu==='${name}'?null:'${name}';render()">${label}</button>${name === 'group' ? cuMenuBox('group', [['status', 'Status'], ['assignee', 'Assignee'], ['priority', 'Priority'], ['due', 'Due date']].map(([k, n]) => `<div class="mi ${cuGroup === k ? 'on' : ''}" onclick="cuGroup='${k}';cuMenu=null;render()">${n}</div>`).join(''))
@@ -1962,9 +1975,10 @@ const cuBtn = (label, name) => `<span class="cu-menuwrap"><button class="tbtn ${
 
 function cuMainArea(){
   if (cuScope.type === 'dm') return cuDmView();
+  if (cuScope.type === 'channel') return cuChannelView();
   if (cuScope.type === 'list' && !listById(cuScope.id)) cuScope = {type:'none'};
   if (cuScope.type === 'none') return '<div class="cu-empty"><h2>Pick a List</h2><p class="muted">Choose a List from the sidebar — or open <b>My Tasks</b> / <b>All Tasks</b>.</p></div>';
-  const l = cuScope.type === 'list' ? listById(cuScope.id) : null, f = l && folderById(l.folderId), sp = f && spaceById(f.spaceId);
+  const l = cuScope.type === 'list' ? listById(cuScope.id) : null, sp = l && spaceById(l.spaceId);
   const crumb = l ? `<div class="cu-crumb"><span>📋 ${esc(sp ? sp.name : '')}</span><i>/</i><span class="cur">≡ ${esc(l.name)}</span>${cuBtn('▾', 'list')}<button class="star ${l.fav ? 'on' : ''}" title="Favorite" onclick="cuFav('${l.id}')">${l.fav ? '★' : '☆'}</button></div>`
     : cuScope.type === 'mine' ? `<div class="cu-crumb"><span class="cur">👤 My Tasks</span><select class="tsel" onchange="cuPerson=this.value;render()">${employees.filter(e => !e.archived).map(e => `<option value="${e.id}" ${e.id === cuPerson ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}<option value="" ${cuPerson === '' ? 'selected' : ''}>Unassigned</option></select><span class="muted">all tasks across all lists</span></div>`
     : '<div class="cu-crumb"><span class="cur">☰ All Tasks</span><span class="muted">across every list</span></div>';
@@ -1994,7 +2008,7 @@ function cuViewsForm(){
   openModal(`<h2>Views</h2>${[['channel', '# Channel', 'Chat for this list'], ['list', '≡ List', 'Spreadsheet-style rows'], ['board', '📌 Board', 'Kanban columns'], ['calendar', '📅 Calendar', 'Tasks by due date'], ['team', '👥 Team', 'Workload per person']].map(([k, n, d]) => `<div class="tx" style="cursor:pointer" onclick="cuView='${k}';closeModal();render()"><div><div class="t1">${n}</div><div class="t2">${d}</div></div></div>`).join('')}<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Close</button></div>`);
 }
 
-/* ----- sidebar: contacts, spaces, folders, lists ----- */
+/* ----- sidebar: contacts, spaces (with channels + lists) ----- */
 function cuTree(){
   const row = (cls, inner, click) => `<div class="tr-row ${cls}" ${click ? `onclick="${click}"` : ''}>${inner}</div>`;
   const dot = (kind, id, color) => `<span class="dot" style="background:${color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('${kind}','${id}')"></span>`;
@@ -2007,52 +2021,84 @@ function cuTree(){
   ${row('top ' + (cuScope.type === 'mine' ? 'sel' : ''), '<span class="nm">👤 My Tasks</span>', "cuGo({type:'mine'})")}
   ${favs.length ? `<div class="tr-sec"><span>FAVORITES</span></div>${favs.map(l => row('li fav ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `<span class="dot" style="background:${l.color}"></span><span class="nm">${esc(l.name)}</span>`, `cuOpenList('${l.id}')`)).join('')}` : ''}
   ${cuSpaces.map(sp => { const open = !cuCollapsed.has(sp.id);
-    return `${row('sp', `<span class="sq" style="background:${sp.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">${esc(initials(sp.name))}</span><span class="nm">${esc(sp.name)}</span><span class="acts"><button title="New Folder" onclick="event.stopPropagation();cuNodeForm('folder',null,'${sp.id}')">+</button><button title="Edit" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">✎</button></span><span class="arr">${open ? '▾' : '▸'}</span>`, `cuToggle('${sp.id}')`)}
-    ${open ? cuFolders.filter(f => f.spaceId === sp.id).map(f => { const fo = !cuCollapsed.has(f.id);
-      return `${row('fo', `${dot('folder', f.id, f.color)}<span class="nm">${esc(f.name)}</span><span class="acts"><button title="New List" onclick="event.stopPropagation();cuNodeForm('list',null,'${f.id}')">+</button><button title="Edit" onclick="event.stopPropagation();cuNodeForm('folder','${f.id}')">✎</button></span><span class="arr">${fo ? '▾' : '▸'}</span>`, `cuToggle('${f.id}')`)}
-      ${fo ? cuLists.filter(l => l.folderId === f.id).map(l => row('li ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `${dot('list', l.id, l.color)}<span class="nm">${esc(l.name)}</span><span class="cnt">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length || ''}</span>`, `cuOpenList('${l.id}')`)).join('') : ''}`; }).join('') : ''}`; }).join('')}`;
+    return `${row('sp', `<span class="sq" style="background:${sp.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">${esc(initials(sp.name))}</span><span class="nm">${esc(sp.name)}</span><span class="acts"><button title="New List" onclick="event.stopPropagation();cuNodeForm('list',null,'${sp.id}')">+</button><button title="New channel" onclick="event.stopPropagation();cuChannelForm('${sp.id}')">#</button><button title="Edit Space" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">✎</button></span><span class="arr">${open ? '▾' : '▸'}</span>`, `cuToggle('${sp.id}')`)}
+    ${open ? `${cuChannels.filter(c => c.spaceId === sp.id).map(c => row('ch ' + (cuScope.type === 'channel' && cuScope.id === c.id ? 'sel' : ''), `<span class="hash">#</span><span class="nm">${esc(c.name)}</span>${c.permanent ? '<span class="cnt" title="Permanent channel">🔒</span>' : ''}`, `cuGo({type:'channel',id:'${c.id}'})`)).join('')}
+      ${cuLists.filter(l => l.spaceId === sp.id).map(l => row('li ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `<span class="lico" style="color:${l.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('list','${l.id}')">📋</span><span class="nm">${esc(l.name)}</span><span class="cnt">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length || ''}</span>`, `cuOpenList('${l.id}')`)).join('')}
+      ${row('addl', '<span class="nm">[+] New List</span>', `cuNodeForm('list',null,'${sp.id}')`)}` : ''}`; }).join('')}`;
 }
 const cuToggle = id => { cuCollapsed.has(id) ? cuCollapsed.delete(id) : cuCollapsed.add(id); render(); };
-/* one Space per client (no duplicates): Space › "Projects" folder › "General Tasks" list */
+/* one Space per client (no duplicates): the Space + its permanent #general-<client> channel — nothing else. Lists are always created manually. */
+const chanSlug = n => 'general-' + String(n).toLowerCase().replace(/[^a-z0-9]+/g, '');
+function cuEnsureChannel(sp){
+  if (!sp.clientId || cuChannels.some(c => c.spaceId === sp.id && c.permanent)) return;
+  cuChannels.push({id:uid(), spaceId:sp.id, name:chanSlug(sp.name), permanent:true});
+}
 function cuEnsureClientSpace(c){
   const ex = cuSpaces.find(s => s.clientId === c.id || ckey(s.name) === ckey(c.company));
-  if (ex) { if (!ex.clientId) ex.clientId = c.id; return false; }
-  const sp = {id:uid(), name:c.company, color:CU_COLORS[0], clientId:c.id}, fo = {id:uid(), spaceId:sp.id, name:'Projects', color:CU_COLORS[1]};
-  cuSpaces.push(sp); cuFolders.push(fo); cuLists.push({id:uid(), folderId:fo.id, name:'General Tasks', color:CU_COLORS[2], clientId:c.id, statuses:defaultStatuses()});
+  if (ex) { if (!ex.clientId) ex.clientId = c.id; cuEnsureChannel(ex); return false; }
+  const sp = {id:uid(), name:c.company, color:CU_COLORS[0], clientId:c.id}; cuSpaces.push(sp); cuEnsureChannel(sp);
   return true;
 }
 function cuSetupDefault(){
-  const sp = {id:uid(), name:'Media Beem Agency', color:CU_COLORS[0]}; cuSpaces.push(sp);
-  [['Client Projects', CU_COLORS[1]], ['Internal', CU_COLORS[2]], ['Marketing', CU_COLORS[5]]].forEach(([name, color]) => cuFolders.push({id:uid(), spaceId:sp.id, name, color}));
-  save(); render(); toast('Workspace ready — add a List with the + next to a Folder');
+  cuSpaces.push({id:uid(), name:'Media Beem Agency', color:CU_COLORS[0]});
+  save(); render(); toast('Space ready — use the + on it to add your first List');
 }
 function cuNodeForm(kind, id, parent){
-  const x = id ? ({space:spaceById, folder:folderById, list:listById}[kind])(id) : {name:'', color:CU_COLORS[kind === 'space' ? 0 : kind === 'folder' ? 1 : 2]};
-  const label = {space:'Space', folder:'Folder', list:'List'}[kind];
-  const folderSel = kind === 'list' && !id && !parent ? `<div class="field"><label>Folder</label><select name="parent" required>${cuFolders.map(f => `<option value="${f.id}">${esc((spaceById(f.spaceId) || {}).name)} › ${esc(f.name)}</option>`).join('')}</select></div>` : '';
-  openModal(`<h2>${id ? 'Edit' : 'New'} ${label}</h2><form onsubmit="cuSaveNode(event,'${kind}','${id || ''}','${parent || ''}')">
-    ${folderSel}<div class="field"><label>Name</label><input name="name" value="${esc(x.name)}" placeholder="${kind === 'space' ? 'e.g. Media Beem Agency' : kind === 'folder' ? 'e.g. Client Projects' : 'e.g. Website Redesign'}" required></div>
-    <div class="field"><label>Colour</label><div class="swatches">${CU_COLORS.map(c => `<label><input type="radio" name="color" value="${c}" ${c === x.color ? 'checked' : ''}><span style="background:${c}"></span></label>`).join('')}</div></div>
-    ${kind === 'list' ? `<div class="field"><label>Linked client (optional)</label><select name="clientId"><option value="">— none —</option>${clients.map(c => `<option value="${c.id}" ${c.id === x.clientId ? 'selected' : ''}>${esc(c.company)}</option>`).join('')}</select></div>` : ''}
+  const x = id ? ({space:spaceById, list:listById}[kind])(id) : {name:'', color:CU_COLORS[kind === 'space' ? 0 : 2]};
+  const spaceSel = kind === 'list' && !id && !parent ? `<div class="field"><label>Space</label><select name="parent" required>${cuSpaces.map(sp => `<option value="${sp.id}">${esc(sp.name)}</option>`).join('')}</select></div>` : '';
+  if (kind === 'list' && !id && !cuSpaces.length) { toast('Create a Space first'); return; }
+  openModal(`<h2>${id ? 'Edit ' + (kind === 'space' ? 'Space' : 'List') : kind === 'space' ? 'New Space' : 'New List'}</h2><form onsubmit="cuSaveNode(event,'${kind}','${id || ''}','${parent || ''}')">
+    ${spaceSel}<div class="field"><label>${kind === 'list' ? 'List name' : 'Name'}</label><input name="name" value="${esc(x.name)}" placeholder="${kind === 'space' ? 'e.g. Media Beem Agency' : 'e.g. Social Media Posts'}" required></div>
+    ${id ? `<div class="field"><label>Colour</label><div class="swatches">${CU_COLORS.map(c => `<label><input type="radio" name="color" value="${c}" ${c === x.color ? 'checked' : ''}><span style="background:${c}"></span></label>`).join('')}</div></div>` : kind === 'space' ? `<div class="field"><label>Colour</label><div class="swatches">${CU_COLORS.map(c => `<label><input type="radio" name="color" value="${c}" ${c === x.color ? 'checked' : ''}><span style="background:${c}"></span></label>`).join('')}</div></div>` : ''}
+    ${kind === 'list' && id ? `<div class="field"><label>Linked client (optional)</label><select name="clientId"><option value="">— none —</option>${clients.map(c => `<option value="${c.id}" ${c.id === x.clientId ? 'selected' : ''}>${esc(c.company)}</option>`).join('')}</select></div>` : ''}
     <div class="modal-actions">${id ? `<button type="button" class="btn danger" style="margin-right:auto" onclick="cuDelNode('${kind}','${id}')">Delete</button>` : ''}<button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">${id ? 'Save' : 'Create'}</button></div></form>`);
+  setTimeout(() => { const i = document.querySelector('#modal input[name=name]'); if (i) i.focus(); }, 30);
 }
 function cuSaveNode(ev, kind, id, parent){
   ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)), name = f.name.trim(); if (!name) return;
-  if (id) { const x = ({space:spaceById, folder:folderById, list:listById}[kind])(id); x.name = name; x.color = f.color; if (kind === 'list') x.clientId = f.clientId || ''; }
-  else if (kind === 'space') cuSpaces.push({id:uid(), name, color:f.color});
-  else if (kind === 'folder') cuFolders.push({id:uid(), spaceId:parent, name, color:f.color});
-  else { const l = {id:uid(), folderId:parent || f.parent, name, color:f.color, clientId:f.clientId || '', statuses:defaultStatuses()}; cuLists.push(l); cuScope = {type:'list', id:l.id}; view = 'tasks'; cuPanelId = null; }
+  if (id) { const x = ({space:spaceById, list:listById}[kind])(id); x.name = name; if (f.color) x.color = f.color; if (kind === 'list') x.clientId = f.clientId || ''; }
+  else if (kind === 'space') cuSpaces.push({id:uid(), name, color:f.color || CU_COLORS[0]});
+  else { const spId = parent || f.parent, sp = spaceById(spId), l = {id:uid(), spaceId:spId, name, color:CU_COLORS[2], clientId:(sp && sp.clientId) || '', statuses:defaultStatuses()}; cuLists.push(l); cuCollapsed.delete(spId); cuScope = {type:'list', id:l.id}; view = 'tasks'; cuPanelId = null; }
   save(); closeModal(); render();
 }
 function cuDelNode(kind, id){
-  const lists = kind === 'list' ? [id] : kind === 'folder' ? cuLists.filter(l => l.folderId === id).map(l => l.id) : cuLists.filter(l => cuFolders.some(f => f.id === l.folderId && f.spaceId === id)).map(l => l.id);
+  const lists = kind === 'list' ? [id] : cuLists.filter(l => l.spaceId === id).map(l => l.id);
   const n = cuTasks.filter(t => lists.includes(t.listId)).length;
-  if (!confirm('Delete this ' + kind + (kind !== 'list' ? ' with everything inside it' : '') + (n ? ' and its ' + n + ' task(s)' : '') + '? This cannot be undone.')) return;
+  if (!confirm('Delete this ' + kind + (kind === 'space' ? ' with its lists and channels' : '') + (n ? ' and its ' + n + ' task(s)' : '') + '? This cannot be undone.')) return;
   cuTasks.filter(t => lists.includes(t.listId)).forEach(cuRemoveTaskData);
   cuLists = cuLists.filter(l => !lists.includes(l.id)); cuMessages = cuMessages.filter(m => !lists.some(i => m.scope === 'list:' + i));
-  if (kind === 'folder') cuFolders = cuFolders.filter(f => f.id !== id);
-  if (kind === 'space') { cuFolders = cuFolders.filter(f => f.spaceId !== id); cuSpaces = cuSpaces.filter(s => s.id !== id); }
+  if (kind === 'space') { const chs = cuChannels.filter(c => c.spaceId === id).map(c => c.id); cuChanMsgs = cuChanMsgs.filter(m => !chs.includes(m.channel_id)); cuChannels = cuChannels.filter(c => c.spaceId !== id); cuSpaces = cuSpaces.filter(s => s.id !== id); }
+  if (cuScope.type === 'list' && !listById(cuScope.id)) cuScope = {type:'none'};
   save(); closeModal(); render();
+}
+/* ----- channels (chat per client Space) ----- */
+function cuChannelForm(spId){
+  openModal(`<h2>New channel</h2><form onsubmit="cuSaveChannel(event,'${spId}')"><div class="field"><label>Channel name</label><input name="name" placeholder="e.g. design-reviews" required></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Create</button></div></form>`);
+  setTimeout(() => { const i = document.querySelector('#modal input[name=name]'); if (i) i.focus(); }, 30);
+}
+function cuSaveChannel(ev, spId){
+  ev.preventDefault(); const n = new FormData(ev.target).get('name').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); if (!n) return;
+  const ch = {id:uid(), spaceId:spId, name:n, permanent:false}; cuChannels.push(ch); cuCollapsed.delete(spId); save(); closeModal(); view = 'tasks'; cuGo({type:'channel', id:ch.id});
+}
+function cuDelChannel(id){
+  const ch = cuChannels.find(c => c.id === id); if (!ch || ch.permanent || !confirm('Delete #' + ch.name + ' and its messages?')) return;
+  cuChanMsgs = cuChanMsgs.filter(m => m.channel_id !== id); cuChannels = cuChannels.filter(c => c.id !== id); cuScope = {type:'none'}; save(); render();
+}
+function cuChannelView(){
+  const ch = cuChannels.find(c => c.id === cuScope.id); if (!ch) { cuScope = {type:'none'}; return '<div class="cu-empty">Channel not found.</div>'; }
+  const sp = spaceById(ch.spaceId) || {}, cl = sp.clientId && clById(sp.clientId), name = cl ? cl.company : sp.name;
+  const ms = cuChanMsgs.filter(m => m.channel_id === ch.id).sort((a, b) => a.timestamp.localeCompare(b.timestamp)); let last = '';
+  return `<div class="cu-crumb"><span>${esc(sp.name || '')}</span><i>/</i><span class="cur"><span class="hash">#</span> ${esc(ch.name)}</span>${ch.permanent ? '<span class="muted">🔒 permanent</span>' : `<button class="tbtn" style="margin-left:auto;color:#ef4444" onclick="cuDelChannel('${ch.id}')">Delete channel</button>`}</div>
+    <div class="muted" style="margin-bottom:10px">${ch.permanent ? 'General updates and work chat for ' + esc(name) : 'Chat for #' + esc(ch.name) + ' in ' + esc(sp.name || '')}</div>
+    <div class="cu-chat"><div class="thread chat-feed">${ms.map(m => { const d = dayHeader(m.timestamp), hd = d !== last ? `<div class="cdiv"><span>${d}</span></div>` : ''; last = d;
+      return `${hd}<div class="act">${cuAv(m.author, 28)}<div><div class="who"><b>${esc(m.author)}</b> <span>${clockT(m.timestamp)}</span></div><div class="txt">${esc(m.text)}</div></div></div>`; }).join('') || '<div class="muted" style="padding:24px 0">No messages yet — post the first update.</div>'}</div>
+    <form class="msgform" onsubmit="cuSendChan(event,'${ch.id}')"><select name="author" style="width:110px!important">${['You', ...employees.filter(e => !e.archived).map(e => e.name)].map(a => `<option ${a === cuAuthor ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select><input name="text" placeholder="Message #${esc(ch.name)}" required autocomplete="off"><button class="addbtn">Send</button></form></div>`;
+}
+function cuSendChan(ev, chId){
+  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)), ch = cuChannels.find(c => c.id === chId); if (!ch || !f.text.trim()) return;
+  cuAuthor = f.author; cuChanMsgs.push({id:uid(), channel_id:chId, client_space_id:ch.spaceId, author:f.author, text:f.text.trim(), timestamp:new Date().toISOString()}); save(); render();
+  const i = document.querySelector('.msgform input[name=text]'); if (i) i.focus(); const feed = document.querySelector('.chat-feed'); if (feed) window.scrollTo(0, document.body.scrollHeight);
 }
 function cuRemoveTaskData(t){ cuSubs = cuSubs.filter(s => s.taskId !== t.id); cuComments = cuComments.filter(c => c.taskId !== t.id); cuTimeLogs = cuTimeLogs.filter(l => l.taskId !== t.id); cuTasks = cuTasks.filter(x => x.id !== t.id); if (cuPanelId === t.id) cuPanelId = null; }
 
@@ -2087,7 +2133,7 @@ function cuQuickAdd(o = {}){
   const cur = o.listId || (cuScope.type === 'list' ? cuScope.id : cuLists[0].id), asg = o.assignee ?? (cuScope.type === 'mine' ? cuPerson : '');
   openModal(`<h2>Quick add task</h2><form onsubmit="cuSaveQuick(event)">
     <div class="field"><label>Title</label><input name="title" value="${esc(o.title || '')}" required></div>
-    <div class="field"><label>List</label><select name="listId">${cuLists.map(l => `<option value="${l.id}" ${l.id === cur ? 'selected' : ''}>${esc((folderById(l.folderId) || {}).name)} › ${esc(l.name)}</option>`).join('')}</select></div>
+    <div class="field"><label>List</label><select name="listId">${cuLists.map(l => `<option value="${l.id}" ${l.id === cur ? 'selected' : ''}>${esc((spaceById(l.spaceId) || {}).name)} › ${esc(l.name)}</option>`).join('')}</select></div>
     <div class="row2"><div class="field"><label>Assignee</label><select name="assignee">${empOpts(asg)}</select></div><div class="field"><label>Due date</label><input name="due" type="date" value="${o.due || ''}"></div></div>
     <div class="field"><label>Priority</label><select name="priority">${Object.entries(PRI).map(([k, p]) => `<option value="${k}" ${k === 'normal' ? 'selected' : ''}>${p.i} ${p.l}</option>`).join('')}</select></div>
     <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save</button></div></form>`);
@@ -2251,7 +2297,7 @@ function cuTimerToggle(id){
 }
 setInterval(() => { const el = document.getElementById('cuTimerLbl'); if (el && cuTimer) el.textContent = fmtElapsed(Date.now() - cuTimer.start); }, 1000);
 function cuDetail(t){
-  const l = listOf(t), f = folderById(l.folderId), sp = f && spaceById(f.spaceId), st = statusOf(t), id = t.id;
+  const l = listOf(t), sp = spaceById(l.spaceId), st = statusOf(t), id = t.id;
   const subs = cuSubs.filter(s => s.taskId === id), logs = cuTimeLogs.filter(x => x.taskId === id).sort((a, b) => b.date.localeCompare(a.date));
   const doneSt = l.statuses.find(s => s.kind === 'done'), timing = cuTimer && cuTimer.taskId === id;
   const row = (label, inner) => `<div class="drow"><span class="dl">${label}</span><div class="dv">${inner}</div></div>`;
