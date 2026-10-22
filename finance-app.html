@@ -2038,8 +2038,7 @@ function cuTree(){
     ${open ? `${cuChannels.filter(c => c.spaceId === sp.id).map(c => row('ch ' + (cuScope.type === 'channel' && cuScope.id === c.id ? 'sel' : ''), `<span class="hash">#</span><span class="nm">${esc(c.name)}</span>${c.permanent ? '<span class="cnt" title="Permanent channel">🔒</span>' : ''}`, `cuGo({type:'channel',id:'${c.id}'})`)).join('')}
       ${cuLists.filter(l => l.spaceId === sp.id).map(l => row('li ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `<span class="lico" style="color:${l.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('list','${l.id}')">📋</span><span class="nm">${esc(l.name)}</span><span class="cnt">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length || ''}</span>`, `cuOpenList('${l.id}')`)).join('')}
       ${resFolders.filter(f => f.spaceId === sp.id).map(f => row('rf ' + (cuScope.type === 'resfolder' && cuScope.id === f.id ? 'sel' : ''), `<span class="lico">📁</span><span class="nm">${esc(f.name)}</span><span class="cnt">${resFiles.filter(x => x.folderId === f.id).length || ''}</span>`, `cuGo({type:'resfolder',id:'${f.id}'})`)).join('')}
-      ${row('addl', '<span class="nm">[+] New List</span>', `cuNodeForm('list',null,'${sp.id}')`)}
-      ${row('addl', '<span class="nm">[+] New Folder <span style="opacity:.6">(files)</span></span>', `resFolderForm('${sp.id}')`)}` : ''}`; }).join('')}`;
+      ` : ''}`; }).join('')}`;
 }
 const cuToggle = id => { cuCollapsed.has(id) ? cuCollapsed.delete(id) : cuCollapsed.add(id); render(); };
 /* one Space per client (no duplicates): the Space + its permanent #general-<client> channel — nothing else. Lists are always created manually. */
