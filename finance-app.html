@@ -593,6 +593,7 @@ function init(){
   if (Array.isArray(ra)) recurring = ra;
   else { recurring = []; [...invoices].sort((a, b) => a.date.localeCompare(b.date)).forEach(recOnInvoice); save(); }   // first time: build reminders from existing invoices
   clients.forEach(c => { if (!c.clientType) c.clientType = recFind(c.company) ? 'retainer' : 'onetime'; });   // before client types: clients with a reminder were effectively retainers
+  backfillNote = backfillInvoiceLinks();
   syncIncome();
 }
 
@@ -674,6 +675,35 @@ function applyClientType(c, type){
       recurring.push({client_name:c.company, frequency_days:30, last_invoice_date:last ? last.date : today(), next_alert_date:addDays(today(), 30), active:true, last_amount:last ? last.total_amount : (+c.retainer || 0)});
     }
   } else recurring = recurring.filter(r => ckey(r.client_name) !== ckey(c.company));
+}
+/* find or create the client for an invoice, apply the chosen type, make sure the client has a Tasks Space */
+function linkInvoiceClient(inv, type){
+  const msgs = []; inv.clientType = type;
+  let c = clientByName(inv.client);
+  if (!c) {
+    c = {id:uid(), company:inv.client.trim(), contact:'', phone:'', email:'', industry:'', website:'', status:'Active', clientType:type, retainer:type === 'retainer' ? inv.total_amount : 0, onboardingDate:today(), contractStart:'', firstInvoiceDate:today(), notes:[]};
+    clients.push(c); msgs.push(c.company + ' added to Clients');
+  } else {
+    if (!c.firstInvoiceDate) c.firstInvoiceDate = [...clientInvoices(c).map(i => i.date), inv.date].sort()[0];
+    if (c.clientType !== type) applyClientType(c, type);
+  }
+  inv.clientId = c.id;
+  if (cuEnsureClientSpace(c)) msgs.push('Space created for ' + c.company + ' in Tasks');
+  return msgs;
+}
+/* one-off: bring invoices created before client types existed into Clients + Tasks (keeps today's reminder behaviour: a client with a reminder becomes a Retainer) */
+let backfillNote = '';
+function backfillInvoiceLinks(){
+  const todo = invoices.filter(i => !i.clientId); if (!todo.length) return '';
+  let nc = 0, ns = 0; const touched = new Set();
+  todo.forEach(i => {
+    let c = clientByName(i.client);
+    if (!c) { const type = recFind(i.client) ? 'retainer' : 'onetime'; c = {id:uid(), company:i.client.trim(), contact:'', phone:'', email:'', industry:'', website:'', status:'Active', clientType:type, retainer:type === 'retainer' ? i.total_amount : 0, onboardingDate:i.date, contractStart:'', firstInvoiceDate:i.date, notes:[]}; clients.push(c); nc++; }
+    i.clientId = c.id; if (!i.clientType) i.clientType = c.clientType || 'onetime'; touched.add(c.id);
+  });
+  touched.forEach(id => { const c = clById(id), ds = clientInvoices(c).map(i => i.date).sort(); if (!c.firstInvoiceDate || ds[0] < c.firstInvoiceDate) c.firstInvoiceDate = ds[0]; if (cuEnsureClientSpace(c)) ns++; });
+  save();
+  return todo.length + ' existing invoice' + (todo.length > 1 ? 's' : '') + ' linked · ' + nc + ' client' + (nc === 1 ? '' : 's') + ' added · ' + ns + ' Space' + (ns === 1 ? '' : 's') + ' created in Tasks';
 }
 function toastSeq(msgs){ msgs.forEach((m, i) => setTimeout(() => toast(m), i * 1900)); }
 function recOnInvoice(inv){
@@ -1013,18 +1043,9 @@ function saveIncome(e){
   if (rec > total) { alert('Amount Received cannot be more than Total Amount.'); return; }
   const inv = {id:uid(), client:f.client.trim(), service:f.service.trim(), category:f.category, date:f.date, expectedBy:f.expectedBy || '', notes:(f.notes || '').trim(), total_amount:total, payments:[]};
   if (rec > 0) addPayment(inv, rec, f.date, '');
-  const type = f.clientType === 'retainer' ? 'retainer' : 'onetime', msgs = [rec < total ? 'Saved — invoice created (partially paid)' : 'Saved — invoice created (paid in full)'];
-  inv.clientType = type;
-  let c = clientByName(inv.client);
-  if (!c) {   // the invoice creates the client
-    c = {id:uid(), company:inv.client, contact:'', phone:'', email:'', industry:'', website:'', status:'Active', clientType:type, retainer:type === 'retainer' ? total : 0, onboardingDate:today(), contractStart:'', firstInvoiceDate:today(), notes:[]};
-    clients.push(c); msgs.push(inv.client + ' added to Clients');
-  } else {   // …or links to the existing record
-    if (!c.firstInvoiceDate) c.firstInvoiceDate = [...clientInvoices(c).map(i => i.date), inv.date].sort()[0];
-    if (c.clientType !== type) applyClientType(c, type);
-  }
-  inv.clientId = c.id; invoices.push(inv);
-  if (cuEnsureClientSpace(c)) msgs.push('Space created for ' + inv.client + ' in Tasks');
+  const type = f.clientType === 'retainer' ? 'retainer' : 'onetime', main = rec < total ? 'Saved — invoice created (partially paid)' : 'Saved — invoice created (paid in full)';
+  invoices.push(inv);
+  const msgs = [main, ...linkInvoiceClient(inv, type)];
   recOnInvoice(inv);
   save(); closeModal(); render(); toastSeq(msgs);
 }
@@ -1082,7 +1103,7 @@ function vInvoices(t){
   </div>
   <div class="inv-grid">${list.map(i => { const s = invStatus(i), rem = invRemaining(i); return `
     <div class="card inv-card" onclick="viewInvoice('${i.id}')">
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><b style="font-size:15px">${esc(i.client)}</b><div class="muted">${esc(i.service)}</div></div>${badge(s)}</div>
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><b style="font-size:15px">${esc(i.client)}</b> ${clientTypeBadge(invType(i))}<div class="muted">${esc(i.service)}</div></div>${badge(s)}</div>
       <div class="inv-nums">
         <div><span>Total</span><b>${fmt(i.total_amount)}</b></div>
         <div><span>Received</span><b style="color:var(--green)">${fmt(invReceived(i))}</b></div>
@@ -1161,8 +1182,13 @@ async function downloadInvoice(id){
 /* ----- Edit ----- */
 function editInvoice(id){
   const i = invById(id); if (!i) return;
+  const ct = invType(i);
   openModal(`<h2>Edit Invoice</h2><form onsubmit="saveEdit(event,'${id}')">
-    <div class="row2"><div class="field"><label>Client Name</label><input name="client" value="${esc(i.client)}" required></div>
+    <div class="field"><label>Client Type</label><div class="ptype ct">
+      <label class="${ct === 'onetime' ? 'on' : ''}"><input type="radio" name="clientType" value="onetime" ${ct === 'onetime' ? 'checked' : ''} onchange="ctChanged(this)"><span>One-Time Client<small>No recurring reminder</small></span></label>
+      <label class="${ct === 'retainer' ? 'on' : ''}"><input type="radio" name="clientType" value="retainer" ${ct === 'retainer' ? 'checked' : ''} onchange="ctChanged(this)"><span>Monthly Retainer<small>30-day invoice reminder</small></span></label></div>
+      <div class="muted" style="font-size:12px;margin-top:6px">Saved on the invoice and on the client — switching to Retainer starts the 30-day reminder from today; One-Time turns it off.</div></div>
+    <div class="row2"><div class="field"><label>Client Name</label><input name="client" value="${esc(i.client)}" required oninput="ctSync(this)" onchange="ctSync(this)"></div>
     <div class="field"><label>Date</label><input name="date" type="date" value="${esc(i.date)}" required></div></div>
     <div class="field"><label>Service Description</label><input name="service" value="${esc(i.service)}" required></div>
     <div class="row2"><div class="field"><label>Total Amount (₨)</label><input name="total_amount" type="number" min="1" step="any" value="${i.total_amount}" required></div>
@@ -1188,7 +1214,8 @@ function saveEdit(e, id){
       if (p.amount <= cutBy) { cutBy -= p.amount; i.payments.splice(k, 1); } else { p.amount -= cutBy; cutBy = 0; }
     }
   }
-  save(); closeModal(); render(); toast('Invoice updated · totals recalculated');
+  const type = f.clientType === 'retainer' ? 'retainer' : 'onetime', msgs = ['Invoice updated · totals recalculated', ...linkInvoiceClient(i, type)];
+  save(); closeModal(); render(); toastSeq(msgs);
 }
 
 /* ----- Payments (each installment is received income) ----- */
@@ -2290,6 +2317,7 @@ $('menuBtn').onclick = () => { $('sidebar').classList.add('open'); $('scrim').cl
 $('scrim').onclick = () => { $('sidebar').classList.remove('open'); $('scrim').classList.remove('open'); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 init(); render();
+if (backfillNote) setTimeout(() => toast(backfillNote), 600);
 </script>
 </body>
 </html>
