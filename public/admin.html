@@ -2281,6 +2281,11 @@ function cuViewsForm(){
 }
 
 /* ----- sidebar: contacts, spaces (with channels + lists) ----- */
+/* hover "···" menu shared by sidebar rows: kind = list | folder | channel */
+const nodeMenu = (kind, id, items) => `<span class="acts"><span class="cu-menuwrap" style="position:relative"><button title="Options" onclick="event.stopPropagation();cuMenu=cuMenu==='${kind}:${id}'?null:'${kind}:${id}';render()">···</button>${cuMenuBox(kind + ':' + id, items)}</span></span>`;
+const menuOpen = (kind, id) => cuMenu === kind + ':' + id ? ' menuopen' : '';
+const miRename = (fn, label) => `<div class="mi" onclick="cuMenu=null;${fn}">✏️ Rename ${label}</div>`;
+const miDelete = (fn, label) => `<div class="mi" style="color:#f87171" onclick="cuMenu=null;${fn}">🗑️ Delete ${label}</div>`;
 function cuTree(){
   const row = (cls, inner, click) => `<div class="tr-row ${cls}" ${click ? `onclick="${click}"` : ''}>${inner}</div>`;
   const dot = (kind, id, color) => `<span class="dot" style="background:${color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('${kind}','${id}')"></span>`;
@@ -2294,9 +2299,9 @@ function cuTree(){
   ${favs.length || employees.some(e => e.chatFav) || cuChannels.some(c => c.fav) ? `<div class="tr-sec"><span>FAVORITES</span></div>${employees.filter(e => e.chatFav && !e.archived).map(e => row('dm ' + (cuScope.type === 'dm' && cuScope.id === e.id ? 'sel' : ''), `${cuAv(e.name, 18)}<span class="nm">${esc(e.name)}</span>`, `view='tasks';cuGo({type:'dm',id:'${e.id}'})`)).join('')}${cuChannels.filter(c => c.fav).map(c => row('ch ' + (cuScope.type === 'channel' && cuScope.id === c.id ? 'sel' : ''), `<span class="hash">#</span><span class="nm">${esc(c.name)}</span>`, `cuGo({type:'channel',id:'${c.id}'})`)).join('')}${favs.map(l => row('li fav ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `<span class="dot" style="background:${l.color}"></span><span class="nm">${esc(l.name)}</span>`, `cuOpenList('${l.id}')`)).join('')}` : ''}
   ${cuSpaces.map(sp => { const open = !cuCollapsed.has(sp.id);
     return `${row('sp ' + (cuMenu === 'sp:' + sp.id ? 'menuopen' : ''), `<span class="sq" style="background:${sp.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">${esc(initials(sp.name))}</span><span class="nm">${esc(sp.name)}</span><span class="acts"><button title="New List" onclick="event.stopPropagation();cuNodeForm('list',null,'${sp.id}')">+</button><button title="New channel" onclick="event.stopPropagation();cuChannelForm('${sp.id}')">#</button><button title="New folder for client files" onclick="event.stopPropagation();resFolderForm('${sp.id}')">📁</button><span class="cu-menuwrap" style="position:relative"><button title="Space options" onclick="event.stopPropagation();cuMenu=cuMenu==='sp:${sp.id}'?null:'sp:${sp.id}';render()">···</button>${cuMenuBox('sp:' + sp.id, `<div class="mi" onclick="cuMenu=null;cuRenameSpace('${sp.id}')">✏️ Rename Space</div><div class="mi" style="color:#f87171" onclick="cuMenu=null;cuDeleteSpace('${sp.id}')">🗑️ Delete Space</div>`)}</span></span><span class="arr">${open ? '▾' : '▸'}</span>`, `cuToggle('${sp.id}')`)}
-    ${open ? `${cuChannels.filter(c => c.spaceId === sp.id).map(c => row('ch ' + (cuScope.type === 'channel' && cuScope.id === c.id ? 'sel' : ''), `<span class="hash">#</span><span class="nm">${esc(c.name)}</span>${c.permanent ? '<span class="cnt" title="Permanent channel">🔒</span>' : ''}`, `cuGo({type:'channel',id:'${c.id}'})`)).join('')}
-      ${cuLists.filter(l => l.spaceId === sp.id).map(l => row('li ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `<span class="lico" style="color:${l.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('list','${l.id}')">📋</span><span class="nm">${esc(l.name)}</span><span class="cnt">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length || ''}</span>`, `cuOpenList('${l.id}')`)).join('')}
-      ${resFolders.filter(f => f.spaceId === sp.id).map(f => row('rf ' + (cuScope.type === 'resfolder' && cuScope.id === f.id ? 'sel' : ''), `<span class="lico">📁</span><span class="nm">${esc(f.name)}</span><span class="cnt">${resFiles.filter(x => x.folderId === f.id).length || ''}</span>`, `cuGo({type:'resfolder',id:'${f.id}'})`)).join('')}
+    ${open ? `${cuChannels.filter(c => c.spaceId === sp.id).map(c => row('ch ' + (cuScope.type === 'channel' && cuScope.id === c.id ? 'sel' : '') + menuOpen('channel', c.id), `<span class="hash">#</span><span class="nm">${esc(c.name)}</span>${c.permanent ? '<span class="cnt" title="This channel cannot be deleted">🔒</span>' : ''}${nodeMenu('channel', c.id, miRename(`cuRenameChannel('${c.id}')`, 'Channel') + (c.permanent ? '<div class="mi" title="This channel cannot be deleted" style="opacity:.45;cursor:not-allowed">🗑️ Delete Channel</div>' : miDelete(`cuDelChannel('${c.id}')`, 'Channel')))}`, `cuGo({type:'channel',id:'${c.id}'})`)).join('')}
+      ${cuLists.filter(l => l.spaceId === sp.id).map(l => row('li ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : '') + menuOpen('list', l.id), `<span class="lico" style="color:${l.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('list','${l.id}')">📋</span><span class="nm">${esc(l.name)}</span><span class="cnt">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length || ''}</span>${nodeMenu('list', l.id, miRename(`cuRenameList('${l.id}')`, 'List') + miDelete(`cuDeleteList('${l.id}')`, 'List'))}`, `cuOpenList('${l.id}')`)).join('')}
+      ${resFolders.filter(f => f.spaceId === sp.id).map(f => row('rf ' + (cuScope.type === 'resfolder' && cuScope.id === f.id ? 'sel' : '') + menuOpen('folder', f.id), `<span class="lico">📁</span><span class="nm">${esc(f.name)}</span><span class="cnt">${resFiles.filter(x => x.folderId === f.id).length || ''}</span>${nodeMenu('folder', f.id, miRename(`resFolderForm(null,'${f.id}')`, 'Folder') + miDelete(`resDeleteFolder('${f.id}')`, 'Folder'))}`, `cuGo({type:'resfolder',id:'${f.id}'})`)).join('')}
       ` : ''}`; }).join('')}`;
 }
 const cuToggle = id => { cuCollapsed.has(id) ? cuCollapsed.delete(id) : cuCollapsed.add(id); render(); };
@@ -2454,8 +2459,39 @@ function cuSaveChannel(ev, spId){
   const ch = {id:uid(), spaceId:spId, name:n, permanent:false}; cuChannels.push(ch); cuCollapsed.delete(spId); save(); closeModal(); view = 'tasks'; cuGo({type:'channel', id:ch.id});
 }
 function cuDelChannel(id){
-  const ch = cuChannels.find(c => c.id === id); if (!ch || ch.permanent || !confirm('Delete #' + ch.name + ' and its messages?')) return;
-  cuChanMsgs = cuChanMsgs.filter(m => m.channel_id !== id); cuChannels = cuChannels.filter(c => c.id !== id); cuScope = {type:'none'}; save(); render();
+  const ch = cuChannels.find(c => c.id === id); if (!ch) return;
+  if (ch.permanent) { toast('This channel cannot be deleted'); return; }
+  if (!confirm('Are you sure? This will delete #' + ch.name + ' and all its messages.')) return;
+  cuChanMsgs = cuChanMsgs.filter(m => m.channel_id !== id); cuChannels = cuChannels.filter(c => c.id !== id);
+  if (cuScope.type === 'channel' && cuScope.id === id) cuScope = {type:'none'};
+  cuMenu = null; save(); render(); toast('Channel deleted');
+}
+function cuRenameChannel(id){
+  const ch = cuChannels.find(c => c.id === id); if (!ch) return;
+  openModal(`<h2>Rename channel</h2><form onsubmit="cuSaveChannelName(event,'${id}')"><div class="field"><label>Channel name</label><input name="name" value="${esc(ch.name)}" required></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save</button></div></form>`);
+  setTimeout(() => { const i = document.querySelector('#modal input[name=name]'); if (i) { i.focus(); i.select(); } }, 30);
+}
+function cuSaveChannelName(ev, id){
+  ev.preventDefault(); const ch = cuChannels.find(c => c.id === id), n = new FormData(ev.target).get('name').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); if (!ch || !n) return;
+  ch.name = n; save(); closeModal(); render();
+}
+function cuRenameList(id){
+  const l = listById(id); if (!l) return;
+  openModal(`<h2>Rename List</h2><form onsubmit="cuSaveListName(event,'${id}')"><div class="field"><label>List name</label><input name="name" value="${esc(l.name)}" required></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save</button></div></form>`);
+  setTimeout(() => { const i = document.querySelector('#modal input[name=name]'); if (i) { i.focus(); i.select(); } }, 30);
+}
+function cuSaveListName(ev, id){ ev.preventDefault(); const l = listById(id), n = new FormData(ev.target).get('name').trim(); if (!l || !n) return; l.name = n; save(); closeModal(); render(); }
+function cuDeleteList(id){
+  if (!listById(id) || !confirm('Are you sure? This will delete the list and all its tasks.')) return;
+  cuDelNode('list', id, true); toast('List deleted');
+}
+function resDeleteFolder(id){
+  const f = resFolderById(id); if (!f || !confirm('Are you sure? This will delete the folder and all its files.')) return;
+  resFiles.filter(x => x.folderId === id).forEach(x => idbDel(x.id)); resFiles = resFiles.filter(x => x.folderId !== id); resFolders = resFolders.filter(x => x.id !== id);
+  if (cuScope.type === 'resfolder' && cuScope.id === id) cuScope = {type:'none'};
+  cuMenu = null; save(); render(); toast('Folder deleted');
 }
 function cuRemoveTaskData(t){ cuSubs = cuSubs.filter(s => s.taskId !== t.id); cuComments = cuComments.filter(c => c.taskId !== t.id); cuTimeLogs = cuTimeLogs.filter(l => l.taskId !== t.id); cuTasks = cuTasks.filter(x => x.id !== t.id); if (cuPanelId === t.id) cuPanelId = null; }
 
