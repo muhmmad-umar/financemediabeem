@@ -296,6 +296,63 @@ main:not(.cu) .fab{display:none}
 .rrow .ri{font-size:20px}.rrow .rn{flex:1;min-width:0}.rrow .rn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rrow .rm{font-size:12px;white-space:nowrap}
 .rrow .ra{display:flex;gap:6px}.rrow .ra a{text-decoration:none}
 @media(max-width:700px){.rrow{flex-wrap:wrap}.rrow .rm{display:none}}
+/* ---- chat (DMs / channels) ---- */
+.cu-main.chat{padding:0}
+.chat-page{display:flex;height:100vh;background:#0d0d0d;color:#fff}
+.chat-main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
+.chat-head{display:flex;justify-content:space-between;align-items:center;padding:12px 20px 4px;gap:10px;flex-wrap:wrap}
+.chat-id{display:flex;align-items:center;gap:10px;font-size:16px}.chat-id b{font-size:16px}
+.hashbig{width:30px;height:30px;border-radius:8px;background:#1f1f1f;display:grid;place-items:center;font-size:18px;color:#aaa;font-weight:700}
+.chat-right{display:flex;gap:8px;align-items:center}
+.ibtn{background:none;border:0;color:#aaa;font-size:15px;padding:4px 8px;border-radius:6px;cursor:pointer;letter-spacing:1px}.ibtn:hover{background:#1c1c1c;color:#fff}
+.ibtn.star.on{color:#eab308}
+.ibtn.pill{border:1px solid #2a2a2a;font-size:12px;letter-spacing:0;color:#ddd}
+.chat-tabs{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid #1f1f1f}
+.chat-tabs button{background:none;border:0;color:#888;font-size:13px;font-weight:600;padding:9px 12px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.chat-tabs button:hover{color:#fff}.chat-tabs button.on{color:#fff;border-color:#7c3aed}
+.chat-sub{padding:10px 22px 0;color:#888;font-size:13px}
+.chat-feed{flex:1;overflow-y:auto;padding:8px 22px 14px;min-height:0}
+.chat-pad{flex:1;overflow:auto;padding:16px 22px}
+.chat-none{color:#666;text-align:center;padding:60px 0;font-size:13px}
+.daydiv{text-align:center;margin:18px 0 10px}
+.daypill{background:#1c1c1c;color:#aaa;border:1px solid #262626;border-radius:99px;padding:4px 14px;font-size:12px;cursor:pointer}.daypill:hover{color:#fff;background:#232323}
+.mrow{display:flex;gap:12px;padding:2px 0;position:relative;align-items:flex-start}
+.mrow.first{margin-top:16px;padding-top:2px}
+.mrow:hover{background:#121212;border-radius:6px}
+.mrow.cont{padding-left:48px}.mrow.cont .mt{position:absolute;left:0;width:44px;text-align:right;font-size:10px;color:#555;opacity:0;padding-top:4px}.mrow.cont:hover .mt{opacity:1}
+.mb{flex:1;min-width:0}
+.mh{display:flex;align-items:baseline;gap:8px}.mh b{color:#fff;font-size:14px}.mh span{color:#777;font-size:11px}
+.mtxt{color:#e6e6e6;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word;margin-top:1px}
+.mention{color:#a78bfa;background:#231c3a;border-radius:4px;padding:0 3px}
+.mrep{font-size:12px;color:#888;border-left:2px solid #333;padding-left:8px;margin:2px 0 3px}.mrep b{color:#bbb}
+.mfile{display:inline-flex;gap:8px;align-items:center;background:#161616;border:1px solid #262626;border-radius:8px;padding:5px 10px;font-size:13px;margin-top:3px}.mfile span{color:#777;font-size:11px}.mfile a{color:#a78bfa;cursor:pointer;font-size:12px}
+.macts{display:none;position:absolute;right:8px;top:-8px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px}.mrow:hover .macts{display:flex}
+.macts button{background:none;border:0;color:#aaa;padding:2px 8px;font-size:13px}.macts button:hover{color:#fff;background:#262626}
+.chat-status{padding:6px 22px 4px;color:#777;font-style:italic;font-size:12px}
+.composer{margin:0 22px 18px;background:#1a1a1a;border:1px solid #262626;border-radius:12px;padding:10px 12px;position:relative}
+.composer:focus-within{border-color:#3a3a3a}
+.composer textarea{width:100%!important;background:transparent!important;border:0!important;color:#fff;font-size:14px;resize:none;outline:none!important;padding:4px 2px!important;max-height:160px}
+.composer textarea::placeholder{color:#777}
+.creply{font-size:12px;color:#999;background:#141414;border-radius:6px;padding:4px 8px;margin-bottom:6px}.creply a{cursor:pointer;margin-left:6px;color:#888}
+.ctools{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.ctools .ti,.ctools .tr2{display:flex;align-items:center;gap:1px}
+.ctools button{background:none;border:0;color:#9a9a9a;font-size:14px;padding:4px 6px;border-radius:6px;cursor:pointer}.ctools button:hover{background:#262626;color:#fff}
+.ctools .sendb{background:#7c3aed;color:#fff;border-radius:7px 0 0 7px;padding:5px 12px;margin-left:6px;font-size:13px}.ctools .sendb:hover{background:#6d28d9}
+.ctools .sendc{background:#7c3aed;color:#fff;border-radius:0 7px 7px 0;padding:5px 7px;border-left:1px solid #5b21b6;font-size:11px}.ctools .sendc:hover{background:#6d28d9}
+.cpop{display:none;position:absolute;bottom:calc(100% + 6px);left:12px;background:#1a1a1a;border:1px solid #2f2f2f;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.6);padding:6px;z-index:50}
+.cpop.open{display:block}.cpop.right{left:auto;right:12px}
+#emojiPop.open{display:grid;grid-template-columns:repeat(6,1fr)}#emojiPop button{font-size:18px;background:none;border:0;padding:4px 6px;border-radius:6px}#emojiPop button:hover{background:#262626}
+.cpop.list div{padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;white-space:nowrap}.cpop.list div:hover{background:#262626}.cpop.list div.on{color:#c4b5fd}
+.cpop .ph2{font-size:10px;letter-spacing:.1em;color:#777;padding:6px 10px 2px;font-weight:700;cursor:default}.cpop .ph2:hover{background:none}
+#dotsPop{bottom:auto}
+.chat-strip{width:46px;flex:none;border-left:1px solid #1f1f1f;background:#0d0d0d;display:flex;flex-direction:column;align-items:center;padding-top:12px;gap:6px}
+.chat-strip button{background:none;border:0;color:#999;width:34px;height:34px;border-radius:8px;font-size:15px}.chat-strip button:hover{background:#1c1c1c;color:#fff}.chat-strip button.on{background:#231c3a;color:#c4b5fd}
+.chat-panel{width:290px;flex:none;border-left:1px solid #1f1f1f;background:#111;padding:14px;overflow-y:auto}
+.chat-panel .pt{font-weight:700;margin-bottom:10px}.chat-q{width:100%!important;margin-bottom:10px}
+.thr{border-bottom:1px solid #1f1f1f;padding:8px 0;font-size:13px}.thr .who{font-size:12px;color:#888}.thr .who b{color:#fff}.tre{color:#999;font-size:12px;margin-top:3px}
+.pk{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #1c1c1c;font-size:13px}.pk span{color:#888}.pk b{font-weight:600;text-align:right;word-break:break-word}
+.chat-embed{display:flex;flex-direction:column;height:calc(100vh - 170px);background:#0d0d0d;border:1px solid #1f1f1f;border-radius:10px;padding-top:6px}
+@media(max-width:900px){.chat-page{height:auto;min-height:calc(100vh - 60px)}.chat-feed{max-height:60vh}.chat-panel{position:fixed;right:46px;top:0;bottom:0;z-index:60}}
 /* date filter bar */
 .fbar{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin-bottom:18px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
 .fpills{display:flex;gap:6px;flex-wrap:wrap}
@@ -886,7 +943,7 @@ function render(){
   }[view];
   $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees, clients:vClients, tasks:vTasks}[view](t);
   ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah, personal:afterPersonal}[view] || (()=>{}))(t);
-  if (view === 'tasks') { const ed = document.querySelector('[data-edit], #cuAddIn'); if (ed) ed.focus(); }
+  if (view === 'tasks') { const ed = document.querySelector('[data-edit], #cuAddIn'); if (ed) ed.focus(); const cf2 = document.querySelector('.chat-feed'); if (cf2) { cf2.scrollTop = cf2.scrollHeight; const ci = document.getElementById('chatInput'); if (ci) chatGrow(ci); } }
 }
 
 function formulaCard(t){
@@ -1975,7 +2032,7 @@ const gLabel = g => (g.kind === 'done' ? '✅ ' : g.kind === 'closed' ? '⛔ ' :
 function vTasks(){
   const detail = cuPanelId && taskById(cuPanelId);
   const body = !cuSpaces.length ? cuWelcome() : detail ? cuDetail(detail) : cuMainArea();
-  return `<div class="cu-wrap"><aside class="cu-tree ${cuTreeOpen ? 'open' : ''}">${cuTree()}</aside><section class="cu-main ${detail ? 'has-detail' : ''}"><button class="btn sm ghost cu-treebtn" onclick="cuTreeOpen=!cuTreeOpen;render()">📂 Lists</button>${body}</section></div>${detail ? '' : '<button class="fab" onclick="cuQuickAdd()" title="Quick add task">+</button>'}`;
+  return `<div class="cu-wrap"><aside class="cu-tree ${cuTreeOpen ? 'open' : ''}">${cuTree()}</aside><section class="cu-main ${detail ? 'has-detail' : ''} ${!detail && (cuScope.type === 'dm' || cuScope.type === 'channel') ? 'chat' : ''}"><button class="btn sm ghost cu-treebtn" onclick="cuTreeOpen=!cuTreeOpen;render()">📂 Lists</button>${body}</section></div>${detail || cuScope.type === 'dm' || cuScope.type === 'channel' ? '' : '<button class="fab" onclick="cuQuickAdd()" title="Quick add task">+</button>'}`;
 }
 const cuWelcome = () => `<div class="cu-empty"><h2>Welcome to Tasks</h2><p class="muted">Organise work as Space › List › Task › Subtask. Client Spaces appear automatically when you invoice a client; Lists are always created by you with the + on a Space.</p>
   <button class="btn" onclick="cuSetupDefault()">Set up “Media Beem Agency” workspace</button> <button class="btn ghost" onclick="cuNodeForm('space')">Create a Space</button></div>`;
@@ -2007,7 +2064,7 @@ function cuMainArea(){
   const content = cuView === 'board' ? cuBoard(list) : cuView === 'calendar' ? cuCalendar(list) : cuView === 'team' ? cuTeam(list) : cuView === 'channel' ? cuChannel() : cuListView(list);
   return `${crumb}<div class="cu-tabs">${tabs.map(([k, n]) => `<button class="${cuView === k ? 'on' : ''}" onclick="cuView='${k}';render()">${n}</button>`).join('')}<button onclick="cuViewsForm()">+ View</button></div>${cuView === 'channel' ? '' : tool + fp}${content}`;
 }
-function cuGo(scope){ cuScope = scope; cuPanelId = null; Object.keys(cf).forEach(k => cf[k] = ''); cuTreeOpen = false; cuMenu = null; if (scope.type === 'mine' && !cuPerson && employees.some(e => !e.archived)) cuPerson = employees.filter(e => !e.archived)[0].id; render(); }
+function cuGo(scope){ cuScope = scope; chatTab = 'chat'; chatPanel = ''; chatReply = null; chatDraft = ''; chatSearch = ''; cuPanelId = null; Object.keys(cf).forEach(k => cf[k] = ''); cuTreeOpen = false; cuMenu = null; if (scope.type === 'mine' && !cuPerson && employees.some(e => !e.archived)) cuPerson = employees.filter(e => !e.archived)[0].id; render(); }
 function cuOpenList(id){ view = 'tasks'; cuView = cuView === 'channel' ? 'list' : cuView; cuGo({type:'list', id}); window.scrollTo(0, 0); }
 function goTasks(patch){ view = 'tasks'; cuScope = {type:'all'}; cuPanelId = null; Object.keys(cf).forEach(k => cf[k] = ''); Object.assign(cf, patch); cuView = 'list'; cuFilterOpen = true; render(); window.scrollTo(0, 0); }
 function cuJump(id){ const t = taskById(id); if (!t) return; view = 'tasks'; cuScope = {type:'list', id:t.listId}; Object.keys(cf).forEach(k => cf[k] = ''); cuPanelId = id; render(); }
@@ -2032,7 +2089,7 @@ function cuTree(){
   <div class="tr-sec"><span>SPACES</span><button title="New Space" onclick="cuNodeForm('space')">+</button></div>
   ${row('top ' + (cuScope.type === 'all' ? 'sel' : ''), '<span class="nm">☰ All Tasks</span>', "cuGo({type:'all'})")}
   ${row('top ' + (cuScope.type === 'mine' ? 'sel' : ''), '<span class="nm">👤 My Tasks</span>', "cuGo({type:'mine'})")}
-  ${favs.length ? `<div class="tr-sec"><span>FAVORITES</span></div>${favs.map(l => row('li fav ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `<span class="dot" style="background:${l.color}"></span><span class="nm">${esc(l.name)}</span>`, `cuOpenList('${l.id}')`)).join('')}` : ''}
+  ${favs.length || employees.some(e => e.chatFav) || cuChannels.some(c => c.fav) ? `<div class="tr-sec"><span>FAVORITES</span></div>${employees.filter(e => e.chatFav && !e.archived).map(e => row('dm ' + (cuScope.type === 'dm' && cuScope.id === e.id ? 'sel' : ''), `${cuAv(e.name, 18)}<span class="nm">${esc(e.name)}</span>`, `view='tasks';cuGo({type:'dm',id:'${e.id}'})`)).join('')}${cuChannels.filter(c => c.fav).map(c => row('ch ' + (cuScope.type === 'channel' && cuScope.id === c.id ? 'sel' : ''), `<span class="hash">#</span><span class="nm">${esc(c.name)}</span>`, `cuGo({type:'channel',id:'${c.id}'})`)).join('')}${favs.map(l => row('li fav ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `<span class="dot" style="background:${l.color}"></span><span class="nm">${esc(l.name)}</span>`, `cuOpenList('${l.id}')`)).join('')}` : ''}
   ${cuSpaces.map(sp => { const open = !cuCollapsed.has(sp.id);
     return `${row('sp', `<span class="sq" style="background:${sp.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">${esc(initials(sp.name))}</span><span class="nm">${esc(sp.name)}</span><span class="acts"><button title="New List" onclick="event.stopPropagation();cuNodeForm('list',null,'${sp.id}')">+</button><button title="New channel" onclick="event.stopPropagation();cuChannelForm('${sp.id}')">#</button><button title="New folder for client files" onclick="event.stopPropagation();resFolderForm('${sp.id}')">📁</button><button title="Edit Space" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">✎</button></span><span class="arr">${open ? '▾' : '▸'}</span>`, `cuToggle('${sp.id}')`)}
     ${open ? `${cuChannels.filter(c => c.spaceId === sp.id).map(c => row('ch ' + (cuScope.type === 'channel' && cuScope.id === c.id ? 'sel' : ''), `<span class="hash">#</span><span class="nm">${esc(c.name)}</span>${c.permanent ? '<span class="cnt" title="Permanent channel">🔒</span>' : ''}`, `cuGo({type:'channel',id:'${c.id}'})`)).join('')}
@@ -2135,6 +2192,13 @@ function resSaveLink(ev, fid){
   ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)), fo = resFolderById(fid); if (!fo || !/^https?:\/\//i.test(f.url)) { alert('Enter a link starting with http:// or https://'); return; }
   resFiles.push({id:uid(), folderId:fid, spaceId:fo.spaceId, kind:'link', name:f.name.trim(), url:f.url.trim(), size:0, type:'link', uploadedAt:new Date().toISOString(), by:cuAuthor}); save(); closeModal(); render(); toast('Link added');
 }
+function saveBlobAs(blob, name){
+  return (async () => {
+    try { const dl = window.claude ? await window.claude.use('downloads') : null; if (dl) { await dl.save({filename:name, data:blob}); toast('Saved'); return; } }
+    catch(e){ if (e && e.code === 'declined') return; if (e && e.code === 'rejected_extension') { toast('This file type can\'t be saved from the app viewer — open the app as a file to download it'); return; } }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+  })();
+}
 async function resDownload(id){
   const r = resFiles.find(x => x.id === id); if (!r) return; const blob = await idbGet(id); if (!blob) { toast('File data not found on this device'); return; }
   try { const dl = window.claude ? await window.claude.use('downloads') : null; if (dl) { await dl.save({filename:r.name, data:blob}); toast('Saved'); return; } }
@@ -2172,21 +2236,6 @@ function cuSaveChannel(ev, spId){
 function cuDelChannel(id){
   const ch = cuChannels.find(c => c.id === id); if (!ch || ch.permanent || !confirm('Delete #' + ch.name + ' and its messages?')) return;
   cuChanMsgs = cuChanMsgs.filter(m => m.channel_id !== id); cuChannels = cuChannels.filter(c => c.id !== id); cuScope = {type:'none'}; save(); render();
-}
-function cuChannelView(){
-  const ch = cuChannels.find(c => c.id === cuScope.id); if (!ch) { cuScope = {type:'none'}; return '<div class="cu-empty">Channel not found.</div>'; }
-  const sp = spaceById(ch.spaceId) || {}, cl = sp.clientId && clById(sp.clientId), name = cl ? cl.company : sp.name;
-  const ms = cuChanMsgs.filter(m => m.channel_id === ch.id).sort((a, b) => a.timestamp.localeCompare(b.timestamp)); let last = '';
-  return `<div class="cu-crumb"><span>${esc(sp.name || '')}</span><i>/</i><span class="cur"><span class="hash">#</span> ${esc(ch.name)}</span>${ch.permanent ? '<span class="muted">🔒 permanent</span>' : `<button class="tbtn" style="margin-left:auto;color:#ef4444" onclick="cuDelChannel('${ch.id}')">Delete channel</button>`}</div>
-    <div class="muted" style="margin-bottom:10px">${ch.permanent ? 'General updates and work chat for ' + esc(name) : 'Chat for #' + esc(ch.name) + ' in ' + esc(sp.name || '')}</div>
-    <div class="cu-chat"><div class="thread chat-feed">${ms.map(m => { const d = dayHeader(m.timestamp), hd = d !== last ? `<div class="cdiv"><span>${d}</span></div>` : ''; last = d;
-      return `${hd}<div class="act">${cuAv(m.author, 28)}<div><div class="who"><b>${esc(m.author)}</b> <span>${clockT(m.timestamp)}</span></div><div class="txt">${esc(m.text)}</div></div></div>`; }).join('') || '<div class="muted" style="padding:24px 0">No messages yet — post the first update.</div>'}</div>
-    <form class="msgform" onsubmit="cuSendChan(event,'${ch.id}')"><select name="author" style="width:110px!important">${['You', ...employees.filter(e => !e.archived).map(e => e.name)].map(a => `<option ${a === cuAuthor ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select><input name="text" placeholder="Message #${esc(ch.name)}" required autocomplete="off"><button class="addbtn">Send</button></form></div>`;
-}
-function cuSendChan(ev, chId){
-  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)), ch = cuChannels.find(c => c.id === chId); if (!ch || !f.text.trim()) return;
-  cuAuthor = f.author; cuChanMsgs.push({id:uid(), channel_id:chId, client_space_id:ch.spaceId, author:f.author, text:f.text.trim(), timestamp:new Date().toISOString()}); save(); render();
-  const i = document.querySelector('.msgform input[name=text]'); if (i) i.focus(); const feed = document.querySelector('.chat-feed'); if (feed) window.scrollTo(0, document.body.scrollHeight);
 }
 function cuRemoveTaskData(t){ cuSubs = cuSubs.filter(s => s.taskId !== t.id); cuComments = cuComments.filter(c => c.taskId !== t.id); cuTimeLogs = cuTimeLogs.filter(l => l.taskId !== t.id); cuTasks = cuTasks.filter(x => x.id !== t.id); if (cuPanelId === t.id) cuPanelId = null; }
 
@@ -2350,22 +2399,6 @@ function cuTeam(list){
 }
 
 /* ----- CHANNEL / DIRECT MESSAGES (saved on this device) ----- */
-function threadHtml(scope, placeholder){
-  const ms = cuMessages.filter(m => m.scope === scope).sort((a, b) => a.at.localeCompare(b.at));
-  let last = '';
-  return `<div class="thread">${ms.map(m => { const d = dayHeader(m.at), hd = d !== last ? `<div class="cdiv"><span>${d}</span></div>` : ''; last = d;
-    return `${hd}<div class="act">${cuAv(m.by, 28)}<div><div class="who"><b>${esc(m.by)}</b> <span>${clockT(m.at)}</span></div><div class="txt">${esc(m.text)}</div></div></div>`; }).join('') || '<div class="muted" style="padding:20px 0">No messages yet — say something.</div>'}</div>
-    <form class="msgform" onsubmit="cuSendMsg(event,'${scope}')"><input name="text" placeholder="${placeholder}" required autocomplete="off"><button class="addbtn">Send</button></form>`;
-}
-function cuSendMsg(ev, scope){ ev.preventDefault(); const t = new FormData(ev.target).get('text').trim(); if (!t) return; cuMessages.push({id:uid(), scope, at:new Date().toISOString(), by:'You', text:t}); save(); render(); const i = document.querySelector('.msgform input'); if (i) i.focus(); }
-function cuChannel(){
-  if (cuScope.type !== 'list') return '<div class="cu-empty"><p class="muted">Channels belong to a List. Open a List to chat about it.</p></div>';
-  return `<div class="cu-chat"><div class="muted" style="margin-bottom:8px;font-size:12px"># ${esc(listById(cuScope.id).name)} — messages for this list (stored on this device)</div>${threadHtml('list:' + cuScope.id, 'Message #' + esc(listById(cuScope.id).name))}</div>`;
-}
-function cuDmView(){
-  const e = empById(cuScope.id); if (!e) return '<div class="cu-empty">Contact not found.</div>';
-  return `<div class="cu-crumb"><span class="cur">${cuAv(e.name, 26)} ${esc(e.name)}</span><span class="muted">${esc(e.designation || '')} · direct messages are saved on this device only</span></div><div class="cu-chat">${threadHtml('dm:' + e.id, 'Message ' + esc(e.name))}</div>`;
-}
 function cuNewMsg(){
   const emps = employees.filter(e => !e.archived);
   if (!emps.length) { openModal('<h2>New message</h2><p style="margin-bottom:12px">Add employees first — they appear here as contacts.</p><div class="modal-actions"><button class="btn" onclick="closeModal()">OK</button></div>'); return; }
@@ -2373,6 +2406,118 @@ function cuNewMsg(){
     <p class="muted" style="font-size:12px">Messages are saved in this app only — nothing is sent to the person.</p><div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Send</button></div></form>`);
 }
 function cuSaveNewMsg(ev){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); cuMessages.push({id:uid(), scope:'dm:' + f.to, at:new Date().toISOString(), by:'You', text:f.text.trim()}); closeModal(); cuGo({type:'dm', id:f.to}); }
+
+/* ----- CHAT: direct messages, client channels, list channels (ClickUp-style, dark, no bubbles) ----- */
+let chatTab = 'chat', chatPanel = '', chatSearch = '', chatReply = null, chatEnterSends = true, chatDraft = '';
+const chatDayHidden = new Set();
+const avFor = (name, size = 34) => { const e = employees.find(x => x.name === name); return e && e.photo ? `<img class="av" src="${e.photo}" alt="" style="width:${size}px;height:${size}px;object-fit:cover">` : cuAv(name, size); };
+function chatCtx(){
+  const now = () => new Date().toISOString();
+  if (cuScope.type === 'dm') { const e = empById(cuScope.id); if (!e) return null;
+    return {kind:'dm', name:e.name, title:e.name, placeholder:'Write to ' + e.name, emp:e, raw:() => cuMessages.filter(m => m.scope === 'dm:' + e.id), add:(by, text, x) => cuMessages.push({id:uid(), scope:'dm:' + e.id, at:now(), by, text, ...x}),
+      tasks:() => cuTasks.filter(t => asgOf(t).includes(e.id)), fav:() => !!e.chatFav, toggleFav:() => { e.chatFav = !e.chatFav; }}; }
+  if (cuScope.type === 'channel') { const ch = cuChannels.find(c => c.id === cuScope.id); if (!ch) return null; const sp = spaceById(ch.spaceId) || {}, cl = sp.clientId ? clById(sp.clientId) : null;
+    return {kind:'channel', ch, sp, cl, name:ch.name, title:'#' + ch.name, placeholder:'Write to #' + ch.name, raw:() => cuChanMsgs.filter(m => m.channel_id === ch.id),
+      add:(by, text, x) => cuChanMsgs.push({id:uid(), channel_id:ch.id, client_space_id:ch.spaceId, author:by, text, timestamp:now(), ...x}),
+      tasks:() => cuTasks.filter(t => (listOf(t) || {}).spaceId === ch.spaceId), fav:() => !!ch.fav, toggleFav:() => { ch.fav = !ch.fav; }}; }
+  if (cuScope.type === 'list') { const l = listById(cuScope.id); if (!l) return null;
+    return {kind:'list', name:l.name, title:'#' + l.name, placeholder:'Write to #' + l.name, raw:() => cuMessages.filter(m => m.scope === 'list:' + l.id), add:(by, text, x) => cuMessages.push({id:uid(), scope:'list:' + l.id, at:now(), by, text, ...x}), tasks:() => cuTasks.filter(t => t.listId === l.id)}; }
+  return null;
+}
+const chatNorm = m => ({id:m.id, by:m.by || m.author, at:m.at || m.timestamp, text:m.text || '', file:m.file, replyTo:m.replyTo});
+const chatMsgs = ctx => ctx.raw().map(chatNorm).sort((a, b) => a.at.localeCompare(b.at));
+const chatText = t => esc(t).replace(/(@[A-Za-z]+(?: [A-Z][a-z]+)?)/g, '<span class="mention">$1</span>');
+const chatNow = () => new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}).toLowerCase();
+function chatDayToggle(k){ chatDayHidden.has(k) ? chatDayHidden.delete(k) : chatDayHidden.add(k); render(); }
+function chatThread(ctx, only){
+  const ms = only || chatMsgs(ctx), all = chatMsgs(ctx), byId = Object.fromEntries(all.map(m => [m.id, m]));
+  let html = '', lastDay = '', lastBy = '', lastT = 0;
+  ms.forEach(m => {
+    const dk = m.at.slice(0, 10), t = new Date(m.at).getTime(), hk = ctx.kind + dk;
+    if (dk !== lastDay) { html += `<div class="daydiv"><button class="daypill" title="Collapse / expand this day" onclick="chatDayToggle('${hk}')">${dayHeader(m.at)} ${chatDayHidden.has(hk) ? '▸' : '▾'}</button></div>`; lastDay = dk; lastBy = ''; }
+    if (chatDayHidden.has(hk)) return;
+    const cont = lastBy === m.by && t - lastT < 10 * 60000; lastBy = m.by; lastT = t;
+    const rep = m.replyTo && byId[m.replyTo];
+    const body = `${rep ? `<div class="mrep">↩ <b>${esc(rep.by)}</b> ${esc((rep.text || (rep.file ? rep.file.name : '')).slice(0, 80))}</div>` : ''}${m.text ? `<div class="mtxt">${chatText(m.text)}</div>` : ''}${m.file ? `<div class="mfile">📎 <b>${esc(m.file.name)}</b> <span>${fmtSize(m.file.size)}</span>${/^image/.test(m.file.type) ? `<a onclick="chatFilePreview('${m.file.id}')">Preview</a>` : ''}<a onclick="chatFileDownload('${m.file.id}')">Download</a></div>` : ''}`;
+    const acts = `<span class="macts"><button title="Reply" onclick="chatReply='${m.id}';render();document.getElementById('chatInput')&&document.getElementById('chatInput').focus()">↩</button><button title="Create a task from this message" onclick="chatToTask('${m.id}')">✅</button></span>`;
+    html += cont ? `<div class="mrow cont"><span class="mt">${clockT(m.at)}</span><div class="mb">${body}</div>${acts}</div>`
+      : `<div class="mrow first">${avFor(m.by, 36)}<div class="mb"><div class="mh"><b>${esc(m.by)}</b><span>${clockT(m.at)}</span></div>${body}</div>${acts}</div>`;
+  });
+  return html || '<div class="chat-none">No messages yet — say something.</div>';
+}
+function chatComposer(ctx){
+  const rep = chatReply ? chatMsgs(ctx).find(m => m.id === chatReply) : null;
+  const tb = (ic, title, fn) => `<button type="button" title="${title}" onclick="${fn}">${ic}</button>`;
+  return `${ctx.kind === 'dm' ? `<div class="chat-status">🌙 It's ${chatNow()} for ${esc(ctx.name)}.</div>` : ''}
+  <div class="composer">${rep ? `<div class="creply">↩ Replying to <b>${esc(rep.by)}</b>: ${esc((rep.text || '').slice(0, 80))} <a onclick="chatReply=null;render()">✕</a></div>` : ''}
+    <textarea id="chatInput" rows="1" placeholder="${esc(ctx.placeholder)}, press 'space' for AI, '/' for commands" oninput="chatDraft=this.value;chatGrow(this)" onkeydown="chatKey(event)">${esc(chatDraft)}</textarea>
+    <div class="ctools"><span class="ti">${tb('+', 'Attach a file', "chatAttach('')")}${tb('🌐', 'Insert a link', "chatIns('https://')")}${tb('🎨', 'Design', "chatNA('Design tools')")}${tb('📎', 'Attach a file', "chatAttach('')")}${tb('@', 'Mention someone', "chatPop('mentionPop')")}${tb('👤', 'Mention someone', "chatPop('mentionPop')")}${tb('😊', 'Emoji', "chatPop('emojiPop')")}${tb('📹', 'Video clip', "chatNA('Video clips')")}${tb('✅', 'Insert a checkmark', "chatIns('✅ ')")}${tb('📋', 'Create a task from this text', 'chatDraftToTask()')}${tb('🖼️', 'Attach an image', "chatAttach('image/*')")}</span>
+      <span class="tr2">${tb('🎙️', 'Voice message', "chatNA('Voice messages')")}<button class="sendb" title="Send" onclick="chatSend()">➤</button><button class="sendc" title="Send options" onclick="chatPop('sendPop')">▾</button></span></div>
+    <div class="cpop" id="emojiPop">${['😊', '👍', '🎉', '🔥', '🙏', '❤️', '😂', '✅', '👀', '💡', '📌', '🚀'].map(e => `<button type="button" onclick="chatIns('${e}')">${e}</button>`).join('')}</div>
+    <div class="cpop list" id="mentionPop">${employees.filter(e => !e.archived).map(e => `<div onclick="chatIns('@${esc(e.name).replace(/'/g, '')} ')">${cuAv(e.name, 18)} ${esc(e.name)}</div>`).join('') || '<div class="muted">No employees yet</div>'}</div>
+    <div class="cpop list right" id="sendPop"><div class="ph2">Send as</div>${['You', ...employees.filter(e => !e.archived).map(e => e.name)].map(a => `<div class="${a === cuAuthor ? 'on' : ''}" onclick="cuAuthor='${esc(a).replace(/'/g, '')}';chatPop('');render()">${a === cuAuthor ? '✓ ' : ''}${esc(a)}</div>`).join('')}<div class="ph2">Keyboard</div><div onclick="chatEnterSends=!chatEnterSends;chatPop('');render()">${chatEnterSends ? '✓ ' : ''}Enter sends (Shift+Enter = new line)</div><div onclick="chatEnterSends=false;chatPop('');render()">${!chatEnterSends ? '✓ ' : ''}Ctrl+Enter sends</div></div></div>`;
+}
+const chatPop = id => { document.querySelectorAll('.cpop').forEach(p => p.classList.toggle('open', p.id === id && !p.classList.contains('open'))); };
+const chatNA = what => toast(what + ' aren\'t available in this app');
+function chatIns(s){ const t = document.getElementById('chatInput'); if (!t) return; const a = t.selectionStart ?? t.value.length; t.value = t.value.slice(0, a) + s + t.value.slice(t.selectionEnd ?? a); t.focus(); t.selectionStart = t.selectionEnd = a + s.length; chatDraft = t.value; chatGrow(t); document.querySelectorAll('.cpop').forEach(p => p.classList.remove('open')); }
+function chatGrow(t){ t.style.height = 'auto'; t.style.height = Math.min(160, t.scrollHeight) + 'px'; }
+function chatKey(e){
+  if (e.key === 'Enter' && ((chatEnterSends && !e.shiftKey) || (!chatEnterSends && (e.ctrlKey || e.metaKey)))) { e.preventDefault(); chatSend(); }
+}
+function chatSend(){
+  const ctx = chatCtx(), t = document.getElementById('chatInput'); if (!ctx || !t) return; const text = t.value.trim(); if (!text) return;
+  if (/^\/task\b/i.test(text)) { chatDraft = ''; t.value = ''; cuQuickAdd({title:text.replace(/^\/task\s*/i, ''), assignee:ctx.emp ? ctx.emp.id : undefined}); return; }
+  ctx.add(cuAuthor, text, chatReply ? {replyTo:chatReply} : {}); chatReply = null; chatDraft = ''; save(); render();
+  const i = document.getElementById('chatInput'); if (i) i.focus();
+}
+function chatAttach(accept){ const inp = document.createElement('input'); inp.type = 'file'; if (accept) inp.accept = accept; inp.onchange = () => { if (inp.files[0]) chatSendFile(inp.files[0]); }; inp.click(); }
+async function chatSendFile(file){
+  const ctx = chatCtx(); if (!ctx) return; if (file.size > RES_MAX) { toast(file.name + ' is over ' + fmtSize(RES_MAX)); return; }
+  const id = uid(); try { await idbPut(id, file); } catch(e) { toast('Could not store the file — browser storage may be full'); return; }
+  ctx.add(cuAuthor, '', {file:{id, name:file.name, size:file.size, type:file.type || ''}, ...(chatReply ? {replyTo:chatReply} : {})}); chatReply = null; save(); render();
+}
+const chatFindFile = id => [...cuMessages, ...cuChanMsgs].map(m => m.file).find(f => f && f.id === id);
+async function chatFileDownload(id){ const f = chatFindFile(id); if (!f) return; const b = await idbGet(id); if (!b) { toast('File data not found on this device'); return; } saveBlobAs(b, f.name); }
+async function chatFilePreview(id){ const f = chatFindFile(id), b = f && await idbGet(id); if (!b) return; openModal(`<h2>${esc(f.name)}</h2><img src="${URL.createObjectURL(b)}" style="max-width:100%;max-height:70vh;display:block;margin:auto;border-radius:8px"><div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Close</button><button class="btn" onclick="chatFileDownload('${id}')">Download</button></div>`, 'xl'); }
+function chatToTask(mid){ const ctx = chatCtx(), m = ctx && chatMsgs(ctx).find(x => x.id === mid); if (m) cuQuickAdd({title:(m.text || (m.file ? m.file.name : '')).slice(0, 120), assignee:ctx.emp ? ctx.emp.id : undefined}); }
+function chatDraftToTask(){ const ctx = chatCtx(), t = document.getElementById('chatInput'); cuQuickAdd({title:(t ? t.value : '').trim().slice(0, 120), assignee:ctx && ctx.emp ? ctx.emp.id : undefined}); }
+
+function chatFullPage(ctx){
+  const tabs = [['chat', 'Chat'], ['calendar', 'Calendar'], ['tasks', 'Tasks']];
+  const isDm = ctx.kind === 'dm', fav = ctx.fav();
+  const icon = isDm ? avFor(ctx.name, 30) : '<span class="hashbig">#</span>';
+  const menu = `<div class="cpop list" id="dotsPop" style="left:0;top:100%"><div onclick="chatPop('');chatPanel='profile';render()">${isDm ? 'Show profile' : 'Channel details'}</div><div onclick="chatPop('');chatPanel='search';render()">Search conversation</div>${isDm ? `<div style="color:#ef4444" onclick="chatPop('');chatClear()">Clear conversation</div>` : ctx.ch.permanent ? '<div class="muted">🔒 Permanent channel</div>' : `<div style="color:#ef4444" onclick="chatPop('');cuDelChannel('${ctx.ch.id}')">Delete channel</div>`}</div>`;
+  const panel = chatPanel ? `<div class="chat-panel">${chatPanelHtml(ctx)}</div>` : '';
+  let body;
+  if (chatTab === 'calendar') body = `<div class="chat-pad">${cuCalendar(ctx.tasks())}</div>`;
+  else if (chatTab === 'tasks') body = `<div class="chat-pad">${chatTasks(ctx)}</div>`;
+  else body = `<div class="chat-feed">${chatThread(ctx)}</div>${chatComposer(ctx)}`;
+  return `<div class="chat-page"><div class="chat-main">
+    <div class="chat-head"><div class="chat-id">${icon}<b>${esc(ctx.title)}</b><span style="position:relative"><button class="ibtn" title="Menu" onclick="chatPop('dotsPop')">···</button>${menu}</span><button class="ibtn star ${fav ? 'on' : ''}" title="Favorite" onclick="chatFav()">${fav ? '★' : '☆'}</button></div>
+      <div class="chat-right"><button class="ibtn pill" onclick="chatNA('Calls')">📞 ▾</button><button class="ibtn pill" onclick="chatNA('AI features')">Brain²</button><button class="ibtn pill" onclick="chatPanel=chatPanel==='profile'?'':'profile';render()">Show profile</button></div></div>
+    <div class="chat-tabs">${tabs.map(([k, n]) => `<button class="${chatTab === k ? 'on' : ''}" onclick="chatTab='${k}';render()">${n}</button>`).join('')}<button onclick="chatViewsForm()">+ View</button></div>
+    ${!isDm && ctx.cl && chatTab === 'chat' ? `<div class="chat-sub">General updates and work chat for ${esc(ctx.cl.company)}</div>` : !isDm && chatTab === 'chat' ? `<div class="chat-sub">Chat for ${esc(ctx.title)} in ${esc(ctx.sp.name || '')}</div>` : ''}
+    ${body}</div>
+    ${panel}<div class="chat-strip"><button class="${chatPanel === 'search' ? 'on' : ''}" title="Search" onclick="chatPanel=chatPanel==='search'?'':'search';render()">🔍</button><button class="${chatPanel === 'threads' ? 'on' : ''}" title="Threads & replies" onclick="chatPanel=chatPanel==='threads'?'':'threads';render()">↩</button><button class="${chatPanel === 'profile' ? 'on' : ''}" title="Profile" onclick="chatPanel=chatPanel==='profile'?'':'profile';render()">👤</button></div></div>`;
+}
+const chatFav = () => { const c = chatCtx(); if (c) { c.toggleFav(); save(); render(); } };
+function chatViewsForm(){ openModal(`<h2>Views</h2>${[['chat', '💬 Chat', 'The conversation'], ['calendar', '📅 Calendar', 'Their tasks by due date'], ['tasks', '✅ Tasks', 'Their open tasks']].map(([k, n, d]) => `<div class="tx" style="cursor:pointer" onclick="chatTab='${k}';closeModal();render()"><div><div class="t1">${n}</div><div class="t2">${d}</div></div></div>`).join('')}<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Close</button></div>`); }
+function chatClear(){ const ctx = chatCtx(); if (!ctx || ctx.kind !== 'dm' || !confirm('Clear the whole conversation with ' + ctx.name + '?')) return; cuMessages = cuMessages.filter(m => m.scope !== 'dm:' + ctx.emp.id); save(); render(); }
+function chatTasks(ctx){
+  const ts = ctx.tasks().sort((a, b) => (isOpenT(b) - isOpenT(a)) || (a.due || '9').localeCompare(b.due || '9'));
+  return ts.length ? `<div class="rtable">${ts.map(t => `<div class="rrow" style="cursor:pointer" onclick="cuOpen('${t.id}')"><span class="spill" style="background:${statusOf(t).color}">${esc(statusOf(t).name)}</span><div class="rn"><b>${esc(t.title)}</b><div class="muted" style="font-size:11px">${esc((listOf(t) || {}).name || '')}</div></div><span class="cdue ${isOverdueT(t) ? 'od' : isTodayT(t) ? 'td' : ''}">${t.due ? fdate(t.due) : ''}</span>${flag(t.priority, false)}${stack(t, 20)}</div>`).join('')}</div>` : '<div class="chat-none">No tasks yet.</div>';
+}
+function chatPanelHtml(ctx){
+  if (chatPanel === 'search') { const q = chatSearch.toLowerCase(); return `<div class="pt">Search</div><input class="chat-q" placeholder="Search this conversation" value="${esc(chatSearch)}" oninput="chatSearch=this.value;document.getElementById('chatRes').innerHTML=chatSearchRes()"><div id="chatRes">${chatSearchRes()}</div>`; }
+  if (chatPanel === 'threads') { const ms = chatMsgs(ctx), roots = ms.filter(m => ms.some(r => r.replyTo === m.id)); return `<div class="pt">Threads</div>${roots.map(m => `<div class="thr"><div class="who"><b>${esc(m.by)}</b> <span>${clockT(m.at)}</span></div><div>${esc(m.text.slice(0, 90))}</div>${ms.filter(r => r.replyTo === m.id).map(r => `<div class="tre">↩ <b>${esc(r.by)}</b> ${esc(r.text.slice(0, 80))}</div>`).join('')}</div>`).join('') || '<div class="muted" style="padding:8px 0;font-size:13px">No threads yet — use ↩ on a message to reply to it.</div>'}`; }
+  if (ctx.kind === 'dm') { const e = ctx.emp; return `<div class="pt">Profile</div><div style="text-align:center;margin:10px 0">${avFor(e.name, 64)}<div style="font-weight:700;margin-top:8px">${esc(e.name)}</div><div class="muted">${esc(e.designation || '')}</div></div>${[['Status', e.status], ['Type', e.type], ['Phone', e.phone], ['Email', e.email], ['Joined', e.joinDate && fdate(e.joinDate)], ['Open tasks', ctx.tasks().filter(isOpenT).length]].map(([l, v]) => `<div class="pk"><span>${l}</span><b>${esc(String(v ?? '') || '—')}</b></div>`).join('')}`; }
+  const cl = ctx.cl; return `<div class="pt">Channel details</div><div class="pk"><span>Channel</span><b>#${esc(ctx.ch.name)}</b></div><div class="pk"><span>Space</span><b>${esc(ctx.sp.name || '')}</b></div>${cl ? [['Client', cl.company], ['Contact', cl.contact], ['Phone', cl.phone], ['Email', cl.email], ['Status', cl.status], ['Type', CT_LABEL[cl.clientType]]].map(([l, v]) => `<div class="pk"><span>${l}</span><b>${esc(v || '—')}</b></div>`).join('') : ''}<div class="pk"><span>Messages</span><b>${ctx.raw().length}</b></div>`;
+}
+function chatSearchRes(){ const ctx = chatCtx(), q = chatSearch.toLowerCase().trim(); if (!ctx || !q) return '<div class="muted" style="padding:8px 0;font-size:13px">Type to search messages.</div>'; const r = chatMsgs(ctx).filter(m => (m.text + ' ' + m.by).toLowerCase().includes(q)).reverse(); return r.map(m => `<div class="thr"><div class="who"><b>${esc(m.by)}</b> <span>${fdate(m.at.slice(0, 10))} ${clockT(m.at)}</span></div><div>${esc(m.text.slice(0, 120))}</div></div>`).join('') || '<div class="muted" style="padding:8px 0;font-size:13px">No matches.</div>'; }
+function cuDmView(){ const ctx = chatCtx(); return ctx ? chatFullPage(ctx) : '<div class="cu-empty">Contact not found.</div>'; }
+function cuChannelView(){ const ctx = chatCtx(); if (!ctx) { cuScope = {type:'none'}; return '<div class="cu-empty">Channel not found.</div>'; } return chatFullPage(ctx); }
+function cuChannel(){ const ctx = chatCtx(); if (!ctx) return ''; return `<div class="chat-embed"><div class="chat-feed">${chatThread(ctx)}</div>${chatComposer(ctx)}</div>`; }
+
 
 /* ----- TASK DETAIL: full page + comments panel ----- */
 function cuOpen(id){ cuPanelId = id; cuLogOpen = false; cuMenu = null; render(); window.scrollTo(0, 0); }
