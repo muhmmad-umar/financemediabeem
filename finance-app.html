@@ -87,6 +87,20 @@ main{margin-left:240px;flex:1;padding:26px 30px 50px;min-width:0}
 .rem-rows{margin:12px 0}.rem-rows>div{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px}
 .rem-rows span{color:var(--muted)}
 .b-due{background:#fde68a;color:#92400e}.b-upcoming{background:#e0f2fe;color:#075985}
+.modal.xl{max-width:760px}
+.av{border-radius:50%;display:inline-grid;place-items:center;color:#fff;font-weight:700;overflow:hidden;flex:none;object-fit:cover}
+.emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.emp-card{cursor:pointer}.emp-card:hover{transform:translateY(-2px)}
+.emp-head{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.emp-meta{display:flex;justify-content:space-between;font-size:13px;margin:6px 0}
+.emp-meta span{color:var(--muted)}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px 20px}
+.kv div span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:3px}
+.kv div b{font-weight:600;word-break:break-word}
+.sec-t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin:16px 0 10px;grid-column:1/-1}
+.b-active{background:#dcfce7;color:#166534}.b-leave{background:#fef3c7;color:#92400e}.b-resigned{background:#e2e8f0;color:#475569}.b-terminated{background:#fee2e2;color:#991b1b}
+.profile-head{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.profile-head .grow{flex:1;min-width:200px}
 /* date filter bar */
 .fbar{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin-bottom:18px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
 .fpills{display:flex;gap:6px;flex-wrap:wrap}
@@ -235,6 +249,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
     <button data-view="invoices">🧾 Invoices</button>
     <button data-view="allah" class="allah">🤲 Allah's Share</button>
     <button data-view="reports">📈 Reports</button>
+    <button data-view="employees">🧑‍💼 Employees</button>
     <div class="nav-sep">Personal</div>
     <button data-view="personal" class="personal">👤 Personal Finance</button>
   </nav>
@@ -260,7 +275,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
 /* ========= Config & storage ========= */
 const ALLAH_RATE = 0.10;
 const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses', exp:'expenses',
-  pe:'personal_expenses', pi:'personal_income', pw:'personal_withdrawals', ra:'recurring_alerts'};
+  pe:'personal_expenses', pi:'personal_income', pw:'personal_withdrawals', ra:'recurring_alerts', emp:'employees', sp:'salary_payments', el:'employee_leaves'};
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } };
 const save = () => {
   syncIncome();
@@ -273,10 +288,14 @@ const save = () => {
     localStorage.setItem(K.pi, JSON.stringify(personalInc));
     localStorage.setItem(K.pw, JSON.stringify(personalWd));
     localStorage.setItem(K.ra, JSON.stringify(recurring));
+    localStorage.setItem(K.emp, JSON.stringify(employees));
+    localStorage.setItem(K.sp, JSON.stringify(salaryPay));
+    localStorage.setItem(K.el, JSON.stringify(empLeaves));
   } catch(e){ toast('Could not save to localStorage'); }
 };
 let income, invoices, charity, expenses;
 let personalExp = [], personalInc = [], personalWd = [];
+let employees = [], salaryPay = [], empLeaves = [];   // Employees section: profiles, salary payments, leave log
 let recurring = [];   // recurring invoice reminders: {client_name, frequency_days, last_invoice_date, next_alert_date, active, last_amount}   // Personal Finance: separate world, never used by agency maths
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
@@ -335,7 +354,7 @@ const DATA_VERSION = '4';
 function init(){
   let ver = null; try { ver = localStorage.getItem('data_version'); } catch(e){}
   if (!ver) {   // first run: start completely empty, clearing any pre-loaded data
-    income = []; invoices = []; charity = []; expenses = []; personalExp = []; personalInc = []; personalWd = []; recurring = [];
+    income = []; invoices = []; charity = []; expenses = []; personalExp = []; personalInc = []; personalWd = []; recurring = []; employees = []; salaryPay = []; empLeaves = [];
     save(); try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
     return;
   }
@@ -358,6 +377,7 @@ function init(){
     });
     save(); try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
   }
+  [employees, salaryPay, empLeaves] = [load(K.emp), load(K.sp), load(K.el)].map(a => Array.isArray(a) ? a : []);
   const ra = load(K.ra);
   if (Array.isArray(ra)) recurring = ra;
   else { recurring = []; [...invoices].sort((a, b) => a.date.localeCompare(b.date)).forEach(recOnInvoice); save(); }   // first time: build reminders from existing invoices
@@ -523,6 +543,7 @@ const meta = {
   invoices:['Invoices','Every income entry is an invoice — only payments received count as income'],
   allah:["Allah's Share Tracker","10% of net profit (income − expenses) — tracked until fully paid"],
   personal:['Personal Finance','Your own money — completely separate from the agency'],
+  employees:['Employees','Profiles, salaries and leave — salaries paid flow into agency expenses'],
   reports:['Reports',"Monthly breakdown, cumulative Allah's Share and top clients"],
 };
 
@@ -541,9 +562,10 @@ function render(){
     invoices:'<button class="btn" onclick="invoiceForm()">+ New Invoice</button>',
     allah:'<button class="btn gold" onclick="charityForm()">Record Allah\'s Share Payment</button>',
     reports:'',
-    personal:personalActions()
+    personal:personalActions(),
+    employees: empSel ? '' : '<button class="btn" onclick="empForm()">+ Add Employee</button>'
   }[view];
-  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal}[view](t);
+  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees}[view](t);
   ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah, personal:afterPersonal}[view] || (()=>{}))(t);
 }
 
@@ -692,7 +714,7 @@ function vExpenses(t){
   <div class="card"><div class="muted" style="margin-bottom:10px">${Object.entries(byCat).sort((a,b) => b[1]-a[1]).map(([c,v]) => `${esc(c)}: <b>${fmt(v)}</b>`).join(' · ')}</div>
   <div class="tablewrap"><table>
     <thead><tr><th>Date</th><th>Category</th><th>Description</th><th class="num">Amount</th><th></th></tr></thead>
-    <tbody>${list.map(e => `<tr><td>${fdate(e.date)}</td><td>${esc(e.category)}</td><td>${esc(e.description)}</td><td class="num"><b>${fmt(e.amount)}</b></td><td class="num"><button class="btn sm danger" onclick="delExpense('${e.id}')">✕</button></td></tr>`).join('') || '<tr><td colspan="5" class="empty">No expenses in this period</td></tr>'}</tbody>
+    <tbody>${list.map(e => `<tr><td>${fdate(e.date)}</td><td>${esc(e.category)}</td><td>${esc(e.description)}</td><td class="num"><b>${fmt(e.amount)}</b></td><td class="num">${e.employee_id ? '<span class="muted" title="Remove it from the employee\'s Salary History">via Employees</span>' : `<button class="btn sm danger" onclick="delExpense('${e.id}')">✕</button>`}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">No expenses in this period</td></tr>'}</tbody>
   </table></div></div>`;
 }
 function expenseForm(){
@@ -1136,12 +1158,223 @@ function pDel(kind, id){
   save(); render();
 }
 
+/* ========= Employees ========= */
+const EMP_TYPES = ['Full Time','Part Time','Freelancer','Intern'];
+const EMP_STATUS = ['Active','On Leave','Resigned','Terminated'];
+const PAY_METHODS = ['Bank Transfer','Cash','EasyPaisa','JazzCash'];
+const SAL_TYPES = ['Fixed','Hourly','Per Project'];
+const LEAVE_TYPES = ['Sick','Annual','Unpaid','WFH'];
+let empSel = null, empTab = 'overview', bankShown = false, _empPhoto;
+const ef = {q:'', f:'all'};
+const empById = id => employees.find(e => e.id === id);
+const curMonth = () => today().slice(0, 7);
+const monthName = m => new Date(m + '-01T00:00:00').toLocaleDateString('en-US', {month:'long', year:'numeric'});
+const onPayroll = e => !e.archived && (e.status === 'Active' || e.status === 'On Leave');
+const empPayments = (id, m) => salaryPay.filter(p => p.employee_id === id && (!m || p.month === m));
+function payDueDate(e, m){ const [y, mo] = m.split('-').map(Number), last = new Date(y, mo, 0).getDate(); return m + '-' + String(Math.min(+e.payDay || 1, last)).padStart(2, '0'); }
+/* paid = a salary payment has been recorded for this month; overdue = past this month's pay date and still unpaid */
+function empMonthStatus(e){
+  const m = curMonth();
+  if (empPayments(e.id, m).length) return 'paid';
+  if (!onPayroll(e) || (e.joinDate && e.joinDate.slice(0, 7) > m)) return 'na';
+  const due = payDueDate(e, m);
+  return today() > due && !(e.joinDate && e.joinDate > due) ? 'overdue' : 'unpaid';   // joined after this month's pay date → not overdue yet
+}
+const payBadge = st => ({paid:'<span class="badge b-paid">Paid</span>', overdue:'<span class="badge b-overdue">Overdue</span>', unpaid:'<span class="badge b-unpaid">Unpaid</span>', na:'<span class="muted">—</span>'}[st]);
+const stBadge = st => `<span class="badge b-${({'Active':'active','On Leave':'leave','Resigned':'resigned','Terminated':'terminated'})[st] || 'resigned'}">${esc(st)}</span>`;
+function avatar(e, size = 44){
+  if (e.photo) return `<img class="av" src="${e.photo}" alt="" style="width:${size}px;height:${size}px">`;
+  const ini = e.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase(), hue = [...e.name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 0);
+  return `<span class="av" style="width:${size}px;height:${size}px;font-size:${size * .38}px;background:hsl(${hue} 45% 42%)">${esc(ini)}</span>`;
+}
+function empStats(){
+  const pay = employees.filter(onPayroll), m = curMonth();
+  return {active: employees.filter(e => !e.archived && e.status === 'Active').length, bill: sum(pay, e => +e.salary || 0),
+    paid: sum(salaryPay.filter(p => p.month === m), p => p.amount),
+    pending: sum(pay.filter(e => ['unpaid', 'overdue'].includes(empMonthStatus(e))), e => +e.salary || 0)};
+}
+const maskNum = v => !v ? '—' : v.length <= 4 ? '••••' : '•'.repeat(Math.min(12, v.length - 4)) + v.slice(-4);
+
+function vEmployees(){ return empSel && empById(empSel) ? vEmpProfile(empById(empSel)) : vEmpList(); }
+
+function vEmpList(){
+  const st = empStats(), q = ef.q.toLowerCase();
+  const list = employees.filter(e => {
+    if (ef.f === 'archived') return e.archived;
+    if (e.archived) return false;
+    return (ef.f === 'all' || (ef.f === 'active' && e.status === 'Active') || (ef.f === 'leave' && e.status === 'On Leave') || (ef.f === 'freelancer' && e.type === 'Freelancer') || (ef.f === 'unpaid' && ['unpaid', 'overdue'].includes(empMonthStatus(e))))
+      && (!q || (e.name + ' ' + e.designation).toLowerCase().includes(q));
+  }).sort((a, b) => a.name.localeCompare(b.name));
+  const exps = expensesIn().filter(x => x.employee_id).sort((a, b) => b.date.localeCompare(a.date));
+  return `
+  <div class="card ppanel" style="margin-bottom:16px;border-top-color:var(--teal)">
+    <h3>🧑‍💼 Employee Overview · ${monthName(curMonth())}</h3>
+    <div class="trk-row"><span>Total Employees (Active):</span><b>${st.active}</b></div>
+    <div class="trk-row"><span>Total Monthly Salary Bill:</span><b>${fmt(st.bill)}</b></div>
+    <div class="trk-row"><span>Salaries Paid This Month:</span><b style="color:var(--green)">${fmt(st.paid)}</b></div>
+    <div class="trk-row last"><span>Salaries Pending This Month:</span><b style="color:${st.pending ? 'var(--red)' : 'var(--muted)'}">${fmt(st.pending)}</b></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="filters" style="margin-bottom:10px"><input placeholder="Search by name or role…" value="${esc(ef.q)}" oninput="ef.q=this.value;renderKeep(this)"></div>
+    <div class="fpills">${[['all','All'],['active','Active'],['leave','On Leave'],['freelancer','Freelancer'],['unpaid','Unpaid This Month'],['archived','Archived']].map(([k, l]) => `<button class="${ef.f === k ? 'on' : ''}" onclick="ef.f='${k}';render()">${l}</button>`).join('')}</div>
+  </div>
+  <div class="emp-grid">${list.map(e => { const ms = empMonthStatus(e); return `
+    <div class="card emp-card" onclick="openEmp('${e.id}')">
+      <div class="emp-head">${avatar(e)}<div style="flex:1;min-width:0"><b style="font-size:15px">${esc(e.name)}</b><div class="muted">${esc(e.designation || '—')} · ${esc(e.type)}</div></div>${stBadge(e.status)}</div>
+      <div class="emp-meta"><span>Salary</span><b>${fmt(e.salary)} <span class="muted" style="font-weight:400">/ ${esc(e.salaryType === 'Fixed' ? 'month' : e.salaryType.toLowerCase())}</span></b></div>
+      <div class="emp-meta"><span>${monthName(curMonth())}</span>${payBadge(ms)}</div>
+      ${['unpaid', 'overdue'].includes(ms) ? `<div class="inv-actions" style="margin-top:10px"><button class="btn sm" onclick="event.stopPropagation();salaryForm('${e.id}')">Mark Paid</button></div>` : ''}
+    </div>`; }).join('') || '<div class="card empty" style="grid-column:1/-1">No employees found — click “+ Add Employee”.</div>'}</div>
+  <div class="card" style="margin-top:16px"><h3>Salary expense entries · ${periodLabel()}</h3>
+    <div class="muted" style="margin-bottom:10px">Each paid salary is added to Agency Expenses (category “Salaries”), so it reduces Net Profit and Allah's Share. Total <b>${fmt(sum(exps, x => x.amount))}</b></div>
+    <div class="tablewrap"><table><thead><tr><th>Date</th><th>Employee</th><th>Description</th><th class="num">Amount</th></tr></thead>
+      <tbody>${exps.map(x => `<tr><td>${fdate(x.date)}</td><td><b>${esc((empById(x.employee_id) || {}).name || 'Removed employee')}</b></td><td>${esc(x.description)}</td><td class="num"><b>${fmt(x.amount)}</b></td></tr>`).join('') || '<tr><td colspan="4" class="empty">No salary expenses in this period</td></tr>'}</tbody></table></div></div>`;
+}
+function openEmp(id){ empSel = id; empTab = 'overview'; bankShown = false; render(); window.scrollTo(0, 0); }
+function backEmp(){ empSel = null; bankShown = false; render(); }
+const setEmpTab = t => { empTab = t; if (t !== 'bank') bankShown = false; render(); };
+
+function vEmpProfile(e){
+  const tabs = [['overview', 'Overview'], ['bank', 'Bank Details'], ['salary', 'Salary History'], ['leave', 'Leave & Absence'], ['notes', 'Notes']];
+  const body = {overview:empOverview, bank:empBank, salary:empSalary, leave:empLeave, notes:empNotes}[empTab](e);
+  return `<button class="btn ghost sm" onclick="backEmp()" style="margin-bottom:12px">← All employees</button>
+  <div class="card" style="margin-bottom:16px"><div class="profile-head">${avatar(e, 72)}
+    <div class="grow"><h2 style="font-size:22px">${esc(e.name)}</h2><div class="muted">${esc(e.designation || '—')} · ${esc(e.type)}</div><div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${stBadge(e.status)} ${e.archived ? '<span class="badge b-draft">Archived</span>' : ''} ${payBadge(empMonthStatus(e))} <span class="muted" style="font-size:12px">${monthName(curMonth())}</span></div></div>
+    <div class="inv-actions"><button class="btn sm" onclick="salaryForm('${e.id}')">Record Salary</button><button class="btn sm ghost" onclick="empForm('${e.id}')">Edit</button>
+      <button class="btn sm ghost" onclick="archiveEmp('${e.id}')">${e.archived ? 'Unarchive' : 'Archive'}</button><button class="btn sm danger" onclick="delEmp('${e.id}')">Delete</button></div></div></div>
+  <div class="psub">${tabs.map(([k, l]) => `<button class="${empTab === k ? 'on' : ''}" style="color:${empTab === k ? '#fff' : 'var(--teal)'};border-color:#99d5cf;${empTab === k ? 'background:var(--teal)' : ''}" onclick="setEmpTab('${k}')">${l}</button>`).join('')}</div>${body}`;
+}
+const kv = (l, v) => `<div><span>${l}</span><b>${v ? esc(v) : '<span class="muted" style="display:inline;font-weight:400">—</span>'}</b></div>`;
+function empOverview(e){
+  return `<div class="card"><div class="kv">
+    <div class="sec-t">Employment</div>${kv('Designation', e.designation)}${kv('Employment type', e.type)}${kv('Join date', e.joinDate && fdate(e.joinDate))}${kv('Status', e.status)}
+    <div class="sec-t">Contact & personal</div>${kv('Phone', e.phone)}${kv('Personal email', e.email)}${kv('Address', e.address)}${kv('Emergency contact', e.emergencyName)}${kv('Emergency number', e.emergencyPhone)}${kv('CNIC', e.cnic)}${kv('Date of birth', e.dob && fdate(e.dob))}
+    <div class="sec-t">Salary</div>${kv('Monthly salary', fmt(e.salary))}${kv('Salary type', e.salaryType)}${kv('Payment date', 'Every ' + ordinal(e.payDay || 1) + ' of the month')}${kv('Payment method', e.payMethod)}
+  </div></div>`;
+}
+const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 >> 3 ^ 1 && n % 10) || 0] || 'th');
+function empBank(e){
+  const sh = bankShown;
+  return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px"><h3 style="margin:0">🔒 Bank / Payment Details</h3>
+      <button class="btn sm ${sh ? 'ghost' : ''}" onclick="bankShown=!bankShown;render()">${sh ? 'Hide details' : 'Click to reveal'}</button></div>
+    <div class="kv">${kv('Bank name', e.bankName)}${kv('Account title', e.accountTitle)}${kv('Account number', sh ? e.accountNumber : maskNum(e.accountNumber))}${kv('IBAN', sh ? e.iban : maskNum(e.iban))}${kv('Payment method', e.payMethod)}</div>
+    <div class="muted" style="margin-top:14px;font-size:12px">Account numbers stay hidden until you reveal them, and are hidden again when you leave this tab.</div></div>`;
+}
+function empSalary(e){
+  const list = empPayments(e.id).filter(p => inRange(p.date)).sort((a, b) => b.date.localeCompare(a.date));
+  return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h3 style="margin:0">Salary History · ${periodLabel()}</h3><button class="btn sm" onclick="salaryForm('${e.id}')">+ Record Salary Payment</button></div>
+    <div class="muted" style="margin-bottom:10px">${list.length} payments · total paid <b>${fmt(sum(list, p => p.amount))}</b> · salary ${fmt(e.salary)}</div>
+    <div class="tablewrap"><table><thead><tr><th>Month</th><th>Date paid</th><th>Method</th><th>Notes</th><th class="num">Amount</th><th></th></tr></thead>
+      <tbody>${list.map(p => `<tr><td><b>${monthName(p.month)}</b></td><td>${fdate(p.date)}</td><td>${esc(p.method)}</td><td style="white-space:normal">${esc(p.notes)}</td><td class="num"><b>${fmt(p.amount)}</b></td><td class="num"><button class="btn sm danger" onclick="delSalary('${p.id}')">✕</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">No salary payments in this period</td></tr>'}</tbody></table></div></div>`;
+}
+function empLeave(e){
+  const list = empLeaves.filter(l => l.employee_id === e.id).sort((a, b) => b.date.localeCompare(a.date));
+  return `<div class="card"><h3>Leave & Absence Log</h3>
+    <form onsubmit="saveLeave(event,'${e.id}')" class="row2" style="grid-template-columns:150px 140px 1fr auto;align-items:end;margin-bottom:14px;gap:10px">
+      <div class="field" style="margin:0"><label>Date</label><input name="date" type="date" value="${today()}" required></div>
+      <div class="field" style="margin:0"><label>Type</label><select name="type">${LEAVE_TYPES.map(t => `<option>${t}</option>`).join('')}</select></div>
+      <div class="field" style="margin:0"><label>Notes</label><input name="notes"></div><button class="btn">Add</button></form>
+    <div class="tablewrap"><table><thead><tr><th>Date</th><th>Type</th><th>Notes</th><th></th></tr></thead>
+      <tbody>${list.map(l => `<tr><td>${fdate(l.date)}</td><td><b>${esc(l.type)}</b></td><td style="white-space:normal">${esc(l.notes)}</td><td class="num"><button class="btn sm danger" onclick="delLeave('${l.id}')">✕</button></td></tr>`).join('') || '<tr><td colspan="4" class="empty">No leave recorded</td></tr>'}</tbody></table></div></div>`;
+}
+function empNotes(e){
+  return `<div class="card"><h3>Notes</h3><textarea id="empNotes" rows="9" placeholder="Free-text notes about ${esc(e.name)}…">${esc(e.notes || '')}</textarea>
+    <div class="modal-actions"><button class="btn" onclick="saveEmpNotes('${e.id}')">Save notes</button></div></div>`;
+}
+function saveEmpNotes(id){ const e = empById(id); if (e) { e.notes = $('empNotes').value; save(); toast('Notes saved'); } }
+function saveLeave(ev, id){
+  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
+  empLeaves.push({id:uid(), employee_id:id, date:f.date, type:f.type, notes:(f.notes || '').trim()}); save(); render(); toast('Leave recorded');
+}
+function delLeave(id){ if (confirm('Delete this leave entry?')) { empLeaves = empLeaves.filter(l => l.id !== id); save(); render(); } }
+
+/* ----- salary payments → agency expense (category Salaries) ----- */
+function salaryForm(id){
+  const e = empById(id); if (!e) return;
+  const m = curMonth(), already = empPayments(id, m).length;
+  openModal(`<h2>Record Salary · ${esc(e.name)}</h2><form onsubmit="saveSalary(event,'${id}')">
+    <div class="hint">Saving marks the month as Paid and adds the amount to Agency Expenses under “Salaries”, reducing Net Profit and Allah's Share.</div>
+    ${already ? `<div class="hint" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af">A payment is already recorded for ${monthName(m)}. This will be an additional payment.</div>` : ''}
+    <div class="row2"><div class="field"><label>Salary month</label><input name="month" type="month" value="${m}" required></div>
+    <div class="field"><label>Amount Paid (₨)</label><input name="amount" type="number" min="1" step="any" value="${e.salary || ''}" required></div></div>
+    <div class="row2"><div class="field"><label>Date Paid</label><input name="date" type="date" value="${today()}" required></div>
+    <div class="field"><label>Payment method</label><select name="method">${PAY_METHODS.map(x => `<option ${x === e.payMethod ? 'selected' : ''}>${x}</option>`).join('')}</select></div></div>
+    <div class="field"><label>Notes</label><input name="notes" placeholder="e.g. included bonus, deducted 2 days leave"></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save payment</button></div></form>`);
+}
+function saveSalary(ev, id){
+  ev.preventDefault(); const e = empById(id); const f = Object.fromEntries(new FormData(ev.target));
+  if (!e || !(+f.amount > 0)) { alert('Enter the amount paid.'); return; }
+  const pid = uid(), xid = uid(), notes = (f.notes || '').trim();
+  salaryPay.push({id:pid, employee_id:id, month:f.month, amount:+f.amount, date:f.date, method:f.method, notes, expense_id:xid});
+  expenses.push({id:xid, date:f.date, category:'Salaries', description:'Salary – ' + e.name + ' (' + monthName(f.month) + ')' + (notes ? ' · ' + notes : ''), amount:+f.amount, employee_id:id, salary_payment_id:pid});
+  save(); closeModal(); render(); toast('Salary recorded · added to Agency Expenses');
+}
+function delSalary(pid){
+  if (!confirm('Delete this salary payment? Its Agency Expense entry is removed too, and the month becomes Unpaid.')) return;
+  const p = salaryPay.find(x => x.id === pid); if (!p) return;
+  salaryPay = salaryPay.filter(x => x.id !== pid); expenses = expenses.filter(x => x.id !== p.expense_id && x.salary_payment_id !== pid); save(); render();
+}
+
+/* ----- add / edit / archive / delete ----- */
+function empPhotoPick(input){
+  const file = input.files && input.files[0]; if (!file) return;
+  const img = new Image(), rd = new FileReader();
+  rd.onload = () => { img.onload = () => {
+    const c = document.createElement('canvas'), n = 160, r = Math.min(img.width, img.height); c.width = c.height = n;
+    c.getContext('2d').drawImage(img, (img.width - r) / 2, (img.height - r) / 2, r, r, 0, 0, n, n);
+    _empPhoto = c.toDataURL('image/jpeg', .8); $('empPhotoPrev').innerHTML = `<img class="av" src="${_empPhoto}" style="width:64px;height:64px">`;
+  }; img.src = rd.result; };
+  rd.readAsDataURL(file);
+}
+function empPhotoClear(){ _empPhoto = ''; $('empPhotoPrev').innerHTML = '<span class="av" style="width:64px;height:64px;background:#cbd5e1;font-size:24px">👤</span>'; }
+function empForm(id){
+  const e = id ? empById(id) : {status:'Active', type:'Full Time', payMethod:'Bank Transfer', salaryType:'Fixed', payDay:1, joinDate:today()};
+  _empPhoto = undefined;
+  const sel = (name, arr, cur) => `<select name="${name}">${arr.map(x => `<option ${x === cur ? 'selected' : ''}>${x}</option>`).join('')}</select>`;
+  const inp = (l, name, type = 'text', extra = '') => `<div class="field"><label>${l}</label><input name="${name}" type="${type}" value="${esc(e[name] ?? '')}" ${extra}></div>`;
+  openModal(`<h2>${id ? 'Edit Employee' : 'Add Employee'}</h2><form onsubmit="saveEmp(event,'${id || ''}')">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px"><span id="empPhotoPrev">${e.name ? avatar(e, 64) : '<span class="av" style="width:64px;height:64px;background:#cbd5e1;font-size:24px">👤</span>'}</span>
+      <div><label class="btn sm ghost" style="display:inline-block">Upload photo (optional)<input type="file" accept="image/*" onchange="empPhotoPick(this)" style="display:none"></label>${e.photo ? ' <button type="button" class="btn sm danger" onclick="empPhotoClear()">Remove</button>' : ''}<div class="muted" style="font-size:11px;margin-top:4px">Initials avatar is used when there is no photo.</div></div></div>
+    <div class="row2">${inp('Full Name', 'name', 'text', 'required')}${inp('Designation / Role', 'designation', 'text', 'placeholder="e.g. Video Editor"')}</div>
+    <div class="row2"><div class="field"><label>Employment Type</label>${sel('type', EMP_TYPES, e.type)}</div><div class="field"><label>Status</label>${sel('status', EMP_STATUS, e.status)}</div></div>
+    <div class="row2">${inp('Join Date', 'joinDate', 'date')}${inp('Date of Birth', 'dob', 'date')}</div>
+    <h3 style="margin:10px 0">Contact & personal</h3>
+    <div class="row2">${inp('Phone Number', 'phone', 'tel')}${inp('Personal Email', 'email', 'email')}</div>
+    ${inp('Address', 'address')}
+    <div class="row2">${inp('Emergency Contact Name', 'emergencyName')}${inp('Emergency Contact Number', 'emergencyPhone', 'tel')}</div>
+    ${inp('CNIC Number (optional)', 'cnic')}
+    <h3 style="margin:10px 0">Bank / payment details</h3>
+    <div class="row2">${inp('Bank Name', 'bankName')}${inp('Account Title', 'accountTitle')}</div>
+    <div class="row2">${inp('Account Number', 'accountNumber')}${inp('IBAN (optional)', 'iban')}</div>
+    <div class="field"><label>Payment Method</label>${sel('payMethod', PAY_METHODS, e.payMethod)}</div>
+    <h3 style="margin:10px 0">Salary</h3>
+    <div class="row2">${inp('Monthly Salary (PKR)', 'salary', 'number', 'min="0" step="any" required')}<div class="field"><label>Salary Type</label>${sel('salaryType', SAL_TYPES, e.salaryType)}</div></div>
+    <div class="field"><label>Payment date (day of month)</label><select name="payDay">${Array.from({length:31}, (_, i) => i + 1).map(d => `<option value="${d}" ${d === +e.payDay ? 'selected' : ''}>Every ${ordinal(d)}</option>`).join('')}</select></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">${id ? 'Save changes' : 'Add employee'}</button></div></form>`, 'xl');
+}
+function saveEmp(ev, id){
+  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
+  const data = {...f, name:f.name.trim(), salary:+f.salary || 0, payDay:+f.payDay || 1};
+  if (id) {
+    const e = empById(id); if (!e) return; Object.assign(e, data); if (_empPhoto !== undefined) e.photo = _empPhoto;
+  } else employees.push({id:uid(), notes:'', archived:false, photo:_empPhoto || '', ...data});
+  save(); closeModal(); render(); toast(id ? 'Employee updated' : 'Employee added');
+}
+function archiveEmp(id){ const e = empById(id); if (e) { e.archived = !e.archived; save(); render(); toast(e.archived ? 'Employee archived' : 'Employee restored'); } }
+function delEmp(id){
+  const e = empById(id); if (!e) return;
+  if (!confirm('Permanently delete ' + e.name + ' with their salary history and leave log?\n\nTheir past salary entries stay in Agency Expenses so your profit figures do not change. (Archive instead to keep the profile.)')) return;
+  employees = employees.filter(x => x.id !== id); salaryPay = salaryPay.filter(p => p.employee_id !== id); empLeaves = empLeaves.filter(l => l.employee_id !== id);
+  save(); empSel = null; render(); toast('Employee deleted');
+}
+
 /* ========= Wiring ========= */
 /* keep the app name out of the printed page header */
 let _title = document.title;
 window.addEventListener('beforeprint', () => { _title = document.title; document.title = ' '; });
 window.addEventListener('afterprint', () => { document.title = _title; });
-$('nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { view = b.dataset.view; $('sidebar').classList.remove('open'); $('scrim').classList.remove('open'); render(); window.scrollTo(0,0); } });
+$('nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { view = b.dataset.view; if (view === 'employees') { empSel = null; bankShown = false; } $('sidebar').classList.remove('open'); $('scrim').classList.remove('open'); render(); window.scrollTo(0,0); } });
 $('menuBtn').onclick = () => { $('sidebar').classList.add('open'); $('scrim').classList.add('open'); };
 $('scrim').onclick = () => { $('sidebar').classList.remove('open'); $('scrim').classList.remove('open'); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
