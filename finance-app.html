@@ -448,10 +448,137 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
   .g3,.g2{grid-template-columns:1fr}.stat .value{font-size:21px}.topbar h1{font-size:20px}
 }
 @media(max-width:520px){.g4{grid-template-columns:1fr}.row2{grid-template-columns:1fr}}
+/* ===================== ClickUp dark design system (visual layer only) ===================== */
+:root{color-scheme:dark;--teal:#7c3aed;--teal-d:#6d28d9;--navy:#06b6d4;--side:#1a1a1a;--gold:#d4a017;--gold-l:#4a3a10;--green:#22c55e;--green-l:#14532d;--bg:#0d0d0d;--card:#1e1e1e;--text:#ffffff;--muted:#888888;--line:#2a2a2a;--red:#ef4444;--amber:#f59e0b;--blue:#3b82f6}
+html,body{background:#0d0d0d}
+body{font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif;color:#ccc;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{color:#fff;font-weight:700}
+b,strong{color:inherit}
+/* transitions */
+.btn,.card,.nav button,.fpills button,.psub button,.tbtn,.tr-row,.ibtn,.cu-card,.kcard,.cald,.badge,input,select,textarea,.mi{transition:all .15s ease}
+/* scrollbars */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#0d0d0d}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#555}
+/* sidebar */
+.sidebar{background:#1a1a1a;border-right:1px solid #2a2a2a;color:#888}
+.brand{color:#fff}
+.brand small{color:#888!important}
+.nav button{color:#888;border-radius:6px;border-left:3px solid transparent;padding:9px 12px 9px 10px;filter:grayscale(1)}
+.nav button:hover{background:#252525;color:#fff;filter:none}
+.nav button.active,.nav button.allah.active,.nav button.personal.active{background:#2d2d3d;border-left-color:#7c3aed;color:#fff;filter:none}
+.nav button.allah.active{border-left-color:#d4a017}
+.nav button.allah,.nav button.personal{color:#888}
+.nav button.allah:hover,.nav button.personal:hover{background:#252525;color:#fff}
+.nav-sep{color:#666;letter-spacing:.14em}
+.nbadge{min-width:18px;text-align:center;padding:1px 6px;background:#ef4444;color:#fff;box-shadow:none}
+.menu-btn{background:#2d2d3d}
+/* main + headings */
+main{background:#0d0d0d}
+.topbar p,.muted{color:#888}
+.dsec,.sec-t,.nav-sep,.stat .label,th,.calh,.kv div span,.inv-nums span{color:#888}
+.sec-t{color:#888}
+/* cards */
+.card{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.card:hover{border-color:#3a3a3a;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.card.stat.teal{border-top:3px solid #7c3aed}.card.stat.navy{border-top:3px solid #06b6d4}.card.stat.amber{border-top:3px solid #f59e0b}
+.stat .value{color:#fff}
+.card.allah-card{background:linear-gradient(135deg,#14532d,#166534 55%,#a37507);border:0}
+.bar,.bar.light,.trk-bar,.catbar .tr{background:#2a2a2a}
+.bar.light>div{background:linear-gradient(90deg,#22c55e,#06b6d4)}
+.modal.wide{background:#1e1e1e}
+/* buttons */
+.btn{background:#7c3aed;color:#fff;border:1px solid transparent;border-radius:6px;padding:8px 16px;font-weight:500}
+.btn:hover{background:#7c3aed;filter:brightness(.9);transform:none}
+.btn.ghost{background:transparent;color:#fff;border:1px solid #3a3a3a}.btn.ghost:hover{background:#252525;filter:none}
+.btn.danger{background:#ef4444;color:#fff;border:1px solid transparent}.btn.danger:hover{background:#ef4444;filter:brightness(.9)}
+.btn.gold{background:#b8860b}.btn.gold:hover{background:#b8860b;filter:brightness(.9)}
+.btn.pv{background:#7c3aed}.btn.pv:hover{background:#7c3aed;filter:brightness(.9)}
+.btn.sm{padding:5px 10px;border-radius:6px}
+/* pills & badges */
+.badge{border-radius:999px;font-weight:600}
+.b-received,.b-paid,.b-active,.b-incFull,.b-obl{background:#14532d;color:#22c55e}
+.b-partial,.b-pending,.b-leave,.b-incPartial,.b-due,.b-vol{background:#451a03;color:#f59e0b;border:0}
+.b-overdue,.b-terminated{background:#450a0a;color:#ef4444}
+.b-draft,.b-unpaid,.b-resigned{background:#1f1f1f;color:#888}
+.b-upcoming{background:#083344;color:#06b6d4}
+.b-obl{background:#083344;color:#06b6d4}
+.vol-txt,.gold-txt{color:#f59e0b}
+/* inputs */
+input,select,textarea{background:#1a1a1a;border:1px solid #333;border-radius:6px;color:#fff}
+input::placeholder,textarea::placeholder{color:#555}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.25)}
+select option{background:#1a1a1a;color:#fff}
+.field label,.fcustom label{color:#888}
+/* tables */
+th{border-bottom:1px solid #2a2a2a}
+td{border-bottom:1px solid #2a2a2a;color:#ccc}
+tr:hover td{background:#252525}
+.inv-sheet tr:hover td{background:transparent}
+.inv-sheet,.inv-sheet td{color:#0f172a}.inv-sheet th{color:#64748b}.inv-sheet b{color:inherit}
+tfoot td{border-top:1px solid #2a2a2a}
+.tx{border-bottom-color:#2a2a2a}
+.tx .t2{color:#888}
+.empty{color:#888}
+/* modal */
+.overlay{background:rgba(0,0,0,.7)}
+.overlay.open{animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:12px;color:#ccc;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.modal h2{color:#fff}
+.modal.wide{padding:14px}
+.hint{background:#2a2210;border:1px solid #4a3a10;color:#f4c542}
+.toast{background:#2d2d3d;border:1px solid #3a3a3a;color:#fff}
+/* date filter bar */
+.fbar{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px}
+.fpills button{background:#1a1a1a;border:1px solid #2a2a2a;color:#888}
+.fpills button:hover{background:#252525;color:#fff}
+.fpills button.on{background:#7c3aed;border-color:#7c3aed;color:#fff;box-shadow:none}
+.fcur{color:#fff}
+/* personal / tabs / banners */
+.pbanner{background:#241b45;border:1px solid #4c3a8a;color:#c4b5fd}
+.psub button{background:#1a1a1a;border:1px solid #2a2a2a;color:#888}
+.psub button:hover{background:#252525;color:#fff}
+.psub button.on{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.ppanel{border-top:3px solid #7c3aed}
+/* reminders */
+.rem-card{background:#1a1a1a;border:1px solid #2a2a2a}
+.rem-card.due{background:#2a2210;border-color:#78560f}.rem-card.overdue{background:#2a1214;border-color:#7f1d1d}
+/* tracker / allah's share */
+.trk-row{border-bottom-color:#2a2a2a}
+.trk-row.vol{background:#2a2210;border-color:#78560f;color:#f4c542}.trk-row.vol small{color:#d9a441}.trk-row.vol b{color:#f59e0b}
+.trk-row.total b{color:#22c55e}
+.trk-hr{border-top-color:#2a2a2a}
+.quote{background:#241f10;color:#e9c46a;border-left-color:#d4a017}.quote span{color:#b8913a}
+.ptype label{background:#1a1a1a;border-color:#333}
+.ptype label small{color:#888}
+.ptype label.on{border-color:#06b6d4;background:#082f3a}
+.ptype label:nth-child(2).on{border-color:#d4a017;background:#2a2210}
+.ptype.ct label.on{border-color:#555;background:#222}
+.ptype.ct label:nth-child(2).on{border-color:#22c55e;background:#10281a}
+.ptype.ct label span:before{color:#666}.ptype.ct label.on span:before{color:#22c55e}.ptype.ct label:first-child.on span:before{color:#888}
+/* formula */
+.fbox{background:#1a1a1a;border:1px solid #2a2a2a}
+.fbox.net{background:#0b2c34;border-color:#06b6d4}
+.fbox.mine{background:#1d1830;border-color:#4c3a8a}
+.fbox.allah{background:linear-gradient(135deg,#2a2210,#10281a);border-color:#d4a017}.fbox.allah b{color:#f4c542}
+.fop{color:#555}
+/* kanban (clients pipeline), calendar, chips */
+.kcol{background:#151515}
+.kcard{background:#1e1e1e;border-color:#2a2a2a;box-shadow:0 2px 8px rgba(0,0,0,.4)}.kcard:hover{border-color:#3a3a3a}
+.kcard.overdue{background:#2a1214;border-color:#7f1d1d}
+.tagchip{background:#262040;color:#c4b5fd}
+.cald{background:#1a1a1a;border-color:#2a2a2a}.cald:hover{border-color:#7c3aed}.cald.today{background:#1d1830;border-color:#7c3aed}
+.sec-t{color:#888}
+/* tasks workspace alignment */
+.cu-tree{background:#1a1a1a;border-right:1px solid #2a2a2a}
+.cu-wrap,.chat-page{background:#0d0d0d}
+.cu-card{background:#1e1e1e;border-color:#2a2a2a}.cu-card:hover{border-color:#3a3a3a}
 @media print{
   @page{margin:0;size:A4}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  body{display:block;background:#fff}
+  html,body{display:block;background:#fff!important}
   .sidebar,main,.toast,.scrim,.no-print,.fbar,.cu-panel,.fab{display:none!important}
   .overlay{position:static!important;display:block!important;background:none!important;padding:0!important}
   .modal,.modal.wide{box-shadow:none;max-width:none;padding:0.5in;background:#fff;max-height:none;overflow:visible;animation:none}
@@ -900,6 +1027,7 @@ const badge = s => `<span class="badge b-${s}">${STATUS_LABEL[s] || (s[0].toUppe
 const charts = [];
 function chart(id, cfg){ const el = $(id); if (!el || typeof Chart === 'undefined') return; charts.push(new Chart(el, cfg)); }
 function destroyCharts(){ while (charts.length) charts.pop().destroy(); }
+if (typeof Chart !== 'undefined') { Chart.defaults.color = '#888888'; Chart.defaults.borderColor = '#2a2a2a'; Chart.defaults.font.family = 'Inter, system-ui, sans-serif'; }
 const chartOpts = {responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{font:{family:'Inter'}}}}};
 const axisFmt = v => v >= 1e6 ? (v/1e6) + 'M' : v >= 1e3 ? (v/1e3) + 'k' : v;
 
@@ -1061,8 +1189,8 @@ function chartBuckets(){
 function afterDashboard(){
   const b = chartBuckets();
   chart('cDash', {type:'bar', data:{labels:b.labels, datasets:[
-    {label:'Received', data:b.inc, backgroundColor:'#0f766e', borderRadius:5},
-    {label:'Expenses', data:b.exp, backgroundColor:'#94a3b8', borderRadius:5}
+    {label:'Received', data:b.inc, backgroundColor:'#7c3aed', borderRadius:5},
+    {label:'Expenses', data:b.exp, backgroundColor:'#06b6d4', borderRadius:5}
   ]}, options:{...chartOpts, scales:{x:{grid:{display:false}}, y:{ticks:{callback:axisFmt}}}}});
 }
 
@@ -1383,7 +1511,7 @@ function vAllah(t){
   </div>`;
 }
 function afterAllah(t){
-  chart('cAllah', {type:'doughnut', data:{labels:['Paid','Remaining'], datasets:[{data:[t.given, Math.max(0, t.remaining)], backgroundColor:['#15803d','#d4a017'], borderWidth:0}]}, options:{...chartOpts, cutout:'65%'}});
+  chart('cAllah', {type:'doughnut', data:{labels:['Paid','Remaining'], datasets:[{data:[t.given, Math.max(0, t.remaining)], backgroundColor:['#22c55e','#f59e0b'], borderWidth:0}]}, options:{...chartOpts, cutout:'65%'}});
 }
 function charityForm(){
   const t = totals();
@@ -1447,13 +1575,13 @@ function afterReports(){
   const rows = monthRows(), ch = charityIn().filter(c => cType(c) === 'obligated'), ms = [...new Set([...rows.map(r => r.m), ...ch.map(c => monthKey(c.date))])].sort();
   const get = m => rows.find(r => r.m === m) || {inc:0, exp:0, net:0};
   chart('cMonthly', {type:'bar', data:{labels:ms.map(monthLabel), datasets:[
-    {label:'Received', data:ms.map(m => get(m).inc), backgroundColor:'#0f766e', borderRadius:4},
-    {label:'Expenses', data:ms.map(m => get(m).exp), backgroundColor:'#94a3b8', borderRadius:4}]}, options:{...chartOpts, scales:{y:{ticks:{callback:axisFmt}}}}});
+    {label:'Received', data:ms.map(m => get(m).inc), backgroundColor:'#7c3aed', borderRadius:4},
+    {label:'Expenses', data:ms.map(m => get(m).exp), backgroundColor:'#06b6d4', borderRadius:4}]}, options:{...chartOpts, scales:{y:{ticks:{callback:axisFmt}}}}});
   let net = 0, g = 0; const cumA = [], cumG = [];
   ms.forEach(m => { net += get(m).net; g += sum(ch.filter(c => monthKey(c.date) === m), c => c.amount); cumA.push(allahOf(net)); cumG.push(g); });
   chart('cCum', {type:'line', data:{labels:ms.map(monthLabel), datasets:[
-    {label:"Allah's Share owed (10% of cumulative net)", data:cumA, borderColor:'#d4a017', backgroundColor:'rgba(212,160,23,.15)', fill:true, tension:.3},
-    {label:'Paid', data:cumG, borderColor:'#15803d', tension:.3}]}, options:{...chartOpts, scales:{y:{ticks:{callback:axisFmt}}}}});
+    {label:"Allah's Share owed (10% of cumulative net)", data:cumA, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.15)', fill:true, tension:.3},
+    {label:'Paid', data:cumG, borderColor:'#22c55e', tension:.3}]}, options:{...chartOpts, scales:{y:{ticks:{callback:axisFmt}}}}});
 }
 
 /* ========= Personal Finance (isolated: own data, own keys, own maths) ========= */
@@ -1530,7 +1658,7 @@ function pIncome(){
 }
 function pWithdrawals(){
   const list = [...pWdIn()].sort((a,b) => b.date.localeCompare(a.date));
-  return `<div class="card"><div class="hint" style="background:#f5f3ff;border-color:#ddd6fe;color:#5b21b6">Record each time you take your 90% share out of the agency. This only feeds your Personal Balance — it does not change any agency number.</div>
+  return `<div class="card"><div class="hint" style="background:#241b45;border-color:#4c3a8a;color:#c4b5fd">Record each time you take your 90% share out of the agency. This only feeds your Personal Balance — it does not change any agency number.</div>
     <div class="muted" style="margin-bottom:10px">Total withdrawn from agency · <b>${fmt(sum(list, e => e.amount))}</b></div>
     <div class="tablewrap"><table>
       <thead><tr><th>Date</th><th>Note</th><th class="num">Amount</th><th></th></tr></thead>
@@ -1543,7 +1671,7 @@ function afterPersonal(){
   if (cats.length) chart('cPersonal', {type:'doughnut', data:{labels:cats.map(c => c[0]), datasets:[{data:cats.map(c => c[1]), backgroundColor:cats.map(c => P_COLORS[c[0]] || '#64748b'), borderWidth:0}]}, options:{...chartOpts, cutout:'60%'}});
 }
 function pForm(title, fields, fn){
-  openModal(`<h2>${title}</h2><div class="hint" style="background:#f5f3ff;border-color:#ddd6fe;color:#5b21b6">👤 Personal — not included in any agency numbers.</div>
+  openModal(`<h2>${title}</h2><div class="hint" style="background:#241b45;border-color:#4c3a8a;color:#c4b5fd">👤 Personal — not included in any agency numbers.</div>
     <form onsubmit="${fn}(event)">${fields}<div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn pv">Save</button></div></form>`);
 }
 function pExpenseForm(){
@@ -1688,7 +1816,7 @@ function vEmpProfile(e){
     <div class="grow"><h2 style="font-size:22px">${esc(e.name)}</h2><div class="muted">${esc(e.designation || '—')} · ${esc(e.type)}</div><div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${stBadge(e.status)} ${e.archived ? '<span class="badge b-draft">Archived</span>' : ''} ${payBadge(empMonthStatus(e))} <span class="muted" style="font-size:12px">${monthName(curMonth())}</span></div></div>
     <div class="inv-actions"><button class="btn sm" onclick="salaryForm('${e.id}')">Record Salary</button><button class="btn sm ghost" onclick="empForm('${e.id}')">Edit</button>
       <button class="btn sm ghost" onclick="archiveEmp('${e.id}')">${e.archived ? 'Unarchive' : 'Archive'}</button><button class="btn sm danger" onclick="delEmp('${e.id}')">Delete</button></div></div></div>
-  <div class="psub">${tabs.map(([k, l]) => `<button class="${empTab === k ? 'on' : ''}" style="color:${empTab === k ? '#fff' : 'var(--teal)'};border-color:#99d5cf;${empTab === k ? 'background:var(--teal)' : ''}" onclick="setEmpTab('${k}')">${l}</button>`).join('')}</div>${body}`;
+  <div class="psub">${tabs.map(([k, l]) => `<button class="${empTab === k ? 'on' : ''}" style="color:${empTab === k ? '#fff' : 'var(--teal)'};border-color:#3a3a3a;${empTab === k ? 'background:var(--teal)' : ''}" onclick="setEmpTab('${k}')">${l}</button>`).join('')}</div>${body}`;
 }
 const kv = (l, v) => `<div><span>${l}</span><b>${v ? esc(v) : '<span class="muted" style="display:inline;font-weight:400">—</span>'}</b></div>`;
 function empOverview(e){
@@ -1718,7 +1846,7 @@ function empSalary(e){
     <div class="muted" style="margin-bottom:10px">${paid.length} payments · total paid <b>${fmt(sum(paid, r => r.p.amount))}</b> · full monthly salary ${fmt(e.salary)}${pro ? ' · joining month is pro-rata' : ''}</div>
     <div class="tablewrap"><table><thead><tr><th>Month</th><th>Date paid</th><th>Method</th><th>Notes</th><th class="num">Amount</th><th></th></tr></thead>
       <tbody>${rows.map(r => r.p ? `<tr><td><b>${monthName(r.month)}</b>${proCell(r.month)}</td><td>${fdate(r.p.date)}</td><td>${esc(r.p.method)}</td><td style="white-space:normal">${esc(r.p.notes)}</td><td class="num"><b>${fmt(r.p.amount)}</b></td><td class="num"><button class="btn sm danger" onclick="delSalary('${r.p.id}')">✕</button></td></tr>`
-        : `<tr style="background:#fffbeb"><td><b>${monthName(r.month)}</b>${proCell(r.month)}</td><td colspan="3">${empMonthStatus(e) === 'overdue' && r.month === curMonth() ? '<span class="badge b-overdue">Overdue</span>' : '<span class="badge b-unpaid">Not recorded yet</span>'} · due ${fdate(payDueDate(e, r.month))}</td><td class="num"><b>${fmt(pro.amount)}</b></td><td class="num"><button class="btn sm" onclick="salaryForm('${e.id}','${r.month}')">Record</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">No salary payments in this period</td></tr>'}</tbody></table></div></div>`;
+        : `<tr style="background:#2a2210"><td><b>${monthName(r.month)}</b>${proCell(r.month)}</td><td colspan="3">${empMonthStatus(e) === 'overdue' && r.month === curMonth() ? '<span class="badge b-overdue">Overdue</span>' : '<span class="badge b-unpaid">Not recorded yet</span>'} · due ${fdate(payDueDate(e, r.month))}</td><td class="num"><b>${fmt(pro.amount)}</b></td><td class="num"><button class="btn sm" onclick="salaryForm('${e.id}','${r.month}')">Record</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">No salary payments in this period</td></tr>'}</tbody></table></div></div>`;
 }
 function empLeave(e){
   const list = empLeaves.filter(l => l.employee_id === e.id).sort((a, b) => b.date.localeCompare(a.date));
@@ -1748,7 +1876,7 @@ function salaryForm(id, month){
   openModal(`<h2>Record Salary · ${esc(e.name)}</h2><form onsubmit="saveSalary(event,'${id}')">
     <div class="hint">Saving marks the month as Paid and adds the amount to Agency Expenses under “Salaries”, reducing Net Profit and Allah's Share.</div>
     <div id="salProHint">${isPro ? proHint(pro) : ''}</div>
-    ${already ? `<div class="hint" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af">A payment is already recorded for ${monthName(m)}. This will be an additional payment.</div>` : ''}
+    ${already ? `<div class="hint" style="background:#0b2230;border-color:#1e4a6b;color:#7dd3fc">A payment is already recorded for ${monthName(m)}. This will be an additional payment.</div>` : ''}
     <div class="row2"><div class="field"><label>Salary month</label><input name="month" type="month" value="${m}" required onchange="salMonthChanged(this,'${id}')"></div>
     <div class="field"><label>Amount Paid (₨)</label><input name="amount" type="number" min="1" step="any" value="${dueAmount(e, m) || ''}" required></div></div>
     <div class="row2"><div class="field"><label>Date Paid</label><input name="date" type="date" value="${today()}" required></div>
@@ -1756,7 +1884,7 @@ function salaryForm(id, month){
     <div class="field"><label>Notes</label><input name="notes" value="${isPro ? 'Pro-rata: ' + pro.days + ' of ' + pro.total + ' days' : ''}" placeholder="e.g. included bonus, deducted 2 days leave"></div>
     <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save payment</button></div></form>`);
 }
-const proHint = pro => `<div class="hint" style="background:#fef3c7;border-color:#f4c542;color:#92400e"><span class="badge b-due">Pro-Rata</span> Joining month — ${proText(pro)}${pro.lastDay ? ' · ⚠ joined on the last day of the month (1 day)' : ''}</div>`;
+const proHint = pro => `<div class="hint" style="background:#2a2210;border-color:#78560f;color:#f4c542"><span class="badge b-due">Pro-Rata</span> Joining month — ${proText(pro)}${pro.lastDay ? ' · ⚠ joined on the last day of the month (1 day)' : ''}</div>`;
 function salMonthChanged(input, id){
   const e = empById(id), form = input.form, pro = proInfo(e), isPro = pro && pro.month === input.value;
   form.amount.value = dueAmount(e, input.value) || '';
@@ -1832,7 +1960,7 @@ function proRataPrompt(id){
   const mon = new Date(p.month + '-01T00:00:00').toLocaleDateString('en-US', {month:'long'});
   openModal(`<h2>Pro-rata salary</h2>
     <p style="line-height:1.6;margin-bottom:12px"><b>${esc(e.name)}</b> joined on ${fdate(e.joinDate)}. Their pro-rata salary for ${mon} is <b>${fmt(p.amount)}</b> (${p.days} day${p.days > 1 ? 's' : ''} out of ${p.total}). Would you like to record this now?</p>
-    <div class="hint" style="background:#fef3c7;border-color:#f4c542;color:#92400e">(${fmt(e.salary)} ÷ ${p.total}) × ${p.days} = ${fmt(p.amount)}${p.lastDay ? '<br>⚠ Joined on the last day of the month — only 1 day is counted.' : ''}${today() > payDueDate(e, p.month) ? '<br>Their pay date (' + ordinal(e.payDay || 1) + ') has already passed, so this shows as overdue until recorded.' : ''}</div>
+    <div class="hint" style="background:#2a2210;border-color:#78560f;color:#f4c542">(${fmt(e.salary)} ÷ ${p.total}) × ${p.days} = ${fmt(p.amount)}${p.lastDay ? '<br>⚠ Joined on the last day of the month — only 1 day is counted.' : ''}${today() > payDueDate(e, p.month) ? '<br>Their pay date (' + ordinal(e.payDay || 1) + ') has already passed, so this shows as overdue until recorded.' : ''}</div>
     <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Skip for Now</button><button class="btn" onclick="recordProRata('${id}')">Record This Salary</button></div>`);
 }
 function recordProRata(id){
