@@ -19,7 +19,9 @@ body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--tex
 button{font-family:inherit;cursor:pointer}
 /* sidebar */
 .att-alert{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:13px}.att-n{color:#c4b5fd;cursor:pointer;text-decoration:none}.att-n:hover{text-decoration:underline}
-.side-foot{margin-top:auto;border-top:1px solid #2a2a2a;padding:12px 6px 0;font-size:12px}.side-foot .who{color:#ccc;margin-bottom:4px;word-break:break-all}
+/* keep Log out visible: the menu scrolls, the footer never gets pushed off-screen */
+.sidebar{overflow:hidden}.sidebar .nav{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.side-foot{flex:0 0 auto;margin-top:auto;border-top:1px solid #2a2a2a;padding:12px 6px 0;font-size:12px}.side-foot .who{color:#ccc;margin-bottom:4px;word-break:break-all}
 .sidebar{width:240px;background:var(--side);color:#cbd5e1;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column;padding:20px 14px;z-index:30;transition:transform .25s}
 .brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:17px;padding:4px 8px 22px}
 .brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--teal),#14b8a6);display:grid;place-items:center;font-size:18px}
