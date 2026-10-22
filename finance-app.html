@@ -829,6 +829,7 @@ function setCustom(which, v){
 function filterBar(){
   return `<div class="fbar"><div class="fpills">${PERIODS.map(([k,l]) => `<button class="${period.mode === k ? 'on' : ''}" onclick="setPeriod('${k}')">${l}</button>`).join('')}</div>
     <div class="fcur">📅 <b>${periodLabel()}</b></div>
+    ${view === 'dashboard' ? '<button class="btn" id="exportBtn" onclick="exportAllData()" style="margin-left:auto" title="Download every record in this browser as mediabeem-backup.json">⬇ Export All Data</button>' : ''}
     ${period.mode === 'custom' ? `<div class="fcustom"><label>From <input type="date" value="${period.from}" max="${period.to}" onchange="setCustom('from',this.value)"></label><label>To <input type="date" value="${period.to}" min="${period.from}" onchange="setCustom('to',this.value)"></label></div>` : ''}</div>`;
 }
 
@@ -1058,7 +1059,7 @@ function render(){
   document.body.classList.toggle('cu-mode', view === 'tasks');
   $('title').textContent = meta[view][0]; $('subtitle').textContent = meta[view][1];
   $('topActions').innerHTML = {
-    dashboard:'<button class="btn" onclick="exportAllData()" title="Download every record in this browser as mediabeem-backup.json">⬇ Export All Data</button>',
+    dashboard:'',
     income:'<button class="btn" onclick="incomeForm()">+ Add Income</button>',
     expenses:'<button class="btn" onclick="expenseForm()">+ Add Expense</button>',
     invoices:'<button class="btn" onclick="invoiceForm()">+ New Invoice</button>',
