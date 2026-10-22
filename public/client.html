@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Media Beem — Client Portal</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<script src="config.js"></script>
+<script src="portal.js"></script>
+<script>
+(async () => {
+  const user = await MB.guard('client');
+  const { esc, fmt, fdate, $ } = MB;
+  let pane = null, projects = { tasks: [], lists: {} };
+  const stopPane = () => { if (pane) { pane.stop(); pane = null; } };
+  const LABEL = { paid: 'Paid in full', partial: 'Partially paid', unpaid: 'Unpaid', overdue: 'Overdue' };
+
+  MB.shell({
+    user, role: 'client',
+    items: [{ key: 'invoices', label: 'Invoices' }, { key: 'projects', label: 'My Projects' }, { key: 'messages', label: 'Messages' }],
+    titles: { invoices: ['Invoices', 'What you have been billed and what has been paid'], projects: ['My Projects', 'Progress on your tasks'], messages: ['Messages', 'Talk to the Media Beem team'] },
+    onView: key => { stopPane(); ({ invoices: viewInvoices, projects: viewProjects, messages: viewMessages })[key](); },
+  });
+
+  /* ---------------- Invoices ---------------- */
+  async function viewInvoices() {
+    const v = $('view'); v.innerHTML = '<div class="empty">Loading…</div>';
+    let list; try { list = (await MB.api('/api/client/invoices')).invoices; } catch (e) { v.innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
+    const billed = list.reduce((t, i) => t + i.total, 0), paid = list.reduce((t, i) => t + i.received, 0);
+    v.innerHTML = `<div class="grid" style="margin-bottom:16px"><div class="stat"><div class="l">Total billed</div><div class="v">${fmt(billed)}</div></div><div class="stat"><div class="l">Paid</div><div class="v" style="color:var(--green)">${fmt(paid)}</div></div><div class="stat"><div class="l">Outstanding</div><div class="v" style="color:${billed - paid > 0 ? 'var(--amber)' : '#fff'}">${fmt(Math.max(0, billed - paid))}</div></div></div>
+      ${list.map(i => `<div class="card"><div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap"><div class="grow" style="flex:1;min-width:180px"><div style="color:#fff;font-weight:600;font-size:15px">${esc(i.service || 'Invoice')}</div><div class="t2 muted">Issued ${fdate(i.date)}${i.expected_by ? ' · Payment expected by ' + fdate(i.expected_by) : ''}</div></div>
+        <span class="badge b-${i.status}">${LABEL[i.status] || i.status}</span></div>
+        <div class="bar" style="margin:14px 0 8px"><div style="width:${i.total ? Math.min(100, i.received / i.total * 100) : 0}%"></div></div>
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><span>Total <b>${fmt(i.total)}</b></span><span>Paid <b style="color:var(--green)">${fmt(i.received)}</b></span><span>Remaining <b>${fmt(i.remaining)}</b></span></div>
+        ${i.payments.length ? `<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:8px">${i.payments.map(p => `<div class="row" style="padding:6px 0"><div class="grow muted">${fdate(p.date)}${p.note ? ' · ' + esc(p.note) : ''}</div><b>${fmt(p.amount)}</b></div>`).join('')}</div>` : ''}
+        ${i.notes ? `<div class="muted" style="margin-top:8px;font-size:13px">${esc(i.notes)}</div>` : ''}</div>`).join('') || '<div class="card empty">No invoices yet.</div>'}`;
+  }
+
+  /* ---------------- My Projects (view + comment only) ---------------- */
+  async function viewProjects() {
+    const v = $('view'); v.innerHTML = '<div class="empty">Loading…</div>';
+    try { projects = await MB.api('/api/client/projects'); } catch (e) { v.innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
+    paintProjects();
+  }
+  function paintProjects() {
+    const ts = projects.tasks, by = {};
+    ts.forEach(t => { (by[t.list.id] = by[t.list.id] || { name: t.list.name, tasks: [] }).tasks.push(t); });
+    const isDone = t => t.status_kind === 'done' || t.status_kind === 'closed';
+    $('view').innerHTML = Object.values(by).map(g => { const d = g.tasks.filter(isDone).length;
+      return `<div class="card"><h3>${esc(g.name)} <span class="muted" style="font-weight:400">· ${d}/${g.tasks.length} complete</span></h3><div class="bar" style="margin-bottom:8px"><div style="width:${g.tasks.length ? d / g.tasks.length * 100 : 0}%"></div></div>
+        ${g.tasks.map(t => `<div class="row click" data-id="${esc(t.id)}">${MB.statusPill(t.status_name, t.status_color)}<div class="grow"><div class="t1" style="${isDone(t) ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(t.title)}</div></div><div class="t2">${t.due ? 'Due ' + fdate(t.due) : ''}</div></div>`).join('')}</div>`; }).join('')
+      || '<div class="card empty">No tasks to show yet. Your project tasks will appear here as the team plans your work.</div>';
+    $('view').querySelectorAll('.row.click').forEach(r => r.onclick = () => openTask(r.dataset.id));
+  }
+  function openTask(id) {
+    const t = projects.tasks.find(x => x.id === id); if (!t) return;
+    const cms = t.comments.filter(c => c.kind !== 'activity');
+    MB.openModal(`<h2>${esc(t.title)}</h2><div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">${MB.statusPill(t.status_name, t.status_color)}<span class="muted">${t.due ? 'Due ' + fdate(t.due) : 'No due date'}</span></div>
+      ${t.description ? `<div class="task-sec"><h4>Details</h4><div class="desc">${MB.sanitize(t.description)}</div></div>` : ''}
+      ${t.subtasks.length ? `<div class="task-sec"><h4>Checklist</h4>${t.subtasks.map(s => `<div class="sub"><span>${s.done ? '☑' : '☐'}</span><span style="${s.done ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(s.title)}</span></div>`).join('')}</div>` : ''}
+      <div class="task-sec"><h4>Comments</h4>${cms.map(c => `<div class="cm"><span class="by">${esc(c.by)}</span><span class="at">${MB.fmtTs(c.at)}</span><div style="white-space:pre-wrap">${esc(c.text)}</div></div>`).join('') || '<div class="muted">No comments yet.</div>'}</div>
+      <form id="cmForm" style="display:flex;gap:8px"><textarea id="cmIn" rows="2" placeholder="Leave a comment for the team…" maxlength="4000" required></textarea><button class="btn">Post</button></form>
+      <div class="modal-actions"><button class="btn ghost" id="closeBtn">Close</button></div>`);
+    $('closeBtn').onclick = MB.closeModal;
+    $('cmForm').onsubmit = async e => { e.preventDefault(); const text = $('cmIn').value.trim(); if (!text) return; try { const c = await MB.api('/api/client/tasks/' + id + '/comments', { method: 'POST', body: { text } }); t.comments.push({ id: c.id, by: c.by, text: c.text, at: c.at, kind: 'comment' }); openTask(id); } catch (er) { MB.toast(er.message); } };
+  }
+
+  /* ---------------- Messages: only their own #general channel ---------------- */
+  async function viewMessages() {
+    const v = $('view'); v.innerHTML = '<div class="empty">Loading…</div>';
+    let ch; try { ch = (await MB.api('/api/client/channel')).channel; } catch (e) { v.innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
+    if (!ch) { v.innerHTML = '<div class="card empty">Your message channel is not set up yet — please contact the Media Beem team.</div>'; return; }
+    v.innerHTML = '<div class="chat single"><div class="chat-pane" id="cpane"></div></div>';
+    pane = MB.chatPane($('cpane'), { title: '# ' + ch.name, load: () => MB.api('/api/messages/channel/' + encodeURIComponent(ch.id)),
+      send: text => MB.api('/api/messages/channel', { method: 'POST', body: { channel_id: ch.id, text } }), norm: m => ({ id: m.id, uid: m.author_id, name: m.author_name, text: m.text, ts: m.timestamp }) });
+  }
+})();
+</script>
+</body>
+</html>

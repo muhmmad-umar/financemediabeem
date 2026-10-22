@@ -1,4 +1,19 @@
-# Cloudflare Pages — static site (single HTML app, no build step)
-name = "media-beem-agency-manager"
-pages_build_output_dir = "."
+# Cloudflare Workers config for the Media Beem API (Workers + D1 only).
+# The frontend (public/) is deployed separately to Cloudflare Pages — see README.md.
+name = "mediabeem-api"
+main = "worker/src/index.js"
 compatibility_date = "2024-09-23"
+
+[vars]
+# Comma-separated list of frontend origins allowed to call the API (CORS).
+ALLOWED_ORIGINS = "https://mediabeem-pages.pages.dev,http://localhost:8080,http://127.0.0.1:8080"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mediabeem-db"
+# Replace with the id printed by `npm run db:create`
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "worker/migrations"
+
+# JWT_SECRET is a secret, not a var:  npx wrangler secret put JWT_SECRET
+# (for local dev put JWT_SECRET=... in .dev.vars)

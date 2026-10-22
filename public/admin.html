@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Media Beem — Agency Manager</title>
+<title>Media Beem — Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -18,6 +18,7 @@
 body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;display:flex;min-height:100vh}
 button{font-family:inherit;cursor:pointer}
 /* sidebar */
+.side-foot{margin-top:auto;border-top:1px solid #2a2a2a;padding:12px 6px 0;font-size:12px}.side-foot .who{color:#ccc;margin-bottom:4px;word-break:break-all}
 .sidebar{width:240px;background:var(--side);color:#cbd5e1;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column;padding:20px 14px;z-index:30;transition:transform .25s}
 .brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:17px;padding:4px 8px 22px}
 .brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--teal),#14b8a6);display:grid;place-items:center;font-size:18px}
@@ -640,6 +641,7 @@ tfoot td{border-top:1px solid #2a2a2a}
     <div class="nav-sep">Personal</div>
     <button data-view="personal" class="personal">👤 Personal Finance</button>
   </nav>
+  <div class="side-foot"><div class="who" id="whoAmI"></div><div id="syncStat" style="color:#888;font-size:11px;margin-bottom:8px">Loading…</div><button class="btn ghost sm" onclick="MB.logout()" style="width:100%">Log out</button></div>
 </aside>
 <div class="scrim" id="scrim"></div>
 
@@ -658,40 +660,113 @@ tfoot td{border-top:1px solid #2a2a2a}
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 
+<script src="config.js"></script>
+<script src="portal.js"></script>
 <script>
+/* ========= Cloud storage shim =========
+   The app below was written against localStorage. `store` keeps the same getItem/setItem interface, but is backed by
+   Cloudflare D1: setItem() diffs the collection against the last server snapshot and POSTs only the changes. */
+const LS = window.localStorage;   // the real browser storage — only used for the one-time import of old local data
+const SYNC_KEYS = ['income_entries','invoices','charity_expenses','expenses','personal_expenses','personal_income','personal_withdrawals','recurring_alerts','employees','salary_payments','employee_leaves','clients','cu_spaces','cu_lists','cu_tasks','cu_subtasks','cu_comments','cu_time_logs','cu_messages','channels','resource_folders','resource_files'];
+const SETTING_KEYS = ['data_version','cu_migrated','cu_nofolders'];
+const SHARED_KEYS = ['cu_tasks','cu_subtasks','cu_comments','cu_time_logs'];
+const slugOf = s => String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const syncId = (key, it) => key === 'recurring_alerts' ? 'ra-' + slugOf(it.client_name) : String(it.id);
+const store = (() => {
+  const mem = {}, snap = {}, dirty = new Set(), pendingSettings = {};
+  let timer = null, running = Promise.resolve(), failing = false;
+  const stat = (t, bad) => { const el = document.getElementById('syncStat'); if (el) { el.textContent = t; el.style.color = bad ? '#f87171' : ''; } };
+  const forSync = (key, raw) => {   // only what lives in the database
+    let arr; try { arr = JSON.parse(raw); } catch (e) { return null; }
+    if (!Array.isArray(arr)) return null;
+    return key === 'cu_messages' ? arr.filter(m => String(m.scope || '').startsWith('list:')) : arr;
+  };
+  async function flushNow(){
+    clearTimeout(timer); timer = null;
+    const job = async () => {
+      try {
+        const keys = [...dirty]; dirty.clear();
+        for (const key of keys) {
+          const arr = forSync(key, mem[key]); if (!arr) continue;
+          const old = snap[key] || (snap[key] = new Map()), seen = new Set(), ups = [];
+          for (const it of arr) { if (!it || typeof it !== 'object') continue; const id = syncId(key, it), js = JSON.stringify(it); seen.add(id); if (old.get(id) !== js) ups.push([id, it, js]); }
+          const dels = [...old.keys()].filter(id => !seen.has(id));
+          for (let i = 0; i < Math.max(1, Math.ceil(ups.length / 100)); i++) {
+            const part = ups.slice(i * 100, i * 100 + 100), last = (i + 1) * 100 >= ups.length;
+            if (!part.length && !dels.length) break;
+            await MB.api('/api/admin/sync', {method:'POST', body:{key, upserts:part.map(p => p[1]), deletes:last ? dels : []}});
+            part.forEach(p => old.set(p[0], p[2]));
+            if (last) dels.forEach(id => old.delete(id));
+          }
+        }
+        if (Object.keys(pendingSettings).length) { const s = {...pendingSettings}; await MB.api('/api/admin/sync', {method:'POST', body:{settings:s}}); Object.keys(s).forEach(k => { if (pendingSettings[k] === s[k]) delete pendingSettings[k]; }); }
+        failing = false; stat('✓ All changes saved');
+      } catch (e) {
+        failing = true; stat('⚠ Not saved — retrying…', true);
+        Object.keys(mem).forEach(k => { if (SYNC_KEYS.includes(k)) dirty.add(k); });
+        clearTimeout(timer); timer = setTimeout(flushNow, 5000);
+      }
+    };
+    running = running.then(job); return running;
+  }
+  const schedule = () => { stat('Saving…'); clearTimeout(timer); timer = setTimeout(flushNow, 400); };
+  return {
+    mem, snap, flush: flushNow,
+    hydrate(state){
+      SYNC_KEYS.forEach(k => { const arr = (state.data && state.data[k]) || []; mem[k] = JSON.stringify(arr); snap[k] = new Map(arr.map(it => [syncId(k, it), JSON.stringify(it)])); });
+      SETTING_KEYS.forEach(k => { const v = state.settings && state.settings[k]; if (v !== undefined && v !== null) mem[k] = v; });
+    },
+    getItem(k){ return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null; },
+    setItem(k, v){
+      if (SETTING_KEYS.includes(k)) { mem[k] = String(v); pendingSettings[k] = String(v); schedule(); return; }
+      if (!SYNC_KEYS.includes(k)) { mem[k] = String(v); return; }   // channels_messages etc. are server-authoritative
+      if (mem[k] === v) return; mem[k] = v; dirty.add(k); schedule();
+    },
+    removeItem(k){ delete mem[k]; },
+    /** merge rows other users changed (tasks, comments…) into the live app arrays */
+    merge(key, items, live){
+      let changed = false; const old = snap[key] || (snap[key] = new Map());
+      items.forEach(it => { const id = syncId(key, it), js = JSON.stringify(it); if (old.get(id) === js) return; old.set(id, js); const i = live.findIndex(x => syncId(key, x) === id); if (i >= 0) live[i] = it; else live.push(it); changed = true; });
+      if (changed) mem[key] = JSON.stringify(live);
+      return changed;
+    },
+  };
+})();
+window.addEventListener('beforeunload', e => { if (store && document.getElementById('syncStat') && /Saving|Not saved/.test(document.getElementById('syncStat').textContent)) { e.preventDefault(); e.returnValue = ''; } });
+
 /* ========= Config & storage ========= */
 const ALLAH_RATE = 0.10;
 const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses', exp:'expenses',
   pe:'personal_expenses', pi:'personal_income', pw:'personal_withdrawals', ra:'recurring_alerts', emp:'employees', sp:'salary_payments', el:'employee_leaves',
   cl:'clients', cus:'cu_spaces', cul:'cu_lists', cut:'cu_tasks', cusb:'cu_subtasks', cuc:'cu_comments', cutl:'cu_time_logs', cum:'cu_messages', chn:'channels', chm:'channels_messages', rsf:'resource_folders', rsi:'resource_files'};
-const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } };
+const load = (k) => { try { return JSON.parse(store.getItem(k)); } catch(e){ return null; } };
 const save = () => {
   syncIncome();
   try {
-    localStorage.setItem(K.inc, JSON.stringify(income));
-    localStorage.setItem(K.inv, JSON.stringify(invoices));
-    localStorage.setItem(K.ch, JSON.stringify(charity));
-    localStorage.setItem(K.exp, JSON.stringify(expenses));
-    localStorage.setItem(K.pe, JSON.stringify(personalExp));
-    localStorage.setItem(K.pi, JSON.stringify(personalInc));
-    localStorage.setItem(K.pw, JSON.stringify(personalWd));
-    localStorage.setItem(K.ra, JSON.stringify(recurring));
-    localStorage.setItem(K.emp, JSON.stringify(employees));
-    localStorage.setItem(K.sp, JSON.stringify(salaryPay));
-    localStorage.setItem(K.el, JSON.stringify(empLeaves));
-    localStorage.setItem(K.cl, JSON.stringify(clients));
-    localStorage.setItem(K.cus, JSON.stringify(cuSpaces));
-    localStorage.setItem(K.cul, JSON.stringify(cuLists));
-    localStorage.setItem(K.cut, JSON.stringify(cuTasks));
-    localStorage.setItem(K.cusb, JSON.stringify(cuSubs));
-    localStorage.setItem(K.cuc, JSON.stringify(cuComments));
-    localStorage.setItem(K.cutl, JSON.stringify(cuTimeLogs));
-    localStorage.setItem(K.cum, JSON.stringify(cuMessages));
-    localStorage.setItem(K.chn, JSON.stringify(cuChannels));
-    localStorage.setItem(K.chm, JSON.stringify(cuChanMsgs));
-    localStorage.setItem(K.rsf, JSON.stringify(resFolders));
-    localStorage.setItem(K.rsi, JSON.stringify(resFiles));
-  } catch(e){ toast('Could not save to localStorage'); }
+    store.setItem(K.inc, JSON.stringify(income));
+    store.setItem(K.inv, JSON.stringify(invoices));
+    store.setItem(K.ch, JSON.stringify(charity));
+    store.setItem(K.exp, JSON.stringify(expenses));
+    store.setItem(K.pe, JSON.stringify(personalExp));
+    store.setItem(K.pi, JSON.stringify(personalInc));
+    store.setItem(K.pw, JSON.stringify(personalWd));
+    store.setItem(K.ra, JSON.stringify(recurring));
+    store.setItem(K.emp, JSON.stringify(employees));
+    store.setItem(K.sp, JSON.stringify(salaryPay));
+    store.setItem(K.el, JSON.stringify(empLeaves));
+    store.setItem(K.cl, JSON.stringify(clients));
+    store.setItem(K.cus, JSON.stringify(cuSpaces));
+    store.setItem(K.cul, JSON.stringify(cuLists));
+    store.setItem(K.cut, JSON.stringify(cuTasks));
+    store.setItem(K.cusb, JSON.stringify(cuSubs));
+    store.setItem(K.cuc, JSON.stringify(cuComments));
+    store.setItem(K.cutl, JSON.stringify(cuTimeLogs));
+    store.setItem(K.cum, JSON.stringify(cuMessages));
+    store.setItem(K.chn, JSON.stringify(cuChannels));
+    store.setItem(K.chm, JSON.stringify(cuChanMsgs));
+    store.setItem(K.rsf, JSON.stringify(resFolders));
+    store.setItem(K.rsi, JSON.stringify(resFiles));
+  } catch(e){ toast('Could not save'); }
 };
 let income, invoices, charity, expenses;
 let personalExp = [], personalInc = [], personalWd = [];
@@ -756,11 +831,11 @@ function resetData(){
 }
 const DATA_VERSION = '4';
 function init(){
-  let ver = null; try { ver = localStorage.getItem('data_version'); } catch(e){}
+  let ver = null; try { ver = store.getItem('data_version'); } catch(e){}
   if (!ver) {   // first run: start completely empty, clearing any pre-loaded data
     income = []; invoices = []; charity = []; expenses = []; personalExp = []; personalInc = []; personalWd = []; recurring = []; employees = []; salaryPay = []; empLeaves = [];
     clients = []; cuSpaces = []; cuChannels = []; cuChanMsgs = []; resFolders = []; resFiles = []; cuLists = []; cuTasks = []; cuSubs = []; cuComments = []; cuTimeLogs = []; cuMessages = [];
-    save(); try { localStorage.setItem('cu_migrated', '1'); localStorage.setItem('cu_nofolders', '1'); } catch(e){} try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
+    save(); try { store.setItem('cu_migrated', '1'); store.setItem('cu_nofolders', '1'); } catch(e){} try { store.setItem('data_version', DATA_VERSION); } catch(e){}
     return;
   }
   income = load(K.inc); invoices = load(K.inv); charity = load(K.ch); expenses = load(K.exp);
@@ -780,7 +855,7 @@ function init(){
       invoices.push({id:e.id, client:e.client, service:e.description || e.category || 'Income', category:e.category || 'Services', date:e.date, expectedBy:'', notes:'',
         total_amount:total, payments: rec > 0 ? [{id:uid(), amount:rec, date:e.date, note:''}] : []});
     });
-    save(); try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
+    save(); try { store.setItem('data_version', DATA_VERSION); } catch(e){}
   }
   [employees, salaryPay, empLeaves] = [load(K.emp), load(K.sp), load(K.el)].map(a => Array.isArray(a) ? a : []);
   [clients, cuSpaces, cuLists, cuTasks, cuSubs, cuComments, cuTimeLogs, cuMessages, cuChannels, cuChanMsgs] = [K.cl, K.cus, K.cul, K.cut, K.cusb, K.cuc, K.cutl, K.cum, K.chn, K.chm].map(k => { const a = load(k); return Array.isArray(a) ? a : []; });
@@ -834,17 +909,17 @@ function filterBar(){
 
 /* one-time: folders are gone — lists move straight under their Space; empty auto-made "General Tasks" lists are dropped (lists are manual now) */
 function cuDropFolders(){
-  let done = null; try { done = localStorage.getItem('cu_nofolders'); } catch(e){}
+  let done = null; try { done = store.getItem('cu_nofolders'); } catch(e){}
   if (done === '1') return;
   const oldF = load('cu_folders') || [];
   cuLists.forEach(l => { if (!l.spaceId) { const f = oldF.find(x => x.id === l.folderId); l.spaceId = f ? f.spaceId : (cuSpaces[0] || {}).id; } delete l.folderId; });
   cuLists = cuLists.filter(l => l.spaceId && !(l.name === 'General Tasks' && l.clientId && !cuTasks.some(t => t.listId === l.id)));
-  try { localStorage.setItem('cu_nofolders', '1'); } catch(e){}
+  try { store.setItem('cu_nofolders', '1'); } catch(e){}
   save();
 }
 /* one-time: bring the earlier Projects & Tasks data into the Space › List structure */
 function cuMigrateOld(){
-  let done = null; try { done = localStorage.getItem('cu_migrated'); } catch(e){}
+  let done = null; try { done = store.getItem('cu_migrated'); } catch(e){}
   if (done === '1') return;
   const op = load('projects'), ot = load('tasks'), os = load('subtasks'), oc = load('task_comments');
   if (Array.isArray(op) && op.length) {
@@ -856,7 +931,7 @@ function cuMigrateOld(){
     (os || []).forEach(x => { if (tmap[x.taskId]) cuSubs.push({id:uid(), taskId:tmap[x.taskId].id, title:x.title, done:!!x.done}); });
     (oc || []).forEach(x => { if (tmap[x.taskId]) cuComments.push({id:uid(), taskId:tmap[x.taskId].id, at:x.at, by:x.by === 'Owner' ? 'You' : x.by, text:x.text, kind:'comment'}); });
   }
-  try { localStorage.setItem('cu_migrated', '1'); } catch(e){}
+  try { store.setItem('cu_migrated', '1'); } catch(e){}
   save();
 }
 
@@ -1814,7 +1889,7 @@ function vEmpProfile(e){
   return `<button class="btn ghost sm" onclick="backEmp()" style="margin-bottom:12px">← All employees</button>
   <div class="card" style="margin-bottom:16px"><div class="profile-head">${avatar(e, 72)}
     <div class="grow"><h2 style="font-size:22px">${esc(e.name)}</h2><div class="muted">${esc(e.designation || '—')} · ${esc(e.type)}</div><div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${stBadge(e.status)} ${e.archived ? '<span class="badge b-draft">Archived</span>' : ''} ${payBadge(empMonthStatus(e))} <span class="muted" style="font-size:12px">${monthName(curMonth())}</span></div></div>
-    <div class="inv-actions"><button class="btn sm" onclick="salaryForm('${e.id}')">Record Salary</button><button class="btn sm ghost" onclick="empForm('${e.id}')">Edit</button>
+    <div class="inv-actions"><button class="btn sm" onclick="salaryForm('${e.id}')">Record Salary</button><button class="btn sm ghost" onclick="empForm('${e.id}')">Edit</button> ${portalBtns('employee', e.id)}
       <button class="btn sm ghost" onclick="archiveEmp('${e.id}')">${e.archived ? 'Unarchive' : 'Archive'}</button><button class="btn sm danger" onclick="delEmp('${e.id}')">Delete</button></div></div></div>
   <div class="psub">${tabs.map(([k, l]) => `<button class="${empTab === k ? 'on' : ''}" style="color:${empTab === k ? '#fff' : 'var(--teal)'};border-color:#3a3a3a;${empTab === k ? 'background:var(--teal)' : ''}" onclick="setEmpTab('${k}')">${l}</button>`).join('')}</div>${body}`;
 }
@@ -2034,7 +2109,7 @@ function vClientProfile(c){
   const ren = nextRenewal(c);
   return `<button class="btn ghost sm" onclick="clSel=null;render()" style="margin-bottom:12px">← All clients</button>
   <div class="card" style="margin-bottom:16px"><div class="profile-head">${miniAv(c.company, 64)}<div class="grow"><h2 style="font-size:22px">${esc(c.company)}</h2><div class="muted">${esc(c.industry) || '—'}${c.website ? ' · ' + esc(c.website) : ''}</div><div style="margin-top:8px">${clBadge(c.status)} ${clientTypeBadge(c.clientType)}${renewalSoon(c) ? ' <span class="badge b-due">Renewal ' + fdate(ren) + '</span>' : ''}</div></div>
-    <div class="inv-actions"><button class="btn sm" onclick="incomeForm({client:decodeURIComponent('${encAttr(c.company)}')})">+ Invoice</button><button class="btn sm ghost" onclick="cuClientList('${c.id}')">+ List</button><button class="btn sm ghost" onclick="clientForm('${c.id}')">Edit</button><button class="btn sm danger" onclick="delClient('${c.id}')">Delete</button></div></div>
+    <div class="inv-actions"><button class="btn sm" onclick="incomeForm({client:decodeURIComponent('${encAttr(c.company)}')})">+ Invoice</button><button class="btn sm ghost" onclick="cuClientList('${c.id}')">+ List</button><button class="btn sm ghost" onclick="clientForm('${c.id}')">Edit</button> ${portalBtns('client', c.id)}<button class="btn sm danger" onclick="delClient('${c.id}')">Delete</button></div></div>
     <div style="margin-top:14px"><div class="muted" style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">Pipeline stage</div><div class="fpills">${CL_STATUS.map(s => `<button class="${c.status === s ? 'on' : ''}" style="${c.status === s ? 'background:' + CL_COLORS[s] + ';border-color:' + CL_COLORS[s] : ''}" onclick="setClStatus('${c.id}','${s}')">${s}</button>`).join('')}</div></div></div>
   <div class="grid g-main">
     <div>
@@ -2533,7 +2608,7 @@ function cuNewMsg(){
   openModal(`<h2>New message</h2><form onsubmit="cuSaveNewMsg(event)"><div class="field"><label>To</label><select name="to">${emps.map(e => `<option value="${e.id}">${esc(e.name)}</option>`).join('')}</select></div><div class="field"><label>Message</label><textarea name="text" rows="3" required></textarea></div>
     <p class="muted" style="font-size:12px">Messages are saved in this app only — nothing is sent to the person.</p><div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Send</button></div></form>`);
 }
-function cuSaveNewMsg(ev){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); cuMessages.push({id:uid(), scope:'dm:' + f.to, at:new Date().toISOString(), by:'You', text:f.text.trim()}); closeModal(); cuGo({type:'dm', id:f.to}); }
+async function cuSaveNewMsg(ev){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); const emp = empById(f.to); closeModal(); if (!emp) return; cuGo({type:'dm', id:f.to}); await chatPost({kind:'dm', emp}, f.text.trim()); render(); }
 
 /* ----- CHAT: direct messages, client channels, list channels (ClickUp-style, dark, no bubbles) ----- */
 let chatTab = 'chat', chatPanel = '', chatSearch = '', chatReply = null, chatEnterSends = true, chatDraft = '';
@@ -2583,7 +2658,7 @@ function chatComposer(ctx){
       <span class="tr2">${tb('🎙️', 'Voice message', "chatNA('Voice messages')")}<button class="sendb" title="Send" onclick="chatSend()">➤</button><button class="sendc" title="Send options" onclick="chatPop('sendPop')">▾</button></span></div>
     <div class="cpop" id="emojiPop">${['😊', '👍', '🎉', '🔥', '🙏', '❤️', '😂', '✅', '👀', '💡', '📌', '🚀'].map(e => `<button type="button" onclick="chatIns('${e}')">${e}</button>`).join('')}</div>
     <div class="cpop list" id="mentionPop">${employees.filter(e => !e.archived).map(e => `<div onclick="chatIns('@${esc(e.name).replace(/'/g, '')} ')">${cuAv(e.name, 18)} ${esc(e.name)}</div>`).join('') || '<div class="muted">No employees yet</div>'}</div>
-    <div class="cpop list right" id="sendPop"><div class="ph2">Send as</div>${['You', ...employees.filter(e => !e.archived).map(e => e.name)].map(a => `<div class="${a === cuAuthor ? 'on' : ''}" onclick="cuAuthor='${esc(a).replace(/'/g, '')}';chatPop('');render()">${a === cuAuthor ? '✓ ' : ''}${esc(a)}</div>`).join('')}<div class="ph2">Keyboard</div><div onclick="chatEnterSends=!chatEnterSends;chatPop('');render()">${chatEnterSends ? '✓ ' : ''}Enter sends (Shift+Enter = new line)</div><div onclick="chatEnterSends=false;chatPop('');render()">${!chatEnterSends ? '✓ ' : ''}Ctrl+Enter sends</div></div></div>`;
+    <div class="cpop list right" id="sendPop"><div class="ph2">Keyboard</div><div onclick="chatEnterSends=!chatEnterSends;chatPop('');render()">${chatEnterSends ? '✓ ' : ''}Enter sends (Shift+Enter = new line)</div><div onclick="chatEnterSends=false;chatPop('');render()">${!chatEnterSends ? '✓ ' : ''}Ctrl+Enter sends</div></div></div>`;
 }
 const chatPop = id => { document.querySelectorAll('.cpop').forEach(p => p.classList.toggle('open', p.id === id && !p.classList.contains('open'))); };
 const chatNA = what => toast(what + ' aren\'t available in this app');
@@ -2595,12 +2670,13 @@ function chatKey(e){
 function chatSend(){
   const ctx = chatCtx(), t = document.getElementById('chatInput'); if (!ctx || !t) return; const text = t.value.trim(); if (!text) return;
   if (/^\/task\b/i.test(text)) { chatDraft = ''; t.value = ''; cuQuickAdd({title:text.replace(/^\/task\s*/i, ''), assignee:ctx.emp ? ctx.emp.id : undefined}); return; }
-  ctx.add(cuAuthor, text, chatReply ? {replyTo:chatReply} : {}); chatReply = null; chatDraft = ''; save(); render();
-  const i = document.getElementById('chatInput'); if (i) i.focus();
+  const rt = chatReply; chatReply = null; chatDraft = ''; t.value = '';
+  chatPost(ctx, text, rt).then(() => { render(); const i = document.getElementById('chatInput'); if (i) i.focus(); });
 }
 function chatAttach(accept){ const inp = document.createElement('input'); inp.type = 'file'; if (accept) inp.accept = accept; inp.onchange = () => { if (inp.files[0]) chatSendFile(inp.files[0]); }; inp.click(); }
 async function chatSendFile(file){
-  const ctx = chatCtx(); if (!ctx) return; if (file.size > RES_MAX) { toast(file.name + ' is over ' + fmtSize(RES_MAX)); return; }
+  const ctx = chatCtx(); if (!ctx) return;
+  if (ctx.kind !== 'list') { toast('File sharing in DMs and channels needs file storage, which is not enabled yet — share a link instead'); return; } if (file.size > RES_MAX) { toast(file.name + ' is over ' + fmtSize(RES_MAX)); return; }
   const id = uid(); try { await idbPut(id, file); } catch(e) { toast('Could not store the file — browser storage may be full'); return; }
   ctx.add(cuAuthor, '', {file:{id, name:file.name, size:file.size, type:file.type || ''}, ...(chatReply ? {replyTo:chatReply} : {})}); chatReply = null; save(); render();
 }
@@ -2614,7 +2690,7 @@ function chatFullPage(ctx){
   const tabs = [['chat', 'Chat'], ['calendar', 'Calendar'], ['tasks', 'Tasks']];
   const isDm = ctx.kind === 'dm', fav = ctx.fav();
   const icon = isDm ? avFor(ctx.name, 30) : '<span class="hashbig">#</span>';
-  const menu = `<div class="cpop list" id="dotsPop" style="left:0;top:100%"><div onclick="chatPop('');chatPanel='profile';render()">${isDm ? 'Show profile' : 'Channel details'}</div><div onclick="chatPop('');chatPanel='search';render()">Search conversation</div>${isDm ? `<div style="color:#ef4444" onclick="chatPop('');chatClear()">Clear conversation</div>` : ctx.ch.permanent ? '<div class="muted">🔒 Permanent channel</div>' : `<div style="color:#ef4444" onclick="chatPop('');cuDelChannel('${ctx.ch.id}')">Delete channel</div>`}</div>`;
+  const menu = `<div class="cpop list" id="dotsPop" style="left:0;top:100%">${ctx.kind === 'channel' ? '<div onclick="chatPop(\'\');chanMembersForm()">👥 Manage employee access</div>' : ''}<div onclick="chatPop('');chatPanel='profile';render()">${isDm ? 'Show profile' : 'Channel details'}</div><div onclick="chatPop('');chatPanel='search';render()">Search conversation</div>${isDm ? `<div style="color:#ef4444" onclick="chatPop('');chatClear()">Clear conversation</div>` : ctx.ch.permanent ? '<div class="muted">🔒 Permanent channel</div>' : `<div style="color:#ef4444" onclick="chatPop('');cuDelChannel('${ctx.ch.id}')">Delete channel</div>`}</div>`;
   const panel = chatPanel ? `<div class="chat-panel">${chatPanelHtml(ctx)}</div>` : '';
   let body;
   if (chatTab === 'calendar') body = `<div class="chat-pad">${cuCalendar(ctx.tasks())}</div>`;
@@ -2630,7 +2706,7 @@ function chatFullPage(ctx){
 }
 const chatFav = () => { const c = chatCtx(); if (c) { c.toggleFav(); save(); render(); } };
 function chatViewsForm(){ openModal(`<h2>Views</h2>${[['chat', '💬 Chat', 'The conversation'], ['calendar', '📅 Calendar', 'Their tasks by due date'], ['tasks', '✅ Tasks', 'Their open tasks']].map(([k, n, d]) => `<div class="tx" style="cursor:pointer" onclick="chatTab='${k}';closeModal();render()"><div><div class="t1">${n}</div><div class="t2">${d}</div></div></div>`).join('')}<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Close</button></div>`); }
-function chatClear(){ const ctx = chatCtx(); if (!ctx || ctx.kind !== 'dm' || !confirm('Clear the whole conversation with ' + ctx.name + '?')) return; cuMessages = cuMessages.filter(m => m.scope !== 'dm:' + ctx.emp.id); save(); render(); }
+async function chatClear(){ const ctx = chatCtx(); if (!ctx || ctx.kind !== 'dm' || !confirm('Clear the whole conversation with ' + ctx.name + '?')) return; try { await MB.api('/api/admin/dm/' + encodeURIComponent(dmPeer(ctx.emp)), {method:'DELETE'}); cuMessages = cuMessages.filter(m => m.scope !== 'dm:' + ctx.emp.id); render(); } catch(e) { toast(e.message); } }
 function chatTasks(ctx){
   const ts = ctx.tasks().sort((a, b) => (isOpenT(b) - isOpenT(a)) || (a.due || '9').localeCompare(b.due || '9'));
   return ts.length ? `<div class="rtable">${ts.map(t => `<div class="rrow" style="cursor:pointer" onclick="cuOpen('${t.id}')"><span class="spill" style="background:${statusOf(t).color}">${esc(statusOf(t).name)}</span><div class="rn"><b>${esc(t.title)}</b><div class="muted" style="font-size:11px">${esc((listOf(t) || {}).name || '')}</div></div><span class="cdue ${isOverdueT(t) ? 'od' : isTodayT(t) ? 'td' : ''}">${t.due ? fdate(t.due) : ''}</span>${flag(t.priority, false)}${stack(t, 20)}</div>`).join('')}</div>` : '<div class="chat-none">No tasks yet.</div>';
@@ -2700,7 +2776,7 @@ function cuDetail(t){
       <form class="cbox" onsubmit="cuPost(event,'${id}')"><div class="ctabs"><span class="on">Comment</span></div>
         <textarea name="text" id="cuCmText" rows="3" placeholder="Write a comment…" required></textarea>
         <div class="ctool"><span><button type="button" title="Emoji" onclick="cuIns('😊')">😊</button><button type="button" title="Attachment note" onclick="cuAttach('${id}')">📎</button><button type="button" title="Mention" onclick="cuMention()">@</button><button type="button" title="Thumbs up" onclick="cuIns('👍')">👍</button><button type="button" title="Done" onclick="cuIns('✅')">✅</button></span>
-        <span><select name="by">${['You', ...employees.filter(e => !e.archived).map(e => e.name)].map(a => `<option ${a === cuAuthor ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select><button class="addbtn">Post</button></span></div></form></aside></div>`;
+        <span><label class="muted" style="font-size:12px;margin-right:8px" title="Clients can read comments marked visible"><input type="checkbox" name="client_visible" style="width:auto;margin-right:4px">Visible to client</label><select name="by">${['You', ...employees.filter(e => !e.archived).map(e => e.name)].map(a => `<option ${a === cuAuthor ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select><button class="addbtn">Post</button></span></div></form></aside></div>`;
 }
 const cuIns = s => { const t = $('cuCmText'); if (t) { t.value += s; t.focus(); } };
 function cuMention(){ const e = employees.filter(x => !x.archived); if (!e.length) { toast('Add employees to mention them'); return; } openModal('<h2>Mention</h2>' + e.map(x => `<div class="tx" style="cursor:pointer" onclick="closeModal();cuIns(\'@${esc(x.name).replace(/\'/g, '')} \')"><div>${cuAv(x.name, 22)} ${esc(x.name)}</div></div>`).join('') + '<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button></div>'); }
@@ -2710,7 +2786,7 @@ function cuSaveDesc(id, el){ const t = taskById(id); if (!t) return; const h = c
 function cuAddSub(id, input){ const v = input.value.trim(); if (!v) return; cuSubs.push({id:uid(), taskId:id, title:v, done:false}); cuExpanded.add(id); save(); render(); }
 function cuPanelSub(sid){ const s = cuSubs.find(x => x.id === sid); if (s) { s.done = !s.done; save(); render(); } }
 function cuDelSub(sid){ cuSubs = cuSubs.filter(x => x.id !== sid); save(); render(); }
-function cuPost(ev, id){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); if (!f.text.trim()) return; cuAuthor = f.by; cuComments.push({id:uid(), taskId:id, at:new Date().toISOString(), by:f.by, text:f.text.trim(), kind:'comment'}); save(); render(); }
+function cuPost(ev, id){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); if (!f.text.trim()) return; cuAuthor = f.by; cuComments.push({id:uid(), taskId:id, at:new Date().toISOString(), by:f.by, author_id:(MB.user() || {}).id, text:f.text.trim(), kind:'comment', client_visible:!!f.client_visible}); save(); render(); }
 function cuAddLog(ev, id){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); cuTimeLogs.push({id:uid(), taskId:id, hours:+f.hours, date:f.date, note:(f.note || '').trim(), by:cuAuthor}); cuLogOpen = false; save(); render(); }
 function cuDelLog(lid){ cuTimeLogs = cuTimeLogs.filter(x => x.id !== lid); save(); render(); }
 
@@ -2723,8 +2799,148 @@ $('nav').addEventListener('click', e => { const b = e.target.closest('button'); 
 $('menuBtn').onclick = () => { $('sidebar').classList.add('open'); $('scrim').classList.add('open'); };
 $('scrim').onclick = () => { $('sidebar').classList.remove('open'); $('scrim').classList.remove('open'); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-init(); render();
-if (backfillNote) setTimeout(() => toast(backfillNote), 600);
+/* ========= Cloud: portal accounts, server-backed chat, one-time import, live updates ========= */
+let portalUsers = [], chanMembers = {};
+const portalOf = (kind, id) => portalUsers.find(u => (kind === 'employee' ? u.employee_id : u.client_id) === id);
+function portalBtns(kind, id){
+  const u = portalOf(kind, id);
+  if (!u) return `<button class="btn sm ghost" onclick="event.stopPropagation();portalForm('${kind}','${id}')">🔑 Create Portal Access</button>`;
+  return `<span class="badge ${u.active ? 'b-paid' : 'b-draft'}" title="${esc(u.email)}">${u.active ? 'Portal active' : 'Portal disabled'}</span>
+    <button class="btn sm ghost" onclick="event.stopPropagation();portalToggle('${u.id}',${u.active ? 0 : 1})">${u.active ? 'Deactivate' : 'Reactivate'}</button>
+    <button class="btn sm ghost" onclick="event.stopPropagation();portalForm('${kind}','${id}','${u.id}')">Reset password</button>`;
+}
+const genPw = () => { const a = new Uint32Array(4); crypto.getRandomValues(a); return 'Mb-' + [...a].map(n => n.toString(36)).join('').slice(0, 9); };
+function portalForm(kind, id, resetId){
+  const rec = kind === 'employee' ? empById(id) : clById(id); if (!rec) return;
+  const u = resetId ? portalUsers.find(x => x.id === resetId) : null, nm = kind === 'employee' ? rec.name : rec.company;
+  openModal(`<h2>${u ? 'Reset portal password' : 'Create Portal Access'}</h2>
+    <p class="muted" style="margin-bottom:12px">${u ? 'Set a new temporary password for' : 'Give'} <b>${esc(nm)}</b> ${u ? '' : (kind === 'employee' ? 'a login to the Employee portal (their tasks, channels, DMs and own salary only).' : 'a login to the Client portal (their invoices, project tasks and #general channel only).')}</p>
+    <form onsubmit="portalSave(event,'${kind}','${id}','${resetId || ''}')">
+      <div class="field"><label>Login email</label><input name="email" type="email" required value="${esc(u ? u.email : (rec.email || ''))}" ${u ? 'readonly' : ''}></div>
+      <div class="field"><label>Temporary password (min 8 characters)</label><div style="display:flex;gap:8px"><input name="password" id="pwTmp" minlength="8" required value="${genPw()}"><button type="button" class="btn sm ghost" onclick="$('pwTmp').value=genPw()">Generate</button></div>
+        <div class="muted" style="font-size:12px;margin-top:6px">Share this with them privately — you will not be able to see it again.</div></div>
+      <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="pwGo">${u ? 'Save password' : 'Create access'}</button></div></form>`);
+}
+async function portalSave(ev, kind, id, resetId){
+  ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)), go = $('pwGo'); go.disabled = true;
+  try {
+    await store.flush();   // the employee / client record must exist in the database first
+    if (resetId) await MB.api('/api/admin/users/' + resetId, {method:'PATCH', body:{password:f.password}});
+    else await MB.api('/api/admin/users', {method:'POST', body:{role:kind, linked_id:id, email:f.email, password:f.password}});
+    portalUsers = (await MB.api('/api/admin/users')).users;
+    closeModal(); render(); toast(resetId ? 'Password updated' : 'Portal access created — share the email and temporary password');
+  } catch (e) { toast(e.message); go.disabled = false; }
+}
+async function portalToggle(uid_, active){
+  if (!active && !confirm('Deactivate this portal account? They will be signed out and unable to log in.')) return;
+  try { await MB.api('/api/admin/users/' + uid_, {method:'PATCH', body:{active:!!active}}); portalUsers = (await MB.api('/api/admin/users')).users; render(); toast(active ? 'Portal access restored' : 'Portal access deactivated'); } catch (e) { toast(e.message); }
+}
+async function chanMembersForm(){
+  const ctx = chatCtx(); if (!ctx || ctx.kind !== 'channel') return;
+  const emps = employees.filter(e => !e.archived && portalOf('employee', e.id) && portalOf('employee', e.id).active), cur = new Set(chanMembers[ctx.ch.id] || []);
+  openModal(`<h2>Employee access · #${esc(ctx.ch.name)}</h2><p class="muted" style="margin-bottom:12px">Employees you tick can read and write in this channel from the Employee portal.${ctx.cl ? ' ' + esc(ctx.cl.company) + ' (the client) always has access to their own channel.' : ''}</p>
+    <form onsubmit="chanMembersSave(event,'${ctx.ch.id}')">${emps.map(e => { const u = portalOf('employee', e.id); return `<label class="tx" style="cursor:pointer;gap:10px"><input type="checkbox" name="u" value="${u.id}" style="width:auto" ${cur.has(u.id) ? 'checked' : ''}><span>${cuAv(e.name, 22)} ${esc(e.name)}</span></label>`; }).join('') || '<div class="muted">No employees have portal access yet. Open an employee and click “Create Portal Access”.</div>'}
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save</button></div></form>`);
+}
+async function chanMembersSave(ev, chId){
+  ev.preventDefault(); const ids = [...ev.target.querySelectorAll('input[name=u]:checked')].map(i => i.value);
+  try { await store.flush(); const r = await MB.api('/api/admin/channel_members', {method:'POST', body:{channel_id:chId, user_ids:ids}}); chanMembers[chId] = r.members; closeModal(); toast('Channel access saved'); } catch (e) { toast(e.message); }
+}
+
+/* ----- chat: DMs and channels live on the server; list chats stay in the synced collection ----- */
+const meId = () => (MB.user() || {}).id;
+const dmPeer = emp => (portalOf('employee', emp.id) || {}).id || 'emp:' + emp.id;
+const fromChan = m => ({id:m.id, channel_id:m.channel_id, author:m.author_id === meId() ? 'You' : m.author_name, text:m.text, timestamp:m.timestamp, replyTo:m.reply_to || undefined});
+const fromDm = (m, empId) => ({id:m.id, scope:'dm:' + empId, at:m.timestamp, by:m.from_id === meId() ? 'You' : m.from_name, text:m.text, replyTo:m.reply_to || undefined});
+async function chatPost(ctx, text, replyTo){
+  if (ctx.kind === 'list') { ctx.add(cuAuthor, text, replyTo ? {replyTo} : {}); save(); return; }
+  try {
+    await store.flush();   // a freshly created channel must reach the server before its first message
+    if (ctx.kind === 'channel') cuChanMsgs.push(fromChan(await MB.api('/api/messages/channel', {method:'POST', body:{channel_id:ctx.ch.id, text, reply_to:replyTo || null}})));
+    else cuMessages.push(fromDm(await MB.api('/api/messages/dm', {method:'POST', body:{to_id:dmPeer(ctx.emp), text, reply_to:replyTo || null}}), ctx.emp.id));
+  } catch (e) { toast(e.message); }
+}
+let chatSig = '';
+function renderKeepChat(){
+  const a = document.activeElement, had = a && a.id === 'chatInput', pos = had ? a.selectionStart : 0, feed = document.querySelector('.chat-feed'), stick = !feed || feed.scrollHeight - feed.scrollTop - feed.clientHeight < 80;
+  render();
+  const nf = document.querySelector('.chat-feed'); if (nf && stick) nf.scrollTop = nf.scrollHeight;
+  if (had) { const i = $('chatInput'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = pos; } }
+}
+async function chatSync(){
+  if (view !== 'tasks' || document.hidden) return;
+  const ctx = chatCtx(); if (!ctx || (ctx.kind !== 'channel' && ctx.kind !== 'dm')) return;
+  try {
+    let sig;
+    if (ctx.kind === 'channel') {
+      const msgs = (await MB.api('/api/messages/channel/' + encodeURIComponent(ctx.ch.id))).messages.map(fromChan);
+      cuChanMsgs = cuChanMsgs.filter(m => m.channel_id !== ctx.ch.id).concat(msgs); sig = ctx.ch.id + ':' + msgs.length + ':' + (msgs.length ? msgs[msgs.length - 1].id : '');
+    } else {
+      const msgs = (await MB.api('/api/messages/dm/' + encodeURIComponent(dmPeer(ctx.emp)))).messages.map(m => fromDm(m, ctx.emp.id));
+      cuMessages = cuMessages.filter(m => m.scope !== 'dm:' + ctx.emp.id).concat(msgs); sig = ctx.emp.id + ':' + msgs.length + ':' + (msgs.length ? msgs[msgs.length - 1].id : '');
+    }
+    if (sig !== chatSig) { chatSig = sig; renderKeepChat(); }
+  } catch (e) { /* channel not saved yet, or offline — the next tick retries */ }
+}
+const _cuGo = cuGo;
+cuGo = function(scope){ _cuGo(scope); chatSig = ''; chatSync(); };
+
+/* ----- live updates: tasks, subtasks and comments employees / clients change ----- */
+let lastChanges = 0;
+async function pollChanges(){
+  if (document.hidden) return;
+  try {
+    const r = await MB.api('/api/admin/changes?since=' + lastChanges); lastChanges = r.now - 3000;
+    const live = {cu_tasks:cuTasks, cu_subtasks:cuSubs, cu_comments:cuComments, cu_time_logs:cuTimeLogs}; let ch = false;
+    for (const k of SHARED_KEYS) if (store.merge(k, r.changes[k] || [], live[k])) ch = true;
+    const ae = document.activeElement, typing = ae && (/INPUT|TEXTAREA|SELECT/.test(ae.tagName) || ae.isContentEditable);
+    if (ch && !$('overlay').classList.contains('open') && !typing) render();
+  } catch (e) { /* offline — try again next tick */ }
+}
+
+/* ----- one-time import of the old browser-only data ----- */
+const LEGACY_KEYS = [...SYNC_KEYS, 'channels_messages'];
+const hasLegacy = () => { try { return !!LS.getItem('data_version') && LEGACY_KEYS.some(k => { const a = JSON.parse(LS.getItem(k) || '[]'); return Array.isArray(a) && a.length; }); } catch (e) { return false; } };
+function importPrompt(){
+  return new Promise(resolve => {
+    window._imp = async go => {
+      if (!go) { closeModal(); resolve(false); return; }
+      const b = $('impGo'); b.disabled = true; b.textContent = 'Importing…';
+      try {
+        const get = k => { try { return JSON.parse(LS.getItem(k) || '[]'); } catch (e) { return []; } };
+        const order = SYNC_KEYS.filter(k => k !== 'cu_messages' && k !== 'channels'); order.push('channels', 'cu_messages');
+        let n = 0;
+        for (const k of order) { const arr = get(k); if (!Array.isArray(arr) || !arr.length) continue; for (let i = 0; i < arr.length; i += 150) { await MB.api('/api/admin/import', {method:'POST', body:{collections:{[k]:arr.slice(i, i + 150)}}}); } n += arr.length; b.textContent = 'Imported ' + n + ' records…'; }
+        const settings = {}; SETTING_KEYS.forEach(k => { const v = LS.getItem(k); if (v !== null) settings[k] = v; });
+        await MB.api('/api/admin/import', {method:'POST', body:{collections:{channels_messages:get('channels_messages')}, settings}});
+        [...LEGACY_KEYS, ...SETTING_KEYS, 'cu_folders', 'projects', 'tasks', 'subtasks', 'task_comments'].forEach(k => { try { LS.removeItem(k); } catch (e) {} });   // clear the local copy only after a successful import
+        closeModal(); resolve(true);
+      } catch (e) { b.disabled = false; b.textContent = 'Retry import'; toast('Import failed: ' + e.message); }
+    };
+    openModal(`<h2>Move your data to the cloud</h2><p style="margin-bottom:10px">This browser holds data from the old single-device version of Media Beem (invoices, clients, tasks, employees…).</p>
+      <p class="muted" style="margin-bottom:6px">Import it once into the shared database. After a successful import the local copy is cleared from this browser. Files you attached to chats or resource folders are stored on this device only and can’t be moved.</p>
+      <div class="modal-actions"><button class="btn ghost" onclick="_imp(false)">Start fresh instead</button><button class="btn" id="impGo" onclick="_imp(true)">Import my data</button></div>`);
+  });
+}
+
+/* ========= Boot ========= */
+(async function boot(){
+  try {
+    const me = await MB.guard('admin');
+    $('whoAmI').textContent = me.email;
+    let state = await MB.api('/api/admin/state');
+    if (!state.settings.data_version && hasLegacy()) { if (await importPrompt()) state = await MB.api('/api/admin/state'); }
+    store.hydrate(state); portalUsers = state.users || []; chanMembers = state.members || {}; lastChanges = state.now - 3000;
+    init(); render();
+    $('syncStat').textContent = '✓ All changes saved';
+    if (backfillNote) setTimeout(() => toast(backfillNote), 600);
+    setInterval(pollChanges, 6000); setInterval(chatSync, 4000);
+    setInterval(async () => { try { portalUsers = (await MB.api('/api/admin/users')).users; } catch (e) {} }, 60000);
+  } catch (e) {
+    if (e && e.message !== 'Session expired') { $('view').innerHTML = `<div class="card empty">Could not load your data: ${esc(e.message)}<br><br><button class="btn" onclick="location.reload()">Retry</button></div>`; }
+  }
+})();
+
 </script>
 </body>
 </html>

@@ -1,0 +1,21 @@
+{
+  "name": "mediabeem-agency-manager",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Media Beem Agency Manager \u2014 3-portal system (admin / employee / client) on Cloudflare Workers + D1 + Pages",
+  "scripts": {
+    "db:create": "wrangler d1 create mediabeem-db",
+    "db:migrate": "wrangler d1 migrations apply mediabeem-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply mediabeem-db --local",
+    "db:seed": "node worker/seed-admin.mjs --remote",
+    "db:seed:local": "node worker/seed-admin.mjs --local",
+    "dev": "wrangler dev --local --port 8787",
+    "deploy:api": "wrangler deploy",
+    "deploy:pages": "wrangler pages deploy public --project-name mediabeem-pages",
+    "deploy": "npm run db:migrate && npm run deploy:api && npm run deploy:pages",
+    "dev:web": "node scripts/dev-static.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

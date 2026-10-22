@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Media Beem — Sign in</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="login-wrap">
+  <form class="login-card" id="f" autocomplete="on">
+    <h1>MEDIA BEEM</h1>
+    <div class="login-err" id="err" style="display:none" role="alert"></div>
+    <div class="f"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" required autofocus></div>
+    <div class="f"><label for="pw">Password</label><input id="pw" name="password" type="password" autocomplete="current-password" required></div>
+    <button class="btn" id="go">Login</button>
+  </form>
+</div>
+<script src="config.js"></script>
+<script src="portal.js"></script>
+<script>
+(async () => {
+  // already signed in? go straight to the right portal
+  if (MB.token()) { try { const { user } = await MB.api('/api/auth/me', { noRedirect: true }); MB.go(MB.HOME[user.role] || '/login'); return; } catch (e) { MB.clear(); } }
+  const f = document.getElementById('f'), err = document.getElementById('err'), go = document.getElementById('go');
+  f.addEventListener('submit', async ev => {
+    ev.preventDefault(); err.style.display = 'none'; go.disabled = true; go.textContent = 'Signing in…';
+    try {
+      const r = await MB.api('/api/auth/login', { method: 'POST', body: { email: f.email.value, password: f.password.value }, noRedirect: true });
+      MB.setSession(r.token, r.user);
+      MB.go(MB.HOME[r.user.role] || '/login');   // admin → /admin, employee → /employee, client → /client
+    } catch (e) { err.textContent = e.message; err.style.display = 'block'; go.disabled = false; go.textContent = 'Login'; }
+  });
+})();
+</script>
+</body>
+</html>
