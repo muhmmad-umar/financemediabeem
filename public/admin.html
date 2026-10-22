@@ -18,7 +18,6 @@
 body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;display:flex;min-height:100vh}
 button{font-family:inherit;cursor:pointer}
 /* sidebar */
-#importBanner{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(90deg,#7c3aed,#06b6d4);color:#fff;border-radius:10px;padding:14px 18px;margin:0 0 16px;box-shadow:0 4px 18px rgba(124,58,237,.35)}#importBanner .ib-t{flex:1;min-width:240px}#importBanner b{display:block;font-size:15px}#importBanner span{font-size:13px;opacity:.9}#importBanner .btn{background:#fff;color:#4c1d95;font-weight:700}
 .side-foot{margin-top:auto;border-top:1px solid #2a2a2a;padding:12px 6px 0;font-size:12px}.side-foot .who{color:#ccc;margin-bottom:4px;word-break:break-all}
 .sidebar{width:240px;background:var(--side);color:#cbd5e1;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column;padding:20px 14px;z-index:30;transition:transform .25s}
 .brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:17px;padding:4px 8px 22px}
@@ -642,7 +641,7 @@ tfoot td{border-top:1px solid #2a2a2a}
     <div class="nav-sep">Personal</div>
     <button data-view="personal" class="personal">👤 Personal Finance</button>
   </nav>
-  <div class="side-foot"><div class="who" id="whoAmI"></div><div id="syncStat" style="color:#888;font-size:11px;margin-bottom:8px">Loading…</div><button class="btn ghost sm" onclick="pickBackupFile()" style="width:100%;margin-bottom:6px" title="Import a mediabeem-backup.json exported from the old app">⬆ Import from backup file</button><input type="file" id="backupFile" accept=".json,application/json" style="display:none" onchange="onBackupFile(this)"><button class="btn ghost sm" onclick="MB.logout()" style="width:100%">Log out</button></div>
+  <div class="side-foot"><div class="who" id="whoAmI"></div><div id="syncStat" style="color:#888;font-size:11px;margin-bottom:8px">Loading…</div><button class="btn ghost sm" onclick="MB.logout()" style="width:100%">Log out</button></div>
 </aside>
 <div class="scrim" id="scrim"></div>
 
@@ -667,7 +666,6 @@ tfoot td{border-top:1px solid #2a2a2a}
 /* ========= Cloud storage shim =========
    The app below was written against localStorage. `store` keeps the same getItem/setItem interface, but is backed by
    Cloudflare D1: setItem() diffs the collection against the last server snapshot and POSTs only the changes. */
-const LS = window.localStorage;   // the real browser storage — only used for the one-time import of old local data
 const SYNC_KEYS = ['income_entries','invoices','charity_expenses','expenses','personal_expenses','personal_income','personal_withdrawals','recurring_alerts','employees','salary_payments','employee_leaves','clients','cu_spaces','cu_lists','cu_tasks','cu_subtasks','cu_comments','cu_time_logs','cu_messages','channels','resource_folders','resource_files'];
 const SETTING_KEYS = ['data_version','cu_migrated','cu_nofolders'];
 const SHARED_KEYS = ['cu_tasks','cu_subtasks','cu_comments','cu_time_logs'];
@@ -2899,62 +2897,6 @@ async function pollChanges(){
   } catch (e) { /* offline — try again next tick */ }
 }
 
-/* ----- import of the old browser-only (localStorage) data, offered through a banner ----- */
-const LEGACY_KEYS = [...SYNC_KEYS, 'channels_messages'];
-const hasLegacy = () => { try { return LEGACY_KEYS.some(k => { const a = JSON.parse(LS.getItem(k) || '[]'); return Array.isArray(a) && a.length; }); } catch (e) { return false; } };
-function showImportBanner(){
-  if (!hasLegacy() || $('importBanner')) return;
-  const d = document.createElement('div'); d.id = 'importBanner';
-  d.innerHTML = `<div class="ib-t"><b>We found existing data in this browser — click to import it into your account.</b><span id="ibMsg">Your invoices, clients, tasks, employees and more will be saved to the cloud. The local copy is cleared afterwards.</span></div><button class="btn" id="ibGo">Import my data</button>`;
-  document.querySelector('main').prepend(d);
-  $('ibGo').onclick = runImport;
-}
-/* push a {key: records[]} source to the API in batches; throws on the first failure */
-async function importCollections(get, settings, onProgress){
-  await store.flush();
-  const order = SYNC_KEYS.filter(k => k !== 'cu_messages' && k !== 'channels'); order.push('channels', 'cu_messages');
-  let n = 0;
-  for (const k of order) { const arr = get(k); for (let i = 0; i < arr.length; i += 150) await MB.api('/api/admin/import', {method:'POST', body:{collections:{[k]:arr.slice(i, i + 150)}}}); n += arr.length; onProgress(n); }
-  await MB.api('/api/admin/import', {method:'POST', body:{collections:{channels_messages:get('channels_messages')}, settings}});
-  return n;
-}
-async function runImport(){
-  const go = $('ibGo'), msg = $('ibMsg'); go.disabled = true; go.textContent = 'Importing…';
-  try {
-    const get = k => { try { const a = JSON.parse(LS.getItem(k) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
-    const settings = {}; SETTING_KEYS.forEach(k => { const v = LS.getItem(k); if (v !== null) settings[k] = v; });
-    await importCollections(get, settings, n => { msg.textContent = 'Imported ' + n + ' records…'; });
-    [...LEGACY_KEYS, ...SETTING_KEYS, 'cu_folders', 'projects', 'tasks', 'subtasks', 'task_comments'].forEach(k => { try { LS.removeItem(k); } catch (e) {} });   // cleared only after every request succeeded
-    $('importBanner').remove(); toast('Import complete — loading your data…'); setTimeout(() => location.reload(), 900);
-  } catch (e) { go.disabled = false; go.textContent = 'Retry import'; msg.textContent = 'Import failed: ' + e.message + ' — your local data is untouched.'; }
-}
-
-/* ----- import from mediabeem-backup.json (made by "Export All Data" in the old finance-app.html) ----- */
-function pickBackupFile(){ $('backupFile').value = ''; $('backupFile').click(); }
-async function onBackupFile(input){
-  const f = input.files && input.files[0]; if (!f) return;
-  let data;
-  try {
-    const j = JSON.parse(await f.text());
-    data = j && typeof j.data === 'object' && j.data ? j.data : j;   // accept the wrapped export or a raw key → value dump
-    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error();
-  } catch (e) { toast('That file is not a valid mediabeem-backup.json'); return; }
-  const get = k => { let v = data[k]; if (typeof v === 'string') { try { v = JSON.parse(v); } catch (e) { v = null; } } return Array.isArray(v) ? v : []; };
-  const counts = LEGACY_KEYS.map(k => [k, get(k).length]).filter(c => c[1]);
-  if (!counts.length) { toast('No records found in that file'); return; }
-  const total = counts.reduce((t, c) => t + c[1], 0), settings = {};
-  SETTING_KEYS.forEach(k => { if (data[k] !== undefined && data[k] !== null) settings[k] = String(data[k]); });
-  openModal(`<h2>Import from backup file</h2><p style="margin-bottom:8px"><b>${esc(f.name)}</b> contains <b>${total}</b> records:</p>
-    <div class="muted" style="font-size:13px;margin-bottom:10px">${counts.map(([k, n]) => esc(k.replace(/_/g, ' ')) + ' ' + n).join(' · ')}</div>
-    <p class="muted" style="font-size:13px">Records are saved to your account. Anything with the same id is overwritten; everything else is kept.</p>
-    <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" id="bkGo">Import ${total} records</button></div>`);
-  $('bkGo').onclick = async () => {
-    const b = $('bkGo'); b.disabled = true; b.textContent = 'Importing…';
-    try { await importCollections(get, settings, n => { b.textContent = 'Imported ' + n + ' / ' + total; }); closeModal(); toast('Import complete — loading your data…'); setTimeout(() => location.reload(), 900); }
-    catch (e) { b.disabled = false; b.textContent = 'Retry import'; toast('Import failed: ' + e.message); }
-  };
-}
-
 /* ========= Boot ========= */
 (async function boot(){
   try {
@@ -2962,7 +2904,7 @@ async function onBackupFile(input){
     $('whoAmI').textContent = me.email;
     let state = await MB.api('/api/admin/state');
     store.hydrate(state); portalUsers = state.users || []; chanMembers = state.members || {}; lastChanges = state.now - 3000;
-    init(); render(); showImportBanner();
+    init(); render();
     $('syncStat').textContent = '✓ All changes saved';
     if (backfillNote) setTimeout(() => toast(backfillNote), 600);
     setInterval(pollChanges, 6000); setInterval(chatSync, 4000);
