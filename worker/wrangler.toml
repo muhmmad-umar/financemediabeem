@@ -12,8 +12,7 @@ ALLOWED_ORIGINS = "https://mediabeem-pages.pages.dev,http://localhost:8080,http:
 [[d1_databases]]
 binding = "DB"
 database_name = "mediabeem-db"
-# Replace with the id printed by `npm run db:create`
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "b1f11e8f-e83b-4020-a1a3-1f925c1bcdf9"
 migrations_dir = "migrations"
 
 # JWT_SECRET is a secret, not a var:  npx wrangler secret put JWT_SECRET
