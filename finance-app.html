@@ -122,103 +122,172 @@ main{margin-left:240px;flex:1;padding:26px 30px 50px;min-width:0}
 .dn{font-size:12px;font-weight:700;color:var(--muted)}.cald.today .dn{color:var(--teal)}
 .cchip{color:#fff;font-size:11px;border-radius:5px;padding:1px 6px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 @media(max-width:640px){.cald{min-height:60px}.cchip{font-size:9px;padding:0 3px}}
-/* ---- Tasks workspace (ClickUp style) ---- */
-main.cu{padding:0}
+/* ---- Tasks workspace: ClickUp replica (dark) ---- */
+body.cu-mode{background:#0d0d0d}
+main.cu{padding:0;background:#0d0d0d;color:#fff}
 main.cu .topbar{display:none}
-@media(max-width:820px){main.cu .topbar{display:flex;padding:8px 12px;margin:0}}
-.cu-wrap{display:flex;min-height:100vh;background:#f7f8fa}
-.cu-tree{width:264px;flex:none;background:#1a2332;color:#cbd5e1;height:100vh;position:sticky;top:0;overflow:auto;padding:10px 8px;font-size:13px}
-.tr-row{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:7px;cursor:pointer;min-height:30px}
-.tr-row:hover{background:#243247}.tr-row.sel{background:#33405a;color:#fff}
-.tr-row.top{font-weight:600;color:#e2e8f0}.tr-row.fo{padding-left:20px}.tr-row.li{padding-left:40px}
-.tr-row .arr{width:10px;font-size:10px;color:#64748b}.tr-row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tr-row .cnt{font-size:11px;color:#64748b}
+@media(max-width:820px){main.cu .topbar{display:flex;padding:8px 12px;margin:0;background:#111;color:#fff}}
+.cu-wrap{display:flex;min-height:100vh;background:#0d0d0d;color:#fff;font-size:13px}
+.cu-wrap .muted,body.cu-mode .modal .muted{color:#888}
+.cu-wrap input,.cu-wrap select,.cu-wrap textarea,body.cu-mode .modal input,body.cu-mode .modal select,body.cu-mode .modal textarea{background:#161616;color:#fff;border:1px solid #2a2a2a;border-radius:6px;font-size:13px;padding:6px 9px;width:auto}
+.cu-wrap input:focus,.cu-wrap select:focus,.cu-wrap textarea:focus{outline:1px solid #7c3aed;border-color:#7c3aed}
+.cu-wrap textarea,.cu-wrap input.qadd,.cu-wrap input.dtitle{width:100%}
+.cu-wrap select option,body.cu-mode .modal select option{background:#1a1a1a;color:#fff}
+body.cu-mode .modal{background:#1a1a1a;color:#fff;border:1px solid #2a2a2a}
+body.cu-mode .modal input,body.cu-mode .modal select,body.cu-mode .modal textarea{width:100%}
+body.cu-mode .modal input[type=checkbox],body.cu-mode .modal input[type=radio],body.cu-mode .modal input[type=color]{width:auto}
+body.cu-mode .modal .field label,body.cu-mode .modal .chk{color:#aaa}
+body.cu-mode .modal .btn.ghost{background:#222;color:#ddd;border-color:#333}
+body.cu-mode .modal .hint{background:#222;border-color:#333;color:#ccc}
+body.cu-mode .modal .tx{border-color:#2a2a2a}body.cu-mode .modal .tx .t2{color:#888}
+.chk{display:flex;align-items:center;gap:10px;padding:7px 0;font-weight:500;cursor:pointer}.chk input{width:auto!important}
+/* sidebar */
+.cu-tree{width:260px;flex:none;background:#111;border-right:1px solid #1d1d1d;color:#d4d4d4;height:100vh;position:sticky;top:0;overflow:auto;padding:10px 8px}
+.tr-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:6px;cursor:pointer;min-height:26px;color:#cfcfcf}
+.tr-row:hover{background:#1a1a1a}.tr-row.sel{background:#232323;color:#fff}
+.tr-row.top{font-weight:600}.tr-row.fo{padding-left:20px;color:#a3a3a3}.tr-row.li{padding-left:34px}.tr-row.dm{padding-left:10px}
+.tr-row.newmsg{color:#888;font-size:12px}.tr-row.newmsg:hover{color:#fff}
+.tr-row .arr{font-size:10px;color:#666;width:10px}.tr-row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-row .cnt{font-size:11px;color:#777}
+.sq{width:18px;height:18px;border-radius:4px;display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff;flex:none;cursor:pointer}
 .tr-row .acts{display:none;gap:2px}.tr-row:hover .acts{display:flex}
-.tr-row .acts button,.tr-sec button{background:none;border:0;color:#94a3b8;font-size:14px;padding:0 5px;border-radius:4px;line-height:1.4}
-.tr-row .acts button:hover,.tr-sec button:hover{background:#33405a;color:#fff}
-.tr-sec{display:flex;justify-content:space-between;align-items:center;margin:16px 8px 4px;font-size:10px;font-weight:700;letter-spacing:.14em;color:#64748b}
-.dot{width:10px;height:10px;border-radius:50%;flex:none;cursor:pointer;display:inline-block}
-.cu-main{flex:1;min-width:0;padding:16px 22px 90px;transition:margin .25s}
-.cu-treebtn{display:none;margin-bottom:10px}
-.crumb{font-size:12px;color:var(--muted);margin-bottom:2px}
-.cu-title{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}.cu-title h1{font-size:22px}
-.cu-bar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:12px}
-.cu-tabs{display:flex;gap:2px}
-.cu-tabs button{background:none;border:0;padding:8px 14px;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent}
-.cu-tabs button.on{color:#7b68ee;border-color:#7b68ee}
-.cu-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.cu-sel{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}.cu-sel select{width:auto;padding:5px 8px;font-size:12px}
-.cu-search{width:170px;padding:6px 10px;font-size:12px}
-.cu-fpanel{display:flex;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:12px}
-.cu-fpanel select{width:auto;font-size:12px;padding:6px 8px}
-.spill{display:inline-block;color:#fff;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 9px;border-radius:5px;white-space:nowrap}
-.cu-board{display:flex;gap:12px;overflow-x:auto;align-items:flex-start;padding-bottom:12px}
-.cu-col{flex:0 0 268px;background:#eceef3;border-radius:10px;padding:8px;min-height:90px;transition:background .15s,box-shadow .15s}
-.cu-col.over{background:#dfe3f3;box-shadow:inset 0 0 0 2px #7b68ee}
-.chead{display:flex;align-items:center;gap:8px;margin:2px 4px 8px}
-.cu-card{background:#fff;border:1px solid #e4e7ee;border-radius:8px;padding:9px 10px;margin-bottom:7px;cursor:grab;font-size:13px;transition:box-shadow .15s,transform .15s}
-.cu-card:hover{box-shadow:0 3px 10px rgba(15,23,42,.12)}.cu-card.dragging{opacity:.4;transform:rotate(2deg)}
-.cu-card.overdue{background:#fef2f2;border-color:#fca5a5}.cu-card.today{background:#fffbeb;border-color:#f4c542}
-.ct{font-weight:600;line-height:1.3}.ctags{margin-top:5px}
-.cm{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;flex-wrap:wrap}
-.clist{font-size:11px;margin-left:auto}
-.cdue{color:var(--muted);font-size:12px}.cdue.od{color:#dc2626;font-weight:700}.cdue.td{color:#b45309;font-weight:700}
-.cadd{width:100%;text-align:left;background:none;border:0;color:var(--muted);font-size:12px;padding:7px 6px;border-radius:6px}.cadd:hover{background:#dfe3ec;color:var(--text)}
-.cu-table{background:#fff;border:1px solid var(--line);border-radius:10px;overflow-x:auto}
-.cu-table table{font-size:13px}
-.cu-table th{padding:8px 10px;background:#fafbfc;white-space:nowrap;user-select:none}
-.cu-table td{padding:5px 10px;border-bottom:1px solid #f1f3f6}
-.ghead td{background:#f7f8fa;padding:7px 10px;border-bottom:1px solid var(--line)}
-.trow.overdue td{background:#fef2f2}.trow.today td{background:#fffbeb}
-.trow:hover td{background:#f5f6fb}.trow.overdue:hover td{background:#fee2e2}
-.tname{min-width:240px}.tname .ttl{cursor:pointer;font-weight:500}.tname .ttl:hover{color:#7b68ee}
-.tname .arrow{display:inline-block;width:16px;cursor:pointer;color:var(--muted);font-size:11px}
-.tname input{width:90%}
-.cell{display:inline-block;min-width:30px;min-height:22px;cursor:pointer;padding:1px 4px;border-radius:5px}.cell:hover{background:#eef0f6}
-.cu-table select,.cu-table td input[data-edit]{padding:3px 6px;font-size:12px;width:auto}
-.subrow td{background:#fcfcfe;padding:3px 10px}.subrow label{display:flex;gap:8px;align-items:center;margin:0 0 0 38px;color:var(--text);font-weight:400}.subrow input{width:auto}
-.addrow td{border-bottom:0}.addrow .qadd{width:100%;border:0;background:transparent;padding:6px 4px}.addrow .qadd:focus{background:#f5f6fb}
-.cu-table input[type=checkbox],.cu-panel input[type=checkbox]{width:auto}
-.cu-bulk{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:8px 12px;margin-bottom:10px}
-.cu-bulk select{width:auto;font-size:12px;padding:5px 8px}
-.cu-cal{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px}
+.tr-row .acts button,.tr-sec button{background:none;border:0;color:#888;font-size:14px;padding:0 5px;border-radius:4px;line-height:1.4}
+.tr-row .acts button:hover,.tr-sec button:hover{background:#2a2a2a;color:#fff}
+.tr-sec{display:flex;justify-content:space-between;align-items:center;margin:14px 8px 4px;font-size:10px;font-weight:700;letter-spacing:.14em;color:#666}
+.tr-note{font-size:12px;color:#666;padding:4px 10px}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;cursor:pointer;display:inline-block}
+.av{border-radius:50%;display:inline-grid;place-items:center;color:#fff;font-weight:700;flex:none}
+.av.empty{border:1.5px dashed #444;background:transparent}.av.more{background:#333;color:#ddd}
+.stack{display:inline-flex}.stack .av{border:2px solid #0d0d0d;margin-left:-7px}.stack .av:first-child{margin-left:0}
+.cu-card .stack .av{border-color:#1e1e2e}
+/* main */
+.cu-main{flex:1;min-width:0;padding:14px 22px 90px}
+.cu-main.has-detail{padding:0}
+.cu-treebtn{display:none;margin-bottom:10px;background:#1a1a1a!important;color:#fff!important;border-color:#2a2a2a!important}
+.cu-crumb{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;flex-wrap:wrap}
+.cu-crumb i{color:#555;font-style:normal}.cu-crumb .cur{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
+.cu-crumb .back{cursor:pointer;color:#aaa}.cu-crumb .back:hover{color:#fff}
+.star{background:none;border:0;color:#888;font-size:17px;padding:0 4px}.star.on{color:#eab308}
+.tsel{width:auto!important}
+.cu-tabs{display:flex;gap:2px;border-bottom:1px solid #222;margin-bottom:10px}
+.cu-tabs button{background:none;border:0;padding:8px 13px;font-size:13px;font-weight:600;color:#888;border-bottom:2px solid transparent;margin-bottom:-1px}
+.cu-tabs button:hover{color:#fff}.cu-tabs button.on{color:#fff;border-color:#7c3aed}
+.cu-tool{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.cu-tool .tl,.cu-tool .tr{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tbtn{background:#161616;border:1px solid #2a2a2a;color:#ccc;border-radius:6px;padding:5px 10px;font-size:12px}
+.tbtn:hover{background:#202020;color:#fff}.tbtn.on{border-color:#7c3aed;color:#c4b5fd;background:#1d1830}
+.addbtn{background:#7c3aed;color:#fff;border:0;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600}.addbtn:hover{background:#6d28d9}
+.cu-menuwrap{position:relative;display:inline-block}
+.cu-menu{position:absolute;top:calc(100% + 4px);left:0;min-width:170px;background:#1a1a1a;border:1px solid #2f2f2f;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.6);padding:4px;z-index:30}
+.cu-tool .tr .cu-menu{left:auto;right:0}
+.mi{padding:6px 10px;border-radius:5px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:7px;white-space:nowrap}.mi:hover{background:#262626}.mi.on{color:#c4b5fd}
+.cu-search{width:150px!important}
+.cu-fpanel{display:flex;gap:8px;flex-wrap:wrap;background:#141414;border:1px solid #232323;border-radius:8px;padding:8px;margin-bottom:12px}
+.cu-empty{text-align:center;padding:70px 20px;color:#ccc}.cu-empty h2{color:#fff;margin-bottom:8px}.cu-empty .btn{margin:6px 4px}
+.spill{display:inline-block;color:#fff;font-size:11px;font-weight:700;letter-spacing:.03em;padding:2px 9px;border-radius:5px;white-space:nowrap}
+.spill b{opacity:.85;margin-left:5px}
+.pflag{display:inline-flex;align-items:center;gap:4px;color:#cfcfcf;font-size:12px}
+.tagchip{display:inline-block;background:#262040;color:#c4b5fd;font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;margin:0 4px 2px 0}
+.tagchip a{cursor:pointer;opacity:.7;margin-left:2px}
+.cdue{color:#888;font-size:12px}.cdue.od{color:#ef4444;font-weight:700}.cdue.td{color:#f59e0b;font-weight:700}
+/* list */
+.cu-list .lg{margin-bottom:14px}
+.lgh,.lr{display:grid;align-items:center;column-gap:8px;padding:0 10px}
+.lgh{min-height:30px;border-bottom:1px solid #1f1f1f}
+.lg1{display:flex;align-items:center;gap:8px}.garr{cursor:pointer;color:#888;width:12px}
+.lh{font-size:11px;color:#777;font-weight:600;cursor:pointer;white-space:nowrap}.lh:hover{color:#ccc}.lh.plus{text-align:center;font-size:15px}
+.lr{min-height:34px;border-bottom:1px solid #181818}
+.lr:hover{background:#1e1e1e}.lr.overdue{background:rgba(239,68,68,.09)}.lr.today{background:rgba(245,158,11,.09)}
+.lr.sub{background:#0f0f0f;min-height:28px}
+.ln{display:flex;align-items:center;gap:7px;min-width:0;overflow:hidden}
+.circ{width:16px;height:16px;border-radius:50%;border:2px solid #666;flex:none;display:inline-grid;place-items:center;font-size:10px;color:#fff;cursor:pointer}
+.circ.sm{width:13px;height:13px;font-size:8px}
+.arrow{width:12px;cursor:pointer;color:#777;font-size:11px;flex:none}
+.ttl{cursor:pointer;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ttl:hover{color:#c4b5fd}
+.dn{text-decoration:line-through;color:#777}
+.clip{font-size:11px;opacity:.7}.sc{font-size:11px}.clist{font-size:11px;margin-left:auto;white-space:nowrap}
+.cell{display:inline-block;min-width:28px;min-height:22px;cursor:pointer;padding:1px 4px;border-radius:5px}.cell:hover{background:#262626}
+.lr input[data-edit],.lr select[data-edit]{padding:3px 6px;font-size:12px}
+.lr .qadd{border:0;background:transparent;padding:6px 4px;color:#888}.lr .qadd:focus{background:#181818;color:#fff}
+/* board */
+.cu-board{display:flex;gap:12px;overflow-x:auto;align-items:flex-start;padding-bottom:14px}
+.cu-col{flex:0 0 272px;background:#121212;border:1px solid #1f1f1f;border-radius:10px;padding:8px;min-height:90px;transition:background .15s,box-shadow .15s}
+.cu-col.over{background:#1a1626;box-shadow:inset 0 0 0 2px #7c3aed}
+.chead{margin:-8px -8px 8px;padding:10px;border-radius:10px 10px 0 0}
+.cu-card{background:#1e1e2e;border:1px solid #2b2b40;border-radius:10px;padding:10px 11px;margin-bottom:8px;cursor:grab;transition:box-shadow .15s,transform .15s,border-color .15s}
+.cu-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.5);border-color:#3b3b5c}.cu-card.dragging{opacity:.4;transform:rotate(2deg)}
+.cu-card.overdue{border-color:#7f1d1d;background:#2a1a22}.cu-card.today{border-color:#78560f;background:#2a2418}
+.ct{font-weight:700;line-height:1.3}.cdesc{color:#888;font-size:12px;margin-top:3px}.ctags{margin-top:5px}
+.cm{display:flex;align-items:center;gap:9px;margin-top:9px;font-size:12px;flex-wrap:wrap}
+.csub{color:#888;font-size:11px;margin-top:6px}
+.cadd{width:100%;text-align:left;background:none;border:0;color:#888;font-size:12px;padding:7px 6px;border-radius:6px}.cadd:hover{background:#1b1b1b;color:#fff}
+/* calendar */
+.cu-cal{background:#121212;border:1px solid #232323;border-radius:10px;padding:14px}
 .calbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.fab{position:fixed;right:26px;bottom:26px;width:52px;height:52px;border-radius:50%;border:0;background:#7b68ee;color:#fff;font-size:30px;line-height:1;box-shadow:0 6px 18px rgba(123,104,238,.5);z-index:40;transition:right .25s,transform .15s}
+.cu-cal .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cu-cal .calh{text-align:center;font-size:11px;font-weight:700;color:#777;text-transform:uppercase;padding:4px}
+.cu-cal .cald{min-height:92px;border:1px solid #232323;border-radius:8px;padding:4px 5px;cursor:pointer;background:#161616;overflow:hidden}
+.cu-cal .cald:hover{border-color:#7c3aed}.cu-cal .cald.today{background:#1d1830;border-color:#7c3aed}.cu-cal .cald.empty-cell{background:transparent;border:0;cursor:default}
+.cu-cal .dn{font-size:12px;font-weight:700;color:#888;text-decoration:none}.cu-cal .cald.today .dn{color:#c4b5fd}
+.cchip{color:#fff;font-size:11px;border-radius:5px;padding:1px 6px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+/* team + chat */
+.cu-team{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:12px}
+.tcard{background:#141414;border:1px solid #232323;border-radius:10px;padding:10px}
+.thead{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}.thead b{margin-right:auto}
+.tstat{font-size:11px;background:#1f1f1f;border-radius:99px;padding:2px 9px;color:#aaa}.tstat.red{background:#3b1414;color:#fca5a5}
+.trow2{display:flex;align-items:center;gap:8px;padding:6px 4px;border-top:1px solid #1d1d1d;cursor:pointer}.trow2:hover{background:#1c1c1c}.trow2 .tt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cu-chat{max-width:760px}
+.thread{min-height:200px}
+.msgform{display:flex;gap:8px;margin-top:12px}.msgform input{flex:1;width:auto!important}
+.cdiv{display:flex;align-items:center;gap:10px;color:#888;font-size:12px;margin:12px 0 6px}.cdiv:before,.cdiv:after{content:"";flex:1;height:1px;background:#222}
+.act{display:flex;gap:10px;padding:7px 0;align-items:flex-start}
+.act .who{font-size:12px;color:#888}.act .who b{color:#fff}.act .who span,.act.sys .txt span{color:#666;margin-left:4px}
+.act .txt{font-size:13px;margin-top:2px;white-space:pre-wrap;color:#e5e5e5;word-break:break-word}
+.act.sys .txt{color:#999;font-size:12px}.act.sys .txt b{color:#ddd}
+/* task detail (full page) */
+.cu-detail{display:flex;min-height:100vh}
+.dmain{flex:1;min-width:0;padding:16px 30px 60px}
+.dtype{display:flex;align-items:center;gap:10px;margin:6px 0 4px;color:#ccc}
+.cu-wrap input.dtitle{font-size:28px;font-weight:800;background:transparent;border-color:transparent;padding:4px 0;margin-bottom:12px}
+.cu-wrap input.dtitle:hover,.cu-wrap input.dtitle:focus{border-color:#2a2a2a;padding:4px 8px}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 40px}
+.drow{display:flex;align-items:center;gap:12px;padding:6px 0;min-height:38px}
+.dl{width:104px;color:#888;flex:none}.dv{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.dgrid>div:first-child .dv{flex-wrap:nowrap}
+.stsel{color:#fff!important;font-weight:700;text-transform:uppercase;font-size:12px!important;border:0!important;border-radius:5px!important;padding:5px 10px!important}
+.chkbtn{width:26px;height:26px;border-radius:6px;border:1px solid #2f2f2f;background:#161616;color:#888;cursor:pointer}.chkbtn:hover{background:#22c55e;color:#fff}.chkbtn.on{background:#22c55e;color:#fff;display:inline-grid;place-items:center}
+.plus{width:24px;height:24px;border-radius:50%;border:1.5px dashed #555;display:inline-grid;place-items:center;color:#888}
+.tagbox{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.tagbox input{width:90px!important;border:0!important;background:transparent!important;padding:3px 4px}
+.lnk{color:#a78bfa;cursor:pointer;font-size:12px}
+.psec{font-size:11px;font-weight:800;letter-spacing:.1em;color:#888;margin:20px 0 8px}
+.logform{display:flex;gap:6px;margin:8px 0 4px;flex-wrap:wrap}
+.loglist{margin:6px 0;font-size:12px}.loglist div{display:flex;gap:10px;padding:3px 0;border-bottom:1px dashed #262626}.loglist a{margin-left:auto;cursor:pointer;color:#ef4444}
+.rtbar{display:flex;gap:4px;margin-bottom:4px}.rtbar button{background:#1a1a1a;border:1px solid #2a2a2a;color:#ccc;border-radius:5px;padding:3px 9px;font-size:12px}
+.rte{min-height:110px;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.55;outline:none;background:#141414;color:#e5e5e5}
+.rte:focus{border-color:#7c3aed}.rte:empty:before{content:attr(data-ph);color:#666}.rte ul,.rte ol{margin-left:20px}
+.sub{display:flex;justify-content:space-between;align-items:center;padding:4px 0}.sub label{display:flex;gap:9px;align-items:center;margin:0;color:#e5e5e5;font-weight:400;font-size:13px}.sub a{cursor:pointer;color:#777;padding:0 6px}
+.dcom{width:300px;flex:none;border-left:1px solid #1f1f1f;background:#111;height:100vh;position:sticky;top:0;display:flex;flex-direction:column}
+.chd{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #1f1f1f}
+.cmsearch{width:90px!important;font-size:12px!important;padding:3px 7px!important}
+.cfeed{flex:1;overflow-y:auto;padding:0 14px}
+.cbox{border-top:1px solid #1f1f1f;padding:10px 12px;background:#111}
+.ctabs{display:flex;gap:14px;margin-bottom:6px;font-size:12px;color:#777}.ctabs .on{color:#fff;border-bottom:2px solid #7c3aed;padding-bottom:3px}
+.ctool{display:flex;justify-content:space-between;align-items:center;margin-top:6px;gap:6px}.ctool span{display:flex;align-items:center;gap:2px}
+.ctool button{background:none;border:0;font-size:14px;padding:2px 5px;border-radius:4px;color:#aaa}.ctool button:hover{background:#222}
+.ctool .addbtn{font-size:12px;padding:5px 12px;color:#fff;margin-left:4px;background:#7c3aed;border-radius:6px}.ctool .addbtn:hover{background:#6d28d9}
+.ctool select{width:90px!important;font-size:11px!important;padding:3px 4px!important}
+.fab{position:fixed;right:26px;bottom:26px;width:52px;height:52px;border-radius:50%;border:0;background:#7c3aed;color:#fff;font-size:30px;line-height:1;box-shadow:0 6px 18px rgba(124,58,237,.5);z-index:40;transition:transform .15s}
 .fab:hover{transform:scale(1.08)}
 main:not(.cu) .fab{display:none}
 .swatches{display:flex;gap:8px;flex-wrap:wrap}.swatches input{display:none}
 .swatches span{display:block;width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent}
-.swatches input:checked+span{border-color:#0f172a}
-.strow{display:flex;gap:6px;align-items:center;margin-bottom:8px}.strow input[type=color]{width:38px;height:34px;padding:2px;flex:none}.strow select{width:auto}
-/* right-hand task panel */
-.cu-panel{position:fixed;top:0;right:0;bottom:0;width:min(520px,100vw);background:#fff;box-shadow:-8px 0 30px rgba(15,23,42,.18);transform:translateX(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);z-index:45;overflow-y:auto;border-left:1px solid var(--line)}
-.cu-panel.open{transform:none}
-@media(min-width:1280px){body.cu-panel-open main.cu .cu-main{margin-right:520px}body.cu-panel-open .fab{right:546px}}
-.ph{display:flex;gap:8px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:2}
-.ptitle{font-size:18px;font-weight:700;border-color:transparent;flex:1}.ptitle:hover,.ptitle:focus{border-color:var(--line)}
-.pclose{background:#f1f3f7;border:0;border-radius:8px;width:32px;height:32px;font-size:15px}
-.pbody{padding:14px 18px 40px}
-.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
-.pf span{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
-.pf select,.pf input{padding:6px 8px;font-size:13px}
-.stsel{color:#fff;font-weight:700;text-transform:uppercase;font-size:12px!important;border:0}
-.tagbox{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.tagbox input{width:90px;border:0;padding:3px 4px}
-.tagchip a{cursor:pointer;opacity:.6;margin-left:2px}
-.psec{font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--muted);margin:18px 0 8px}
-.logform{display:flex;gap:6px;margin-top:10px}.logform input{padding:6px 8px;font-size:12px}
-.loglist{margin-top:8px;font-size:12px}.loglist div{display:flex;gap:10px;padding:3px 0;border-bottom:1px dashed var(--line)}.loglist a{margin-left:auto;cursor:pointer;color:var(--red)}
-.rtbar{display:flex;gap:4px;margin-bottom:4px}.rtbar button{background:#f1f3f7;border:0;border-radius:5px;padding:3px 9px;font-size:12px}
-.rte{min-height:90px;border:1px solid #cbd5e1;border-radius:8px;padding:9px 11px;font-size:13px;line-height:1.5;outline:none}
-.rte:focus{border-color:#7b68ee;box-shadow:0 0 0 2px #e0dcfb}.rte:empty:before{content:attr(data-ph);color:#94a3b8}
-.rte ul,.rte ol{margin-left:20px}
-.sub{display:flex;justify-content:space-between;align-items:center;padding:4px 0}.sub label{display:flex;gap:8px;align-items:center;margin:0;color:var(--text);font-weight:400;font-size:13px}.sub a{cursor:pointer;color:var(--muted);padding:0 6px}
-.cu-panel .qadd{margin-top:6px;width:100%;font-size:13px}
-.act{display:flex;gap:10px;padding:8px 0;align-items:flex-start}.act .who{font-size:12px;color:var(--muted)}.act .who b{color:var(--text)}.act .txt{font-size:13px;margin-top:2px;white-space:pre-wrap}
-.act.sys .txt{color:var(--muted);font-size:12px}
-.cform{display:flex;gap:6px;margin-top:10px}.cform select{width:110px;flex:none}.cform input{flex:1}
-@media(max-width:820px){
+.swatches input:checked+span{border-color:#fff;box-shadow:0 0 0 1px #000}
+.strow{display:flex;gap:6px;align-items:center;margin-bottom:8px}.strow input[type=color]{width:38px!important;height:34px;padding:2px;flex:none}.strow select{width:auto!important}
+@media(max-width:900px){
   .cu-wrap{display:block}.cu-tree{display:none;position:static;width:100%;height:auto;max-height:55vh}.cu-tree.open{display:block}
-  .cu-treebtn{display:inline-block}.pgrid{grid-template-columns:1fr}.cu-main{padding:12px 12px 90px}
+  .cu-treebtn{display:inline-block}.cu-main{padding:12px 12px 90px}
+  .cu-detail{display:block}.dcom{width:100%;height:auto;position:static;border-left:0;border-top:1px solid #222}.cfeed{max-height:320px}
+  .dgrid{grid-template-columns:1fr}.dmain{padding:12px 14px 30px}
 }
 /* date filter bar */
 .fbar{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin-bottom:18px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px}
@@ -393,7 +462,6 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
   <div id="view"></div>
 </main>
 
-<aside id="cuPanel" class="cu-panel"></aside>
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -402,7 +470,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
 const ALLAH_RATE = 0.10;
 const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses', exp:'expenses',
   pe:'personal_expenses', pi:'personal_income', pw:'personal_withdrawals', ra:'recurring_alerts', emp:'employees', sp:'salary_payments', el:'employee_leaves',
-  cl:'clients', cus:'cu_spaces', cuf:'cu_folders', cul:'cu_lists', cut:'cu_tasks', cusb:'cu_subtasks', cuc:'cu_comments', cutl:'cu_time_logs'};
+  cl:'clients', cus:'cu_spaces', cuf:'cu_folders', cul:'cu_lists', cut:'cu_tasks', cusb:'cu_subtasks', cuc:'cu_comments', cutl:'cu_time_logs', cum:'cu_messages'};
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } };
 const save = () => {
   syncIncome();
@@ -426,12 +494,13 @@ const save = () => {
     localStorage.setItem(K.cusb, JSON.stringify(cuSubs));
     localStorage.setItem(K.cuc, JSON.stringify(cuComments));
     localStorage.setItem(K.cutl, JSON.stringify(cuTimeLogs));
+    localStorage.setItem(K.cum, JSON.stringify(cuMessages));
   } catch(e){ toast('Could not save to localStorage'); }
 };
 let income, invoices, charity, expenses;
 let personalExp = [], personalInc = [], personalWd = [];
 let clients = [];
-let cuSpaces = [], cuFolders = [], cuLists = [], cuTasks = [], cuSubs = [], cuComments = [], cuTimeLogs = [];   // Tasks: Space › Folder › List › Task › Subtask
+let cuSpaces = [], cuFolders = [], cuLists = [], cuTasks = [], cuSubs = [], cuComments = [], cuTimeLogs = [], cuMessages = [];   // Tasks: Space › Folder › List › Task › Subtask
 let employees = [], salaryPay = [], empLeaves = [];   // Employees section: profiles, salary payments, leave log
 let recurring = [];   // recurring invoice reminders: {client_name, frequency_days, last_invoice_date, next_alert_date, active, last_amount}   // Personal Finance: separate world, never used by agency maths
 
@@ -492,7 +561,7 @@ function init(){
   let ver = null; try { ver = localStorage.getItem('data_version'); } catch(e){}
   if (!ver) {   // first run: start completely empty, clearing any pre-loaded data
     income = []; invoices = []; charity = []; expenses = []; personalExp = []; personalInc = []; personalWd = []; recurring = []; employees = []; salaryPay = []; empLeaves = [];
-    clients = []; cuSpaces = []; cuFolders = []; cuLists = []; cuTasks = []; cuSubs = []; cuComments = []; cuTimeLogs = [];
+    clients = []; cuSpaces = []; cuFolders = []; cuLists = []; cuTasks = []; cuSubs = []; cuComments = []; cuTimeLogs = []; cuMessages = [];
     save(); try { localStorage.setItem('cu_migrated', '1'); } catch(e){} try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
     return;
   }
@@ -516,8 +585,8 @@ function init(){
     save(); try { localStorage.setItem('data_version', DATA_VERSION); } catch(e){}
   }
   [employees, salaryPay, empLeaves] = [load(K.emp), load(K.sp), load(K.el)].map(a => Array.isArray(a) ? a : []);
-  [clients, cuSpaces, cuFolders, cuLists, cuTasks, cuSubs, cuComments, cuTimeLogs] = [K.cl, K.cus, K.cuf, K.cul, K.cut, K.cusb, K.cuc, K.cutl].map(k => { const a = load(k); return Array.isArray(a) ? a : []; });
-  cuMigrateOld();
+  [clients, cuSpaces, cuFolders, cuLists, cuTasks, cuSubs, cuComments, cuTimeLogs, cuMessages] = [K.cl, K.cus, K.cuf, K.cul, K.cut, K.cusb, K.cuc, K.cutl, K.cum].map(k => { const a = load(k); return Array.isArray(a) ? a : []; });
+  cuMigrateOld(); cuNormalize();
   const ra = load(K.ra);
   if (Array.isArray(ra)) recurring = ra;
   else { recurring = []; [...invoices].sort((a, b) => a.date.localeCompare(b.date)).forEach(recOnInvoice); save(); }   // first time: build reminders from existing invoices
@@ -725,7 +794,8 @@ function render(){
   if (nb) nb.innerHTML = '📊 Dashboard' + (nDue ? `<span class="nbadge" title="${nDue} reminder${nDue > 1 ? 's' : ''} due">${nDue}</span>` : '');
   $('filterBar').innerHTML = view === 'tasks' ? '' : filterBar();   // Tasks has its own top bar
   document.querySelector('main').classList.toggle('cu', view === 'tasks');
-  if (view !== 'tasks') cuClose();
+  if (view !== 'tasks') cuPanelId = null;
+  document.body.classList.toggle('cu-mode', view === 'tasks');
   $('title').textContent = meta[view][0]; $('subtitle').textContent = meta[view][1];
   $('topActions').innerHTML = {
     dashboard:'',
@@ -741,7 +811,7 @@ function render(){
   }[view];
   $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees, clients:vClients, tasks:vTasks}[view](t);
   ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah, personal:afterPersonal}[view] || (()=>{}))(t);
-  if (view === 'tasks') { cuRefreshPanel(); const ed = document.querySelector('[data-edit], #cuAddIn'); if (ed) ed.focus(); }
+  if (view === 'tasks') { const ed = document.querySelector('[data-edit], #cuAddIn'); if (ed) ed.focus(); }
 }
 
 function formulaCard(t){
@@ -775,8 +845,8 @@ function taskAlertsPanel(){
   if (!cuTasks.length) return '';
   const open = cuTasks.filter(isOpenT), by = (a, b) => (a.due || '9').localeCompare(b.due || '9');
   const overdue = open.filter(isOverdueT).sort(by), due = open.filter(t => t.due === today()), urgent = open.filter(t => t.priority === 'urgent').sort(by);
-  const list = (arr, empty) => arr.slice(0, 6).map(t => `<div class="tx" style="cursor:pointer;padding:7px 0" onclick="cuJump('${t.id}')"><div><div class="t1" style="font-size:13px">${esc(t.title)}</div><div class="t2">${esc((listOf(t) || {}).name || '')} · ${esc(empName(t.assignee) || 'Unassigned')}${t.due ? ' · ' + fdate(t.due) : ''}</div></div></div>`).join('') + (arr.length > 6 ? `<div class="muted" style="font-size:12px">+${arr.length - 6} more</div>` : '') || `<div class="muted" style="font-size:13px">${empty}</div>`;
-  const per = {}; open.forEach(t => { const k = t.assignee || ''; per[k] = per[k] || {open:0, od:0}; per[k].open++; if (isOverdueT(t)) per[k].od++; });
+  const list = (arr, empty) => arr.slice(0, 6).map(t => `<div class="tx" style="cursor:pointer;padding:7px 0" onclick="cuJump('${t.id}')"><div><div class="t1" style="font-size:13px">${esc(t.title)}</div><div class="t2">${esc((listOf(t) || {}).name || '')} · ${esc(asgNames(t).join(', ') || 'Unassigned')}${t.due ? ' · ' + fdate(t.due) : ''}</div></div></div>`).join('') + (arr.length > 6 ? `<div class="muted" style="font-size:12px">+${arr.length - 6} more</div>` : '') || `<div class="muted" style="font-size:13px">${empty}</div>`;
+  const per = {}; open.forEach(t => (asgOf(t).length ? asgOf(t) : ['']).forEach(k => { per[k] = per[k] || {open:0, od:0}; per[k].open++; if (isOverdueT(t)) per[k].od++; }));
   return `<div class="card" style="margin-bottom:16px"><h3>✅ Task alerts</h3>
     <div class="grid g3" style="gap:20px"><div><div class="sec-t" style="margin:0 0 6px;color:var(--red)">Overdue (${overdue.length})</div>${list(overdue, 'Nothing overdue 🎉')}</div>
       <div><div class="sec-t" style="margin:0 0 6px;color:var(--amber)">Due today (${due.length})</div>${list(due, 'Nothing due today')}</div>
@@ -989,7 +1059,7 @@ function vInvoices(t){
       </div>
     </div>`; }).join('') || '<div class="card empty" style="grid-column:1/-1">No invoices in this period — add income and its invoice is created automatically.</div>'}</div>`;
 }
-function renderKeep(el){ const p = el.selectionStart; render(); const n = document.querySelector(view === 'tasks' ? '.cu-search' : '.filters input'); if (n) { n.focus(); n.setSelectionRange(p, p); } }
+function renderKeep(el){ const p = el.selectionStart; render(); const n = document.querySelector(view === 'tasks' ? (cuPanelId ? '.cmsearch' : '.cu-search') : '.filters input'); if (n) { n.focus(); n.setSelectionRange(p, p); } }
 
 /* ----- Styled invoice (no invoice number anywhere) ----- */
 function invoiceHTML(i){
@@ -1724,35 +1794,43 @@ function saveClient(ev, id){
 }
 function delClient(id){ const c = clById(id); if (c && confirm('Delete ' + c.company + '? Their invoices stay in the books; task lists stay but lose the client link.')) { clients = clients.filter(x => x.id !== id); clSel = null; save(); render(); } }
 
-/* ========= Tasks — ClickUp-style workspace: Space › Folder › List › Task › Subtask ========= */
-const CU_COLORS = ['#7b68ee', '#3b82f6', '#14b8a6', '#22c55e', '#f59e0b', '#f97316', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
-const PRI = {urgent:{l:'Urgent', i:'🔴', c:'#dc2626', o:0}, high:{l:'High', i:'🟠', c:'#f97316', o:1}, normal:{l:'Normal', i:'🔵', c:'#3b82f6', o:2}, low:{l:'Low', i:'⚪', c:'#94a3b8', o:3}};
-const defaultStatuses = () => [['To Do', '#94a3b8', 'open'], ['In Progress', '#3b82f6', 'open'], ['In Review', '#a855f7', 'open'], ['Done', '#22c55e', 'done'], ['Cancelled', '#ef4444', 'closed']].map(([name, color, kind]) => ({id:uid(), name, color, kind}));
-let cuScope = {type:'none'}, cuView = 'list', cuGroup = 'status', cuSortKey = 'due', cuSortDir = 1, cuFilterOpen = false, cuMonth = today().slice(0, 7);
-let cuPanelId = null, cuEdit = null, cuAddCol = null, cuTreeOpen = false, cuPerson = '', cuLogOpen = false, cuAuthor = 'You';
-const cuCollapsed = new Set(), cuExpanded = new Set(), cuSel = new Set();
+/* ========= Tasks — ClickUp replica (dark): Space › Folder › List › Task › Subtask ========= */
+const CU_COLORS = ['#7c3aed', '#3b82f6', '#14b8a6', '#22c55e', '#f59e0b', '#f97316', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
+const PRI = {urgent:{l:'Urgent', i:'🔴', c:'#ef4444', cal:'#ef4444', o:0}, high:{l:'High', i:'🟠', c:'#eab308', cal:'#f97316', o:1}, normal:{l:'Normal', i:'🔵', c:'#3b82f6', cal:'#3b82f6', o:2}, low:{l:'Low', i:'⚪', c:'#9ca3af', cal:'#6b7280', o:3}};
+const defaultStatuses = () => [['To Do', '#6b7280', 'open'], ['In Progress', '#7c3aed', 'open'], ['In Review', '#f59e0b', 'open'], ['Done', '#22c55e', 'done'], ['Cancelled', '#ef4444', 'closed']].map(([name, color, kind]) => ({id:uid(), name, color, kind}));
+let cuScope = {type:'none'}, cuView = 'list', cuGroup = 'status', cuSortKey = 'due', cuSortDir = 1, cuFilterOpen = false, cuMonth = today().slice(0, 7), cuMenu = null, cuSearchOpen = false;
+let cuPanelId = null, cuEdit = null, cuAddCol = null, cuTreeOpen = false, cuPerson = '', cuLogOpen = false, cuAuthor = 'You', cuShowClosed = true, cuShowSubs = false, cuTimer = null, cuCmSearch = '', cuFieldsOpen = false;
+const cuCollapsed = new Set(), cuExpanded = new Set(), cuGroupHidden = new Set(), cuCols = new Set();
 const cf = {q:'', assignee:'', priority:'', status:'', tag:'', due:''};
 
 const spaceById = id => cuSpaces.find(x => x.id === id), folderById = id => cuFolders.find(x => x.id === id), listById = id => cuLists.find(x => x.id === id), taskById = id => cuTasks.find(x => x.id === id);
 const listOf = t => listById(t.listId);
-const statusOf = t => { const l = listOf(t); return (l && l.statuses.find(s => s.id === t.status)) || (l && l.statuses[0]) || {name:'—', color:'#94a3b8', kind:'open'}; };
+const statusOf = t => { const l = listOf(t); return (l && l.statuses.find(s => s.id === t.status)) || (l && l.statuses[0]) || {name:'—', color:'#6b7280', kind:'open'}; };
 const isOpenT = t => statusOf(t).kind === 'open';
 const isOverdueT = t => isOpenT(t) && !!t.due && t.due < today();
 const isTodayT = t => isOpenT(t) && t.due === today();
 const empName = id => (empById(id) || {}).name || '';
+const asgOf = t => t.assignees || [];
+const asgNames = t => asgOf(t).map(empName).filter(Boolean);
+const cuNormalize = () => cuTasks.forEach(t => { if (!t.assignees) { t.assignees = t.assignee ? [t.assignee] : []; delete t.assignee; } });
 const empOpts = cur => '<option value="">Unassigned</option>' + employees.filter(e => !e.archived || e.id === cur).map(e => `<option value="${e.id}" ${e.id === cur ? 'selected' : ''}>${esc(e.name)}</option>`).join('');
 const parseTags = s => [...new Set(String(s || '').split(',').map(x => x.trim()).filter(Boolean))];
 const allTags = () => [...new Set(cuTasks.flatMap(t => t.tags || []))].sort();
-const fmtShort = t => { const d = new Date(t); return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) + ', ' + d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}).toLowerCase().replace(' ', ''); };
 const hoursOf = id => sum(cuTimeLogs.filter(l => l.taskId === id), l => l.hours);
-const assigneeDot = (id, size = 22) => empName(id) ? miniAv(empName(id), size) : `<span class="av" title="Unassigned" style="width:${size}px;height:${size}px;border:1.5px dashed #cbd5e1;background:#fff"></span>`;
-const statusPill = s => `<span class="spill" style="background:${s.color}">${esc(s.name)}</span>`;
+const flag = (p, text = true) => `<span class="pflag"><svg viewBox="0 0 16 16" width="13" height="13"><path d="M3 1.5v13" stroke="${PRI[p].c}" stroke-width="1.6" stroke-linecap="round"/><path d="M3.8 2.5h8.2l-2 3 2 3H3.8z" fill="${PRI[p].c}"/></svg>${text ? ' ' + PRI[p].l : ''}</span>`;
+const cuAv = (n, size = 24) => `<span class="av" title="${esc(n)}" style="width:${size}px;height:${size}px;font-size:${size * .4}px;background:hsl(${hueOf(n)} 55% 42%)">${esc(initials(n))}</span>`;
+function stack(t, size = 22, max = 3){
+  const ns = asgNames(t); if (!ns.length) return `<span class="av empty" title="Unassigned" style="width:${size}px;height:${size}px"></span>`;
+  return `<span class="stack">${ns.slice(0, max).map(n => cuAv(n, size)).join('')}${ns.length > max ? `<span class="av more" style="width:${size}px;height:${size}px;font-size:${size * .4}px">+${ns.length - max}</span>` : ''}</span>`;
+}
+const ordinalDay = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 >> 3 ^ 1 && n % 10) || 0] || 'th');
+const dayHeader = t => { const d = new Date(t); return d.toLocaleDateString('en-US', {weekday:'long', month:'long'}) + ' ' + ordinalDay(d.getDate()); };
+const clockT = t => new Date(t).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}).replace(' AM', ' AM').replace(' PM', ' PM');
 function weekRange(){ const n = new Date(), dow = (n.getDay() + 6) % 7; return {from:iso(new Date(n.getFullYear(), n.getMonth(), n.getDate() - dow)), to:iso(new Date(n.getFullYear(), n.getMonth(), n.getDate() - dow + 6))}; }
 function listProgress(l){
   const ts = cuTasks.filter(t => t.listId === l.id && statusOf(t).kind !== 'closed'), d = ts.filter(t => statusOf(t).kind === 'done').length, pct = ts.length ? d / ts.length * 100 : 0;
   return `<div style="min-width:110px"><div class="bar light" style="height:7px;margin:0"><div style="width:${pct}%"></div></div><div class="muted" style="font-size:11px;margin-top:3px">${d}/${ts.length} tasks done</div></div>`;
 }
-/* light sanitiser for the rich-text description */
 function cleanHtml(html){
   const doc = new DOMParser().parseFromString('<body>' + html + '</body>', 'text/html'), ok = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'UL', 'OL', 'LI', 'BR', 'P', 'DIV', 'H3']);
   const walk = n => [...n.childNodes].map(c => c.nodeType === 3 ? esc(c.textContent) : c.nodeType === 1 ? (ok.has(c.tagName) ? `<${c.tagName.toLowerCase()}>${walk(c)}</${c.tagName.toLowerCase()}>` : walk(c)) : '').join('');
@@ -1761,11 +1839,12 @@ function cleanHtml(html){
 
 /* ----- scope, filters, sorting, grouping ----- */
 const scopeLists = () => cuScope.type === 'list' ? [listById(cuScope.id)].filter(Boolean) : cuLists;
-const scopeTasks = () => cuScope.type === 'list' ? cuTasks.filter(t => t.listId === cuScope.id) : cuScope.type === 'mine' ? cuTasks.filter(t => (t.assignee || '') === cuPerson) : cuTasks;
+const scopeTasks = () => cuScope.type === 'list' ? cuTasks.filter(t => t.listId === cuScope.id) : cuScope.type === 'mine' ? cuTasks.filter(t => cuPerson ? asgOf(t).includes(cuPerson) : !asgOf(t).length) : cuTasks;
 function cuFiltered(){
   const q = cf.q.toLowerCase(), wk = weekRange();
   return scopeTasks().filter(t => {
-    if (cf.assignee === '__none' ? t.assignee : (cf.assignee && t.assignee !== cf.assignee)) return false;
+    if (!cuShowClosed && !isOpenT(t)) return false;
+    if (cf.assignee === '__none' ? asgOf(t).length : (cf.assignee && !asgOf(t).includes(cf.assignee))) return false;
     if (cf.priority && t.priority !== cf.priority) return false;
     if (cf.status === 'open' ? !isOpenT(t) : (cf.status && statusOf(t).name.toLowerCase() !== cf.status.toLowerCase())) return false;
     if (cf.tag && !(t.tags || []).includes(cf.tag)) return false;
@@ -1777,62 +1856,86 @@ function cuFiltered(){
   });
 }
 function cuSorter(){
-  const v = {due:t => t.due || '9999', priority:t => PRI[t.priority].o, created:t => t.created, title:t => t.title.toLowerCase(), status:t => statusOf(t).name.toLowerCase(), assignee:t => empName(t.assignee).toLowerCase() || '~', est:t => t.estimate || 0}[cuSortKey];
+  const v = {due:t => t.due || '9999', priority:t => PRI[t.priority].o, created:t => t.created, title:t => t.title.toLowerCase(), status:t => statusOf(t).name.toLowerCase(), assignee:t => asgNames(t)[0] ? asgNames(t)[0].toLowerCase() : '~', est:t => t.estimate || 0, start:t => t.start || '9999'}[cuSortKey];
   return (a, b) => { const x = v(a), y = v(b); return (x < y ? -1 : x > y ? 1 : 0) * cuSortDir; };
 }
 function statusUnion(){ const seen = new Map(); scopeLists().forEach(l => l.statuses.forEach(s => { if (!seen.has(s.name.toLowerCase())) seen.set(s.name.toLowerCase(), s); })); return [...seen.values()]; }
 function setStatusByName(t, name){ const s = listOf(t).statuses.find(x => x.name.toLowerCase() === name.toLowerCase()); if (!s) { toast('“' + name + '” is not a status in ' + listOf(t).name); return false; } cuSetStatus(t, s.id, true); return true; }
 function groupDefs(){
-  if (cuGroup === 'assignee') return [...employees.filter(e => !e.archived).map(e => ({key:'a' + e.id, label:e.name, color:'hsl(' + hueOf(e.name) + ' 45% 42%)', match:t => t.assignee === e.id, set:t => { t.assignee = e.id; return true; }})), {key:'a', label:'Unassigned', color:'#94a3b8', match:t => !t.assignee, set:t => { t.assignee = ''; return true; }}];
-  if (cuGroup === 'priority') return Object.entries(PRI).map(([k, p]) => ({key:'p' + k, label:p.i + ' ' + p.l, color:p.c, match:t => t.priority === k, set:t => { t.priority = k; return true; }}));
+  if (cuGroup === 'assignee') return [...employees.filter(e => !e.archived).map(e => ({key:'a' + e.id, label:e.name, color:'hsl(' + hueOf(e.name) + ' 55% 42%)', match:t => asgOf(t).includes(e.id), set:t => { t.assignees = [e.id]; return true; }})), {key:'a', label:'Unassigned', color:'#6b7280', match:t => !asgOf(t).length, set:t => { t.assignees = []; return true; }}];
+  if (cuGroup === 'priority') return Object.entries(PRI).map(([k, p]) => ({key:'p' + k, label:p.l, color:p.c, match:t => t.priority === k, set:t => { t.priority = k; return true; }}));
   if (cuGroup === 'due') { const wk = weekRange(), td = today();
-    return [['Overdue', '#ef4444', t => isOverdueT(t)], ['Earlier', '#94a3b8', t => !!t.due && t.due < td && !isOverdueT(t)], ['Today', '#f59e0b', t => t.due === td], ['This week', '#3b82f6', t => !!t.due && t.due > td && t.due <= wk.to], ['Later', '#64748b', t => !!t.due && t.due > wk.to], ['No date', '#94a3b8', t => !t.due]]
+    return [['Overdue', '#ef4444', t => isOverdueT(t)], ['Earlier', '#6b7280', t => !!t.due && t.due < td && !isOverdueT(t)], ['Today', '#f59e0b', t => t.due === td], ['This week', '#3b82f6', t => !!t.due && t.due > td && t.due <= wk.to], ['Later', '#7c3aed', t => !!t.due && t.due > wk.to], ['No date', '#6b7280', t => !t.due]]
       .map(([label, color, match]) => ({key:'d' + label, label, color, match, set:null})); }
   return statusUnion().map(s => ({key:'s' + s.name.toLowerCase(), label:s.name, color:s.color, kind:s.kind, match:t => statusOf(t).name.toLowerCase() === s.name.toLowerCase(), set:t => setStatusByName(t, s.name)}));
 }
+const gLabel = g => (g.kind === 'done' ? '✅ ' : g.kind === 'closed' ? '⛔ ' : '') + g.label.toUpperCase();
 
 /* ----- main entry ----- */
 function vTasks(){
-  const wrap = body => `<div class="cu-wrap"><aside class="cu-tree ${cuTreeOpen ? 'open' : ''}">${cuTree()}</aside><section class="cu-main"><button class="btn sm ghost cu-treebtn" onclick="cuTreeOpen=!cuTreeOpen;render()">📂 Lists</button>${body}</section></div><button class="fab" onclick="cuQuickAdd()" title="Quick add task">+</button>`;
-  if (!cuSpaces.length) return wrap(`<div class="card empty" style="padding:50px 20px"><h2 style="margin-bottom:8px">Welcome to Tasks</h2><p class="muted" style="margin-bottom:16px">Organise work as Space › Folder › List › Task › Subtask, just like ClickUp.</p>
-    <button class="btn" onclick="cuSetupDefault()">Set up “Media Beem Agency” workspace</button> <button class="btn ghost" onclick="cuNodeForm('space')">Create a Space</button></div>`);
-  if (cuScope.type === 'list' && !listById(cuScope.id)) cuScope = {type:'none'};
-  if (cuScope.type === 'none') return wrap('<div class="card empty" style="padding:40px 20px">Pick a List from the left — or open <b>My Tasks</b> / <b>All Tasks</b>.</div>');
-  const l = cuScope.type === 'list' ? listById(cuScope.id) : null, f = l && folderById(l.folderId), sp = f && spaceById(f.spaceId);
-  const nF = Object.values(cf).filter(Boolean).length - (cf.q ? 1 : 0);
-  const head = l ? `<div class="crumb">${esc(sp ? sp.name : '')} › ${esc(f ? f.name : '')}</div><div class="cu-title"><span class="dot" style="background:${l.color}"></span><h1>${esc(l.name)}</h1><button class="btn sm ghost" onclick="cuStatusForm('${l.id}')">⚙ Statuses</button><button class="btn sm ghost" onclick="cuNodeForm('list','${l.id}')">Edit list</button></div>`
-    : cuScope.type === 'mine' ? `<div class="cu-title"><h1>👤 My Tasks</h1><select style="width:auto" onchange="cuPerson=this.value;render()">${employees.filter(e => !e.archived).map(e => `<option value="${e.id}" ${e.id === cuPerson ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}<option value="" ${cuPerson === '' ? 'selected' : ''}>Unassigned</option></select><span class="muted">all tasks across all lists</span></div>`
-    : '<div class="cu-title"><h1>☰ All Tasks</h1><span class="muted">across every list</span></div>';
-  const tabs = [['list', '📋 List'], ['board', '📌 Board'], ['calendar', '📅 Calendar']];
-  const so = {due:'Due Date', priority:'Priority', created:'Created Date', title:'Alphabetical'};
-  const bar = `<div class="cu-bar"><div class="cu-tabs">${tabs.map(([k, n]) => `<button class="${cuView === k ? 'on' : ''}" onclick="cuView='${k}';render()">${n}</button>`).join('')}</div>
-    <div class="cu-ctl"><button class="btn sm ${nF ? '' : 'ghost'}" onclick="cuFilterOpen=!cuFilterOpen;render()">Filter ▼${nF ? ' · ' + nF : ''}</button>
-      ${cuView !== 'calendar' ? `<label class="cu-sel">Group by <select onchange="cuGroup=this.value;render()">${[['status', 'Status'], ['assignee', 'Assignee'], ['priority', 'Priority'], ['due', 'Due Date']].map(([k, n]) => `<option value="${k}" ${cuGroup === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-      <label class="cu-sel">Sort <select onchange="cuSortKey=this.value;cuSortDir=this.value==='created'?-1:1;render()">${Object.entries(so).map(([k, n]) => `<option value="${k}" ${cuSortKey === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>` : ''}
-      <input class="cu-search" placeholder="🔍 Search" value="${esc(cf.q)}" oninput="cf.q=this.value;renderKeep(this)"></div></div>`;
-  const sel = (k, label, opts) => `<select onchange="cf.${k}=this.value;render()"><option value="">${label}</option>${opts.map(([v, n]) => `<option value="${esc(v)}" ${cf[k] === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
-  const fp = cuFilterOpen ? `<div class="cu-fpanel">${sel('assignee', 'Assignee', [...employees.map(e => [e.id, e.name]), ['__none', 'Unassigned']])}${sel('priority', 'Priority', Object.entries(PRI).map(([k, p]) => [k, p.i + ' ' + p.l]))}
-    ${sel('status', 'Status', [['open', 'Open (not done)'], ...statusUnion().map(s => [s.name, s.name])])}${sel('tag', 'Tag', allTags().map(t => [t, t]))}${sel('due', 'Due date', [['today', 'Due today'], ['overdue', 'Overdue'], ['week', 'This week'], ['none', 'No due date']])}
-    ${nF ? '<button class="btn sm ghost" onclick="Object.keys(cf).forEach(k=>{if(k!==\'q\')cf[k]=\'\'});render()">Clear</button>' : ''}</div>` : '';
-  const list = cuFiltered();
-  return wrap(`${head}${bar}${fp}${cuView === 'board' ? cuBoard(list) : cuView === 'calendar' ? cuCalendar(list) : cuListView(list)}`);
+  const detail = cuPanelId && taskById(cuPanelId);
+  const body = !cuSpaces.length ? cuWelcome() : detail ? cuDetail(detail) : cuMainArea();
+  return `<div class="cu-wrap"><aside class="cu-tree ${cuTreeOpen ? 'open' : ''}">${cuTree()}</aside><section class="cu-main ${detail ? 'has-detail' : ''}"><button class="btn sm ghost cu-treebtn" onclick="cuTreeOpen=!cuTreeOpen;render()">📂 Lists</button>${body}</section></div>${detail ? '' : '<button class="fab" onclick="cuQuickAdd()" title="Quick add task">+</button>'}`;
 }
-function cuGo(scope){ cuScope = scope; Object.keys(cf).forEach(k => cf[k] = ''); cuSel.clear(); cuTreeOpen = false; if (scope.type === 'mine' && !cuPerson && employees.some(e => !e.archived)) cuPerson = employees.filter(e => !e.archived)[0].id; render(); }
-function cuOpenList(id){ view = 'tasks'; cuGo({type:'list', id}); window.scrollTo(0, 0); }
-function goTasks(patch){ view = 'tasks'; cuScope = {type:'all'}; Object.keys(cf).forEach(k => cf[k] = ''); Object.assign(cf, patch); cuView = 'list'; cuFilterOpen = true; render(); window.scrollTo(0, 0); }
+const cuWelcome = () => `<div class="cu-empty"><h2>Welcome to Tasks</h2><p class="muted">Organise work as Space › Folder › List › Task › Subtask, just like ClickUp.</p>
+  <button class="btn" onclick="cuSetupDefault()">Set up “Media Beem Agency” workspace</button> <button class="btn ghost" onclick="cuNodeForm('space')">Create a Space</button></div>`;
+const cuMenuBox = (name, inner) => cuMenu === name ? `<div class="cu-menu" onclick="event.stopPropagation()">${inner}</div>` : '';
+const cuBtn = (label, name) => `<span class="cu-menuwrap"><button class="tbtn ${cuMenu === name ? 'on' : ''}" onclick="event.stopPropagation();cuMenu=cuMenu==='${name}'?null:'${name}';render()">${label}</button>${name === 'group' ? cuMenuBox('group', [['status', 'Status'], ['assignee', 'Assignee'], ['priority', 'Priority'], ['due', 'Due date']].map(([k, n]) => `<div class="mi ${cuGroup === k ? 'on' : ''}" onclick="cuGroup='${k}';cuMenu=null;render()">${n}</div>`).join(''))
+  : name === 'sort' ? cuMenuBox('sort', [['due', 'Due date'], ['priority', 'Priority'], ['created', 'Created date'], ['title', 'Alphabetical'], ['assignee', 'Assignee']].map(([k, n]) => `<div class="mi ${cuSortKey === k ? 'on' : ''}" onclick="cuSortKey='${k}';cuSortDir=${k === 'created' ? -1 : 1};cuMenu=null;render()">${n}${cuSortKey === k ? (cuSortDir > 0 ? ' ▲' : ' ▼') : ''}</div>`).join(''))
+  : name === 'assignee' ? cuMenuBox('assignee', `<div class="mi ${!cf.assignee ? 'on' : ''}" onclick="cf.assignee='';cuMenu=null;render()">Everyone</div>` + employees.filter(e => !e.archived).map(e => `<div class="mi ${cf.assignee === e.id ? 'on' : ''}" onclick="cf.assignee='${e.id}';cuMenu=null;render()">${cuAv(e.name, 18)} ${esc(e.name)}</div>`).join('') + `<div class="mi ${cf.assignee === '__none' ? 'on' : ''}" onclick="cf.assignee='__none';cuMenu=null;render()">Unassigned</div>`)
+  : name === 'list' ? cuMenuBox('list', `<div class="mi" onclick="cuMenu=null;cuNodeForm('list','${cuScope.id}')">Rename / recolor / link client</div><div class="mi" onclick="cuMenu=null;cuStatusForm('${cuScope.id}')">Edit statuses</div><div class="mi" style="color:#ef4444" onclick="cuMenu=null;cuDelNode('list','${cuScope.id}')">Delete list</div>`) : ''}</span>`;
 
-/* ----- hierarchy tree ----- */
+function cuMainArea(){
+  if (cuScope.type === 'dm') return cuDmView();
+  if (cuScope.type === 'list' && !listById(cuScope.id)) cuScope = {type:'none'};
+  if (cuScope.type === 'none') return '<div class="cu-empty"><h2>Pick a List</h2><p class="muted">Choose a List from the sidebar — or open <b>My Tasks</b> / <b>All Tasks</b>.</p></div>';
+  const l = cuScope.type === 'list' ? listById(cuScope.id) : null, f = l && folderById(l.folderId), sp = f && spaceById(f.spaceId);
+  const crumb = l ? `<div class="cu-crumb"><span>📋 ${esc(sp ? sp.name : '')}</span><i>/</i><span class="cur">≡ ${esc(l.name)}</span>${cuBtn('▾', 'list')}<button class="star ${l.fav ? 'on' : ''}" title="Favorite" onclick="cuFav('${l.id}')">${l.fav ? '★' : '☆'}</button></div>`
+    : cuScope.type === 'mine' ? `<div class="cu-crumb"><span class="cur">👤 My Tasks</span><select class="tsel" onchange="cuPerson=this.value;render()">${employees.filter(e => !e.archived).map(e => `<option value="${e.id}" ${e.id === cuPerson ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}<option value="" ${cuPerson === '' ? 'selected' : ''}>Unassigned</option></select><span class="muted">all tasks across all lists</span></div>`
+    : '<div class="cu-crumb"><span class="cur">☰ All Tasks</span><span class="muted">across every list</span></div>';
+  const tabs = [['channel', '# Channel'], ['list', '≡ List'], ['board', '📌 Board'], ['calendar', '📅 Calendar'], ['team', '👥 Team']];
+  const nF = Object.values(cf).filter(Boolean).length - (cf.q ? 1 : 0) - (cf.assignee ? 1 : 0);
+  const tool = `<div class="cu-tool"><div class="tl">${cuView === 'list' || cuView === 'board' ? `${cuBtn('● Group: ' + ({status:'Status', assignee:'Assignee', priority:'Priority', due:'Due date'})[cuGroup] + ' ▾', 'group')}${cuView === 'list' ? `<button class="tbtn ${cuShowSubs ? 'on' : ''}" onclick="cuShowSubs=!cuShowSubs;render()">Subtasks</button><button class="tbtn" onclick="cuColsForm()">Columns</button>` : ''}` : ''}</div>
+    <div class="tr">${cuView === 'list' || cuView === 'board' || cuView === 'team' ? cuBtn('Sort ▾', 'sort') : ''}<button class="tbtn ${nF ? 'on' : ''}" onclick="cuFilterOpen=!cuFilterOpen;render()">Filter${nF ? ' ' + nF : ''}</button><button class="tbtn ${!cuShowClosed ? 'on' : ''}" title="Show/hide done & cancelled" onclick="cuShowClosed=!cuShowClosed;render()">Closed</button>${cuBtn(cf.assignee ? '👤 ' + (cf.assignee === '__none' ? 'Unassigned' : empName(cf.assignee) || 'Assignee') : 'Assignee', 'assignee')}
+      ${cuSearchOpen || cf.q ? `<input class="cu-search" id="cuSearch" placeholder="Search tasks…" value="${esc(cf.q)}" oninput="cf.q=this.value;renderKeep(this)">` : ''}<button class="tbtn" title="Search" onclick="cuSearchOpen=!cuSearchOpen;render();setTimeout(()=>{const i=document.getElementById('cuSearch');if(i)i.focus()},20)">🔍</button><button class="tbtn" onclick="cuColsForm()">⚙ Customize</button><button class="addbtn" onclick="cuQuickAdd()">Add Task ▾</button></div></div>`;
+  const sel = (k, label, opts) => `<select onchange="cf.${k}=this.value;render()"><option value="">${label}</option>${opts.map(([v, n]) => `<option value="${esc(v)}" ${cf[k] === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
+  const fp = cuFilterOpen ? `<div class="cu-fpanel">${sel('priority', 'Priority', Object.entries(PRI).map(([k, p]) => [k, p.l]))}${sel('status', 'Status', [['open', 'Open (not done)'], ...statusUnion().map(s => [s.name, s.name])])}${sel('tag', 'Tag', allTags().map(t => [t, t]))}${sel('due', 'Due date', [['today', 'Due today'], ['overdue', 'Overdue'], ['week', 'This week'], ['none', 'No due date']])}
+    <button class="tbtn" onclick="Object.keys(cf).forEach(k=>{if(k!=='q')cf[k]=''});render()">Clear</button></div>` : '';
+  const list = cuFiltered();
+  const content = cuView === 'board' ? cuBoard(list) : cuView === 'calendar' ? cuCalendar(list) : cuView === 'team' ? cuTeam(list) : cuView === 'channel' ? cuChannel() : cuListView(list);
+  return `${crumb}<div class="cu-tabs">${tabs.map(([k, n]) => `<button class="${cuView === k ? 'on' : ''}" onclick="cuView='${k}';render()">${n}</button>`).join('')}<button onclick="cuViewsForm()">+ View</button></div>${cuView === 'channel' ? '' : tool + fp}${content}`;
+}
+function cuGo(scope){ cuScope = scope; cuPanelId = null; Object.keys(cf).forEach(k => cf[k] = ''); cuTreeOpen = false; cuMenu = null; if (scope.type === 'mine' && !cuPerson && employees.some(e => !e.archived)) cuPerson = employees.filter(e => !e.archived)[0].id; render(); }
+function cuOpenList(id){ view = 'tasks'; cuView = cuView === 'channel' ? 'list' : cuView; cuGo({type:'list', id}); window.scrollTo(0, 0); }
+function goTasks(patch){ view = 'tasks'; cuScope = {type:'all'}; cuPanelId = null; Object.keys(cf).forEach(k => cf[k] = ''); Object.assign(cf, patch); cuView = 'list'; cuFilterOpen = true; render(); window.scrollTo(0, 0); }
+function cuJump(id){ const t = taskById(id); if (!t) return; view = 'tasks'; cuScope = {type:'list', id:t.listId}; Object.keys(cf).forEach(k => cf[k] = ''); cuPanelId = id; render(); }
+const cuFav = id => { const l = listById(id); l.fav = !l.fav; save(); render(); };
+document.addEventListener('click', () => { if (cuMenu) { cuMenu = null; if (view === 'tasks') render(); } });
+function cuColsForm(){
+  const opts = [['status', 'Status'], ['start', 'Start date'], ['tags', 'Tags'], ['est', 'Time estimate']];
+  openModal(`<h2>Columns</h2><p class="muted" style="margin-bottom:10px;font-size:13px">Name, Assignee, Due date and Priority are always shown.</p>${opts.map(([k, n]) => `<label class="chk"><input type="checkbox" ${cuCols.has(k) ? 'checked' : ''} onchange="this.checked?cuCols.add('${k}'):cuCols.delete('${k}');render()"> ${n}</label>`).join('')}<div class="modal-actions"><button class="btn" onclick="closeModal()">Done</button></div>`);
+}
+function cuViewsForm(){
+  openModal(`<h2>Views</h2>${[['channel', '# Channel', 'Chat for this list'], ['list', '≡ List', 'Spreadsheet-style rows'], ['board', '📌 Board', 'Kanban columns'], ['calendar', '📅 Calendar', 'Tasks by due date'], ['team', '👥 Team', 'Workload per person']].map(([k, n, d]) => `<div class="tx" style="cursor:pointer" onclick="cuView='${k}';closeModal();render()"><div><div class="t1">${n}</div><div class="t2">${d}</div></div></div>`).join('')}<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Close</button></div>`);
+}
+
+/* ----- sidebar: contacts, spaces, folders, lists ----- */
 function cuTree(){
   const row = (cls, inner, click) => `<div class="tr-row ${cls}" ${click ? `onclick="${click}"` : ''}>${inner}</div>`;
   const dot = (kind, id, color) => `<span class="dot" style="background:${color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('${kind}','${id}')"></span>`;
-  const mine = cuScope.type === 'mine', all = cuScope.type === 'all';
-  return `${row('top ' + (mine ? 'sel' : ''), '<span>👤 My Tasks</span>', "cuGo({type:'mine'})")}${row('top ' + (all ? 'sel' : ''), '<span>☰ All Tasks</span>', "cuGo({type:'all'})")}
+  const emps = employees.filter(e => !e.archived), favs = cuLists.filter(l => l.fav);
+  return `<div class="tr-sec"><span>DIRECT MESSAGES</span></div>
+  ${emps.map(e => row('dm ' + (cuScope.type === 'dm' && cuScope.id === e.id ? 'sel' : ''), `${cuAv(e.name, 20)}<span class="nm">${esc(e.name)}</span>`, `view='tasks';cuGo({type:'dm',id:'${e.id}'})`)).join('') || '<div class="tr-note">Add employees to message them</div>'}
+  ${row('newmsg', '<span class="nm">+ New message</span>', 'cuNewMsg()')}
   <div class="tr-sec"><span>SPACES</span><button title="New Space" onclick="cuNodeForm('space')">+</button></div>
+  ${row('top ' + (cuScope.type === 'all' ? 'sel' : ''), '<span class="nm">☰ All Tasks</span>', "cuGo({type:'all'})")}
+  ${row('top ' + (cuScope.type === 'mine' ? 'sel' : ''), '<span class="nm">👤 My Tasks</span>', "cuGo({type:'mine'})")}
+  ${favs.length ? `<div class="tr-sec"><span>FAVORITES</span></div>${favs.map(l => row('li fav ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `<span class="dot" style="background:${l.color}"></span><span class="nm">${esc(l.name)}</span>`, `cuOpenList('${l.id}')`)).join('')}` : ''}
   ${cuSpaces.map(sp => { const open = !cuCollapsed.has(sp.id);
-    return `${row('sp', `<span class="arr">${open ? '▾' : '▸'}</span>${dot('space', sp.id, sp.color)}<span class="nm">${esc(sp.name)}</span><span class="acts"><button title="New Folder" onclick="event.stopPropagation();cuNodeForm('folder',null,'${sp.id}')">+</button><button title="Edit" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">✎</button></span>`, `cuToggle('${sp.id}')`)}
+    return `${row('sp', `<span class="sq" style="background:${sp.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">${esc(sp.name[0] || '?').toUpperCase()}</span><span class="nm">${esc(sp.name)}</span><span class="acts"><button title="New Folder" onclick="event.stopPropagation();cuNodeForm('folder',null,'${sp.id}')">+</button><button title="Edit" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">✎</button></span><span class="arr">${open ? '▾' : '▸'}</span>`, `cuToggle('${sp.id}')`)}
     ${open ? cuFolders.filter(f => f.spaceId === sp.id).map(f => { const fo = !cuCollapsed.has(f.id);
-      return `${row('fo', `<span class="arr">${fo ? '▾' : '▸'}</span>${dot('folder', f.id, f.color)}<span class="nm">${esc(f.name)}</span><span class="acts"><button title="New List" onclick="event.stopPropagation();cuNodeForm('list',null,'${f.id}')">+</button><button title="Edit" onclick="event.stopPropagation();cuNodeForm('folder','${f.id}')">✎</button></span>`, `cuToggle('${f.id}')`)}
-      ${fo ? cuLists.filter(l => l.folderId === f.id).map(l => `${row('li ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `${dot('list', l.id, l.color)}<span class="nm">${esc(l.name)}</span><span class="cnt">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length || ''}</span>`, `cuOpenList('${l.id}')`)}`).join('') : ''}`; }).join('') : ''}`; }).join('')}`;
+      return `${row('fo', `${dot('folder', f.id, f.color)}<span class="nm">${esc(f.name)}</span><span class="acts"><button title="New List" onclick="event.stopPropagation();cuNodeForm('list',null,'${f.id}')">+</button><button title="Edit" onclick="event.stopPropagation();cuNodeForm('folder','${f.id}')">✎</button></span><span class="arr">${fo ? '▾' : '▸'}</span>`, `cuToggle('${f.id}')`)}
+      ${fo ? cuLists.filter(l => l.folderId === f.id).map(l => row('li ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `${dot('list', l.id, l.color)}<span class="nm">${esc(l.name)}</span><span class="cnt">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length || ''}</span>`, `cuOpenList('${l.id}')`)).join('') : ''}`; }).join('') : ''}`; }).join('')}`;
 }
 const cuToggle = id => { cuCollapsed.has(id) ? cuCollapsed.delete(id) : cuCollapsed.add(id); render(); };
 function cuSetupDefault(){
@@ -1855,7 +1958,7 @@ function cuSaveNode(ev, kind, id, parent){
   if (id) { const x = ({space:spaceById, folder:folderById, list:listById}[kind])(id); x.name = name; x.color = f.color; if (kind === 'list') x.clientId = f.clientId || ''; }
   else if (kind === 'space') cuSpaces.push({id:uid(), name, color:f.color});
   else if (kind === 'folder') cuFolders.push({id:uid(), spaceId:parent, name, color:f.color});
-  else { const l = {id:uid(), folderId:parent || f.parent, name, color:f.color, clientId:f.clientId || '', statuses:defaultStatuses()}; cuLists.push(l); cuScope = {type:'list', id:l.id}; view = 'tasks'; }
+  else { const l = {id:uid(), folderId:parent || f.parent, name, color:f.color, clientId:f.clientId || '', statuses:defaultStatuses()}; cuLists.push(l); cuScope = {type:'list', id:l.id}; view = 'tasks'; cuPanelId = null; }
   save(); closeModal(); render();
 }
 function cuDelNode(kind, id){
@@ -1863,18 +1966,18 @@ function cuDelNode(kind, id){
   const n = cuTasks.filter(t => lists.includes(t.listId)).length;
   if (!confirm('Delete this ' + kind + (kind !== 'list' ? ' with everything inside it' : '') + (n ? ' and its ' + n + ' task(s)' : '') + '? This cannot be undone.')) return;
   cuTasks.filter(t => lists.includes(t.listId)).forEach(cuRemoveTaskData);
-  cuLists = cuLists.filter(l => !lists.includes(l.id));
+  cuLists = cuLists.filter(l => !lists.includes(l.id)); cuMessages = cuMessages.filter(m => !lists.some(i => m.scope === 'list:' + i));
   if (kind === 'folder') cuFolders = cuFolders.filter(f => f.id !== id);
   if (kind === 'space') { cuFolders = cuFolders.filter(f => f.spaceId !== id); cuSpaces = cuSpaces.filter(s => s.id !== id); }
   save(); closeModal(); render();
 }
-function cuRemoveTaskData(t){ cuSubs = cuSubs.filter(s => s.taskId !== t.id); cuComments = cuComments.filter(c => c.taskId !== t.id); cuTimeLogs = cuTimeLogs.filter(l => l.taskId !== t.id); cuTasks = cuTasks.filter(x => x.id !== t.id); cuSel.delete(t.id); if (cuPanelId === t.id) cuClose(); }
+function cuRemoveTaskData(t){ cuSubs = cuSubs.filter(s => s.taskId !== t.id); cuComments = cuComments.filter(c => c.taskId !== t.id); cuTimeLogs = cuTimeLogs.filter(l => l.taskId !== t.id); cuTasks = cuTasks.filter(x => x.id !== t.id); if (cuPanelId === t.id) cuPanelId = null; }
 
 /* ----- statuses per list ----- */
 function cuStatusForm(lid){
   const l = listById(lid); if (!l) return;
   openModal(`<h2>Statuses · ${esc(l.name)}</h2><p class="muted" style="margin-bottom:10px;font-size:13px">Rename, recolour, reorder or remove. “Kind” tells the app whether a status counts as open, done or closed (cancelled) — it drives overdue highlights and repeating tasks.</p>
-    <form onsubmit="cuSaveStatuses(event,'${lid}')"><div id="stRows">${l.statuses.map((s, i) => statusRow(s, i, l.statuses.length)).join('')}</div>
+    <form onsubmit="cuSaveStatuses(event,'${lid}')"><div id="stRows">${l.statuses.map(statusRow).join('')}</div>
     <button type="button" class="btn sm ghost" onclick="cuAddStatusRow()">+ Add status</button>
     <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save statuses</button></div></form>`, 'xl');
 }
@@ -1893,14 +1996,14 @@ function cuSaveStatuses(ev, lid){
 
 /* ----- creating & changing tasks ----- */
 function cuNewTask(o){
-  const l = listById(o.listId), t = {id:uid(), title:'', description:'', assignee:'', due:'', priority:'normal', tags:[], estimate:0, repeat:'', repeatDays:7, created:new Date().toISOString(), status:l.statuses[0].id, ...o};
-  cuTasks.push(t); cuComments.push({id:uid(), taskId:t.id, at:t.created, by:'You', text:o.activityText || 'Task created', kind:'activity'}); delete t.activityText; return t;
+  const l = listById(o.listId), t = {id:uid(), title:'', description:'', assignees:[], start:'', due:'', priority:'normal', tags:[], estimate:0, attachments:'', repeat:'', repeatDays:7, created:new Date().toISOString(), status:l.statuses[0].id, ...o};
+  cuTasks.push(t); cuComments.push({id:uid(), taskId:t.id, at:t.created, by:'You', text:o.activityText || 'created this task', kind:'activity'}); delete t.activityText; return t;
 }
 function cuQuickAdd(o = {}){
   if (!cuLists.length) { openModal('<h2>Quick add</h2><p style="margin-bottom:14px">Create a List first — every task lives in a List.</p><div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn" onclick="cuNodeForm(\'list\')">New List</button></div>'); return; }
   const cur = o.listId || (cuScope.type === 'list' ? cuScope.id : cuLists[0].id), asg = o.assignee ?? (cuScope.type === 'mine' ? cuPerson : '');
   openModal(`<h2>Quick add task</h2><form onsubmit="cuSaveQuick(event)">
-    <div class="field"><label>Title</label><input name="title" value="${esc(o.title || '')}" required autofocus></div>
+    <div class="field"><label>Title</label><input name="title" value="${esc(o.title || '')}" required></div>
     <div class="field"><label>List</label><select name="listId">${cuLists.map(l => `<option value="${l.id}" ${l.id === cur ? 'selected' : ''}>${esc((folderById(l.folderId) || {}).name)} › ${esc(l.name)}</option>`).join('')}</select></div>
     <div class="row2"><div class="field"><label>Assignee</label><select name="assignee">${empOpts(asg)}</select></div><div class="field"><label>Due date</label><input name="due" type="date" value="${o.due || ''}"></div></div>
     <div class="field"><label>Priority</label><select name="priority">${Object.entries(PRI).map(([k, p]) => `<option value="${k}" ${k === 'normal' ? 'selected' : ''}>${p.i} ${p.l}</option>`).join('')}</select></div>
@@ -1909,7 +2012,7 @@ function cuQuickAdd(o = {}){
 }
 function cuSaveQuick(ev){
   ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target));
-  cuNewTask({listId:f.listId, title:f.title.trim(), assignee:f.assignee, due:f.due, priority:f.priority}); save(); closeModal(); render(); toast('Task created');
+  cuNewTask({listId:f.listId, title:f.title.trim(), assignees:f.assignee ? [f.assignee] : [], due:f.due, priority:f.priority}); save(); closeModal(); render(); toast('Task created');
 }
 function cuAddInline(gi, listId, input){
   const def = groupDefs()[gi], title = input.value.trim(); if (!title) return;
@@ -1924,16 +2027,17 @@ function nextDue(t){
   const d = new Date(base + 'T00:00:00'), day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth() + 1); d.setDate(Math.min(day, monthDays(iso(d).slice(0, 7)))); return iso(d);
 }
 function cuSpawn(t){
-  const l = listOf(t), n = cuNewTask({...t, id:uid(), status:l.statuses.find(s => s.kind === 'open').id, due:nextDue(t), spawned:false, created:new Date().toISOString(), activityText:'Recurring task created'});
+  const l = listOf(t), n = cuNewTask({...t, id:uid(), assignees:[...asgOf(t)], tags:[...(t.tags || [])], status:l.statuses.find(s => s.kind === 'open').id, due:nextDue(t), start:'', spawned:false, created:new Date().toISOString(), activityText:'created this recurring task'});
   cuSubs.filter(s => s.taskId === t.id).forEach(s => cuSubs.push({id:uid(), taskId:n.id, title:s.title, done:false}));
   t.spawned = true; toast('Repeating task — next one created for ' + fdate(n.due));
 }
 function cuSetStatus(t, sid, noRender){
   const old = statusOf(t), l = listOf(t), s = l.statuses.find(x => x.id === sid); if (!s || s.id === t.status) return;
-  t.status = sid; cuComments.push({id:uid(), taskId:t.id, at:new Date().toISOString(), by:'You', text:'Status: ' + old.name + ' → ' + s.name, kind:'activity'});
+  t.status = sid; cuComments.push({id:uid(), taskId:t.id, at:new Date().toISOString(), by:'You', text:'changed status from ' + old.name + ' to ' + s.name, kind:'activity'});
   if (s.kind === 'done' && t.repeat && !t.spawned) cuSpawn(t);
   save(); if (!noRender) render();
 }
+function cuToggleDone(id){ const t = taskById(id), l = listOf(t); if (!t) return; if (statusOf(t).kind === 'done') cuSetStatus(t, l.statuses.find(s => s.kind === 'open').id); else cuSetStatus(t, (l.statuses.find(s => s.kind === 'done') || l.statuses[l.statuses.length - 1]).id); }
 function cuSetField(id, field, val){
   const t = taskById(id); if (!t) return;
   if (field === 'status') { cuSetStatus(t, val); return; }
@@ -1949,20 +2053,27 @@ function cuMove(id, gi){
   if (g.match(t)) return; if (g.set(t)) { save(); render(); }
 }
 function cuDelTask(id){ const t = taskById(id); if (t && confirm('Delete "' + t.title + '" with its subtasks, comments and time logs?')) { cuRemoveTaskData(t); save(); render(); } }
+/* assignees: several people per task */
+function cuAsgPick(id){
+  const t = taskById(id); if (!t) return;
+  openModal(`<h2>Assignees</h2>${employees.filter(e => !e.archived).map(e => `<label class="chk"><input type="checkbox" ${asgOf(t).includes(e.id) ? 'checked' : ''} onchange="cuToggleAsg('${id}','${e.id}')"> ${cuAv(e.name, 22)} ${esc(e.name)}</label>`).join('') || '<p class="muted">Add employees first (Team → Employees).</p>'}<div class="modal-actions"><button class="btn" onclick="closeModal()">Done</button></div>`);
+}
+function cuToggleAsg(id, eid){ const t = taskById(id); if (!t) return; const a = asgOf(t); t.assignees = a.includes(eid) ? a.filter(x => x !== eid) : [...a, eid]; save(); render(); }
 
 /* ----- BOARD ----- */
-function cuCardCls(t){ return isOverdueT(t) ? 'overdue' : isTodayT(t) ? 'today' : ''; }
+const cuCardCls = t => isOverdueT(t) ? 'overdue' : isTodayT(t) ? 'today' : '';
 function cuCard(t){
-  const subs = cuSubs.filter(s => s.taskId === t.id), done = subs.filter(s => s.done).length, p = PRI[t.priority];
+  const subs = cuSubs.filter(s => s.taskId === t.id), hasDesc = (t.description || '').replace(/<[^>]+>/g, '').trim();
   return `<div class="cu-card ${cuCardCls(t)}" draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${t.id}');this.classList.add('dragging')" ondragend="this.classList.remove('dragging')" onclick="cuOpen('${t.id}')">
-    <div class="ct">${esc(t.title)}</div>${(t.tags || []).length ? `<div class="ctags">${t.tags.map(x => `<span class="tagchip">${esc(x)}</span>`).join('')}</div>` : ''}
-    <div class="cm">${assigneeDot(t.assignee)}<span title="${p.l}">${p.i}</span>${t.due ? `<span class="cdue ${isOverdueT(t) ? 'od' : isTodayT(t) ? 'td' : ''}">📅 ${fdate(t.due)}</span>` : ''}${subs.length ? `<span class="muted">☑ ${done}/${subs.length}</span>` : ''}${t.repeat ? '<span title="Repeats">🔁</span>' : ''}${cuScope.type !== 'list' ? `<span class="muted clist">${esc((listOf(t) || {}).name)}</span>` : ''}</div></div>`;
+    <div class="ct">${esc(t.title)}</div>${hasDesc ? '<div class="cdesc">≡</div>' : ''}${(t.tags || []).length ? `<div class="ctags">${t.tags.map(x => `<span class="tagchip">${esc(x)}</span>`).join('')}</div>` : ''}
+    <div class="cm">${stack(t, 20)}<span class="cdue ${isOverdueT(t) ? 'od' : isTodayT(t) ? 'td' : ''}" title="Due date">📅${t.due ? ' ' + fdate(t.due) : ''}</span>${flag(t.priority)}${t.attachments ? '<span title="' + esc(t.attachments) + '">🔗</span>' : ''}${t.repeat ? '<span title="Repeats">🔁</span>' : ''}</div>
+    ${subs.length ? `<div class="csub">↳ ${subs.length} subtask${subs.length > 1 ? 's' : ''}${subs.some(s => s.done) ? ' · ' + subs.filter(s => s.done).length + ' done' : ''}</div>` : ''}${cuScope.type !== 'list' ? `<div class="csub">${esc((listOf(t) || {}).name)}</div>` : ''}</div>`;
 }
 function cuBoard(list){
   const groups = groupDefs();
   return `<div class="cu-board">${groups.map((g, gi) => { const col = list.filter(g.match).sort(cuSorter()), adding = cuAddCol === gi;
     return `<div class="cu-col" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="event.preventDefault();this.classList.remove('over');cuMove(event.dataTransfer.getData('text/plain'),${gi})">
-      <div class="chead"><span class="spill" style="background:${g.color}">${esc(g.label)}</span><span class="muted">${col.length}</span></div>
+      <div class="chead" style="background:${g.color}22"><span class="spill" style="background:${g.color}">${esc(gLabel(g))} <b>${col.length}</b></span></div>
       ${col.map(cuCard).join('')}
       ${adding ? `<input class="qadd" id="cuAddIn" placeholder="Task name — Enter to add" onkeydown="if(event.key==='Enter')cuAddInline(${gi},null,this);if(event.key==='Escape'){cuAddCol=null;render()}">` : `<button class="cadd" onclick="cuAddCol=${gi};render()">+ Add Task</button>`}</div>`; }).join('')}</div>`;
 }
@@ -1973,36 +2084,31 @@ const cuEditStart = (id, f) => { cuEdit = {id, f}; render(); };
 const cuEditEnd = () => { if (cuEdit) { cuEdit = null; render(); } };
 function cuCell(t, f){
   const ed = cuEdit && cuEdit.id === t.id && cuEdit.f === f, id = t.id, st = statusOf(t);
-  const commit = (v) => `cuEdit=null;cuSetField('${id}','${f}',${v})`;
-  if (f === 'assignee') return ed ? `<select data-edit onchange="${commit('this.value')}" onblur="cuEditEnd()">${empOpts(t.assignee)}</select>` : `<span class="cell" onclick="cuEditStart('${id}','assignee')"><span style="display:flex;gap:6px;align-items:center">${assigneeDot(t.assignee)}<span>${esc(empName(t.assignee))}</span></span></span>`;
-  if (f === 'due') return ed ? `<input data-edit type="date" value="${t.due || ''}" onchange="${commit('this.value')}" onblur="cuEditEnd()">` : `<span class="cell cdue ${isOverdueT(t) ? 'od' : isTodayT(t) ? 'td' : ''}" onclick="cuEditStart('${id}','due')">${t.due ? fdate(t.due) : '<span class="muted">—</span>'}</span>`;
-  if (f === 'priority') return ed ? `<select data-edit onchange="${commit('this.value')}" onblur="cuEditEnd()">${Object.entries(PRI).map(([k, p]) => `<option value="${k}" ${k === t.priority ? 'selected' : ''}>${p.i} ${p.l}</option>`).join('')}</select>` : `<span class="cell" onclick="cuEditStart('${id}','priority')">${PRI[t.priority].i} <span class="muted">${PRI[t.priority].l}</span></span>`;
-  if (f === 'status') return ed ? `<select data-edit onchange="${commit('this.value')}" onblur="cuEditEnd()">${listOf(t).statuses.map(s => `<option value="${s.id}" ${s.id === t.status ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>` : `<span class="cell" onclick="cuEditStart('${id}','status')">${statusPill(st)}</span>`;
-  if (f === 'tags') return ed ? `<input data-edit value="${esc((t.tags || []).join(', '))}" placeholder="tag, tag" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){cuEdit=null;render()}" onblur="cuEdit=null;cuSetField('${id}','tags',this.value)">` : `<span class="cell" onclick="cuEditStart('${id}','tags')">${(t.tags || []).map(x => `<span class="tagchip">${esc(x)}</span>`).join('') || '<span class="muted">—</span>'}</span>`;
-  if (f === 'estimate') return ed ? `<input data-edit type="number" min="0" step="any" value="${t.estimate || ''}" style="width:70px" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){cuEdit=null;render()}" onblur="cuEdit=null;cuSetField('${id}','estimate',this.value)">` : `<span class="cell" onclick="cuEditStart('${id}','estimate')">${t.estimate ? t.estimate + 'h' : '<span class="muted">—</span>'}</span>`;
+  const commit = v => `cuEdit=null;cuSetField('${id}','${f}',${v})`, txt = (extra = '') => `data-edit onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){cuEdit=null;render()}" ${extra}`;
+  if (f === 'assignee') return `<span class="cell" onclick="cuAsgPick('${id}')">${stack(t, 22)}</span>`;
+  if (f === 'due') return ed ? `<input data-edit type="date" value="${t.due || ''}" onchange="${commit('this.value')}" onblur="cuEditEnd()">` : `<span class="cell cdue ${isOverdueT(t) ? 'od' : isTodayT(t) ? 'td' : ''}" onclick="cuEditStart('${id}','due')">📅 ${t.due ? fdate(t.due) : ''}</span>`;
+  if (f === 'start') return ed ? `<input data-edit type="date" value="${t.start || ''}" onchange="${commit('this.value')}" onblur="cuEditEnd()">` : `<span class="cell cdue" onclick="cuEditStart('${id}','start')">${t.start ? fdate(t.start) : '—'}</span>`;
+  if (f === 'priority') return ed ? `<select data-edit onchange="${commit('this.value')}" onblur="cuEditEnd()">${Object.entries(PRI).map(([k, p]) => `<option value="${k}" ${k === t.priority ? 'selected' : ''}>${p.l}</option>`).join('')}</select>` : `<span class="cell" onclick="cuEditStart('${id}','priority')">${flag(t.priority)}</span>`;
+  if (f === 'status') return ed ? `<select data-edit onchange="${commit('this.value')}" onblur="cuEditEnd()">${listOf(t).statuses.map(s => `<option value="${s.id}" ${s.id === t.status ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>` : `<span class="cell" onclick="cuEditStart('${id}','status')"><span class="spill" style="background:${st.color}">${esc(st.name)}</span></span>`;
+  if (f === 'tags') return ed ? `<input ${txt(`value="${esc((t.tags || []).join(', '))}" placeholder="tag, tag" onblur="cuEdit=null;cuSetField('${id}','tags',this.value)"`)}>` : `<span class="cell" onclick="cuEditStart('${id}','tags')">${(t.tags || []).map(x => `<span class="tagchip">${esc(x)}</span>`).join('') || '<span class="muted">—</span>'}</span>`;
+  if (f === 'est') return ed ? `<input ${txt(`type="number" min="0" step="any" value="${t.estimate || ''}" style="width:70px" onblur="cuEdit=null;cuSetField('${id}','estimate',this.value)"`)}>` : `<span class="cell" onclick="cuEditStart('${id}','est')">${t.estimate ? t.estimate + 'h' : '<span class="muted">—</span>'}</span>`;
 }
 function cuListView(list){
-  const groups = groupDefs(), th = (k, l) => `<th style="cursor:pointer" onclick="cuSortBy('${k}')">${l}${cuSortKey === k ? (cuSortDir > 0 ? ' ▲' : ' ▼') : ''}</th>`;
-  const n = [...cuSel].filter(taskById).length;
-  const bulk = n ? `<div class="cu-bulk"><b>${n} selected</b><select onchange="cuBulk('status',this.value)"><option value="">Status…</option>${statusUnion().map(s => `<option>${esc(s.name)}</option>`).join('')}</select>
-    <select onchange="cuBulk('priority',this.value)"><option value="">Priority…</option>${Object.entries(PRI).map(([k, p]) => `<option value="${k}">${p.i} ${p.l}</option>`).join('')}</select>
-    <select onchange="cuBulk('assignee',this.value)"><option value="">Assign to…</option>${employees.map(e => `<option value="${e.id}">${esc(e.name)}</option>`).join('')}<option value="__none">Unassigned</option></select>
-    <button class="btn sm danger" onclick="cuBulkDel()">Delete</button><button class="btn sm ghost" onclick="cuSel.clear();render()">Clear</button></div>` : '';
-  const taskRows = t => { const subs = cuSubs.filter(s => s.taskId === t.id), open = cuExpanded.has(t.id), done = subs.filter(s => s.done).length;
-    return `<tr class="trow ${cuCardCls(t)}"><td><input type="checkbox" ${cuSel.has(t.id) ? 'checked' : ''} onchange="cuSelT('${t.id}',this.checked)"></td>
-      <td class="tname"><span class="arrow" style="visibility:${subs.length ? 'visible' : 'hidden'}" onclick="cuToggleSub('${t.id}')">${open ? '▾' : '▸'}</span>${cuEdit && cuEdit.id === t.id && cuEdit.f === 'title' ? `<input data-edit value="${esc(t.title)}" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){cuEdit=null;render()}" onblur="cuEdit=null;cuSetField('${t.id}','title',this.value)">` : `<span class="ttl" onclick="cuOpen('${t.id}')" ondblclick="cuEditStart('${t.id}','title')" title="Click to open · double-click to rename">${esc(t.title)}</span>`}${subs.length ? `<span class="muted" style="font-size:11px;margin-left:6px">☑ ${done}/${subs.length}</span>` : ''}${t.repeat ? ' 🔁' : ''}${cuScope.type !== 'list' ? `<span class="muted clist">${esc((listOf(t) || {}).name)}</span>` : ''}</td>
-      <td>${cuCell(t, 'assignee')}</td><td>${cuCell(t, 'due')}</td><td>${cuCell(t, 'priority')}</td><td>${cuCell(t, 'status')}</td><td>${cuCell(t, 'tags')}</td><td>${cuCell(t, 'estimate')}</td></tr>
-      ${open ? subs.map(s => `<tr class="subrow"><td></td><td colspan="7"><label><input type="checkbox" ${s.done ? 'checked' : ''} onchange="cuToggleSubtask('${s.id}')"><span style="${s.done ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(s.title)}</span></label></td></tr>`).join('') : ''}`; };
-  return `${bulk}<div class="cu-table"><table><thead><tr><th style="width:28px"><input type="checkbox" onchange="cuSelAll(this.checked)"></th>${th('title', 'Task Name')}${th('assignee', 'Assignee')}${th('due', 'Due Date')}${th('priority', 'Priority')}${th('status', 'Status')}<th>Tags</th>${th('est', 'Time Estimate')}</tr></thead>
-    ${groups.map((g, gi) => { const rows = list.filter(g.match).sort(cuSorter());
-      return `<tbody><tr class="ghead"><td colspan="8"><span class="spill" style="background:${g.color}">${esc(g.label)}</span> <span class="muted">${rows.length}</span></td></tr>${rows.map(taskRows).join('')}
-        <tr class="addrow"><td></td><td colspan="7"><input class="qadd" placeholder="+ Add task" onkeydown="if(event.key==='Enter')cuAddInline(${gi},null,this)"></td></tr></tbody>`; }).join('')}</table></div>`;
+  const extra = [['status', 'Status', '120px'], ['start', 'Start date', '110px'], ['tags', 'Tags', '150px'], ['est', 'Time est.', '90px']].filter(([k]) => cuCols.has(k));
+  const tpl = `minmax(240px,1fr) 120px 120px 110px ${extra.map(e => e[2]).join(' ')} 30px`.replace(/\s+/g, ' ');
+  const sortable = {title:'Name', assignee:'Assignee', due:'Due date', priority:'Priority'}, hd = (k, l) => `<div class="lh" onclick="cuSortBy('${k}')">${l}${cuSortKey === k ? (cuSortDir > 0 ? ' ▲' : ' ▼') : ''}</div>`;
+  const rowHtml = t => { const subs = cuSubs.filter(s => s.taskId === t.id), open = cuShowSubs || cuExpanded.has(t.id), st = statusOf(t), done = st.kind === 'done';
+    return `<div class="lr ${cuCardCls(t)}" style="grid-template-columns:${tpl}"><div class="ln"><span class="circ ${done ? 'done' : ''}" style="border-color:${st.color};${done ? 'background:' + st.color : ''}" onclick="cuToggleDone('${t.id}')" title="${esc(st.name)}">${done ? '✓' : ''}</span>
+      <span class="arrow" style="visibility:${subs.length ? 'visible' : 'hidden'}" onclick="cuToggleSub('${t.id}')">${open ? '▾' : '▸'}</span>
+      ${cuEdit && cuEdit.id === t.id && cuEdit.f === 'title' ? `<input data-edit value="${esc(t.title)}" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){cuEdit=null;render()}" onblur="cuEdit=null;cuSetField('${t.id}','title',this.value)">` : `<span class="ttl ${done ? 'dn' : ''}" onclick="cuOpen('${t.id}')" ondblclick="cuEditStart('${t.id}','title')" title="Click to open · double-click to rename">${esc(t.title)}</span>`}${t.attachments ? '<span class="clip" title="' + esc(t.attachments) + '">📎</span>' : ''}${subs.length ? `<span class="muted sc">☑ ${subs.filter(s => s.done).length}/${subs.length}</span>` : ''}${t.repeat ? ' 🔁' : ''}${cuScope.type !== 'list' ? `<span class="muted clist">${esc((listOf(t) || {}).name)}</span>` : ''}</div>
+      <div>${cuCell(t, 'assignee')}</div><div>${cuCell(t, 'due')}</div><div>${cuCell(t, 'priority')}</div>${extra.map(([k]) => `<div>${cuCell(t, k)}</div>`).join('')}<div></div></div>
+      ${open ? subs.map(s => `<div class="lr sub" style="grid-template-columns:${tpl}"><div class="ln" style="padding-left:46px"><span class="circ sm ${s.done ? 'done' : ''}" style="${s.done ? 'background:#22c55e;border-color:#22c55e' : ''}" onclick="cuToggleSubtask('${s.id}')">${s.done ? '✓' : ''}</span><span class="${s.done ? 'dn' : ''}">${esc(s.title)}</span></div></div>`).join('') : ''}`; };
+  return `<div class="cu-list">${groupDefs().map((g, gi) => { const rows = list.filter(g.match).sort(cuSorter()), hidden = cuGroupHidden.has(g.key);
+    return `<div class="lg"><div class="lgh" style="grid-template-columns:${tpl}"><div class="lg1"><span class="garr" onclick="cuGroupToggle(${gi})">${hidden ? '▸' : '▾'}</span><span class="spill" style="background:${g.color}">${esc(gLabel(g))} <b>${rows.length}</b></span><span class="lh" onclick="cuSortBy('title')">Name${cuSortKey === 'title' ? (cuSortDir > 0 ? ' ▲' : ' ▼') : ''}</span></div>${hd('assignee', 'Assignee')}${hd('due', 'Due date')}${hd('priority', 'Priority')}${extra.map(([k, l]) => `<div class="lh" style="cursor:default">${l}</div>`).join('')}<div class="lh plus" onclick="cuColsForm()" title="Add columns">+</div></div>
+      ${hidden ? '' : `${rows.map(rowHtml).join('')}<div class="lr addr" style="grid-template-columns:${tpl}"><div class="ln"><input class="qadd" placeholder="+ Add Task" onkeydown="if(event.key==='Enter')cuAddInline(${gi},null,this)"></div></div>`}</div>`; }).join('')}</div>`;
 }
+function cuGroupToggle(gi){ const k = (groupDefs()[gi] || {}).key; if (k === undefined) return; cuGroupHidden.has(k) ? cuGroupHidden.delete(k) : cuGroupHidden.add(k); render(); }
 const cuToggleSub = id => { cuExpanded.has(id) ? cuExpanded.delete(id) : cuExpanded.add(id); render(); };
-const cuSelT = (id, on) => { on ? cuSel.add(id) : cuSel.delete(id); render(); };
-const cuSelAll = on => { cuFiltered().forEach(t => on ? cuSel.add(t.id) : cuSel.delete(t.id)); render(); };
-function cuBulk(field, v){ if (!v) return; [...cuSel].map(taskById).filter(Boolean).forEach(t => { if (field === 'status') setStatusByName(t, v); else t[field] = v === '__none' ? '' : v; }); save(); render(); toast('Updated ' + cuSel.size + ' tasks'); }
-function cuBulkDel(){ if (confirm('Delete ' + cuSel.size + ' selected tasks?')) { [...cuSel].map(taskById).filter(Boolean).forEach(cuRemoveTaskData); cuSel.clear(); save(); render(); } }
 function cuToggleSubtask(sid){ const s = cuSubs.find(x => x.id === sid); if (s) { s.done = !s.done; save(); render(); } }
 
 /* ----- CALENDAR ----- */
@@ -2011,49 +2117,105 @@ function cuCalendar(list){
   const [y, mo] = cuMonth.split('-').map(Number), lead = (new Date(y, mo - 1, 1).getDay() + 6) % 7, days = monthDays(cuMonth), by = {};
   list.filter(t => t.due && t.due.startsWith(cuMonth)).forEach(t => (by[t.due] = by[t.due] || []).push(t));
   const cells = [...Array(lead).fill(null), ...Array.from({length:days}, (_, i) => cuMonth + '-' + String(i + 1).padStart(2, '0'))];
-  return `<div class="cu-cal"><div class="calbar"><button class="btn sm ghost" onclick="cuNav(-1)">‹</button><b>${monthName(cuMonth)}</b><span><button class="btn sm ghost" onclick="cuNav(0)">Today</button> <button class="btn sm ghost" onclick="cuNav(1)">›</button></span></div>
+  return `<div class="cu-cal"><div class="calbar"><button class="tbtn" onclick="cuNav(-1)">‹</button><b>${monthName(cuMonth)}</b><span><button class="tbtn" onclick="cuNav(0)">Today</button> <button class="tbtn" onclick="cuNav(1)">›</button></span></div>
     <div class="cal">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => `<div class="calh">${d}</div>`).join('')}
     ${cells.map(d => !d ? '<div class="cald empty-cell"></div>' : `<div class="cald ${d === today() ? 'today' : ''}" onclick="cuQuickAdd({due:'${d}'})" title="Click to add a task on this date"><span class="dn">${+d.slice(8)}</span>
-      ${(by[d] || []).slice(0, 4).map(t => `<div class="cchip" style="background:${PRI[t.priority].c}${isOpenT(t) ? '' : ';opacity:.45;text-decoration:line-through'}" onclick="event.stopPropagation();cuOpen('${t.id}')" title="${esc(t.title)}">${esc(t.title)}</div>`).join('')}${(by[d] || []).length > 4 ? `<div class="muted" style="font-size:10px">+${by[d].length - 4} more</div>` : ''}</div>`).join('')}</div>
-    <div class="muted" style="margin-top:8px;font-size:12px">${Object.values(PRI).map(p => `<span style="margin-right:12px"><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${p.c}"></span> ${p.l}</span>`).join('')}· click a date to add a task, a pill to open it</div></div>`;
+      ${(by[d] || []).slice(0, 4).map(t => `<div class="cchip" style="background:${PRI[t.priority].cal}${isOpenT(t) ? '' : ';opacity:.45;text-decoration:line-through'}" onclick="event.stopPropagation();cuOpen('${t.id}')" title="${esc(t.title)}">${esc(t.title)}</div>`).join('')}${(by[d] || []).length > 4 ? `<div class="muted" style="font-size:10px">+${by[d].length - 4} more</div>` : ''}</div>`).join('')}</div>
+    <div class="muted" style="margin-top:8px;font-size:12px">${Object.values(PRI).map(p => `<span style="margin-right:12px"><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${p.cal}"></span> ${p.l}</span>`).join('')}· click a date to add a task, a pill to open it</div></div>`;
 }
 
-/* ----- TASK DETAIL PANEL (slides in from the right) ----- */
-function cuOpen(id){ cuPanelId = id; cuLogOpen = false; cuRenderPanel(); $('cuPanel').classList.add('open'); document.body.classList.add('cu-panel-open'); }
-function cuClose(){ cuPanelId = null; const p = $('cuPanel'); if (p) p.classList.remove('open'); document.body.classList.remove('cu-panel-open'); }
-function cuRefreshPanel(){ if (!cuPanelId) return; const p = $('cuPanel'), sc = p.scrollTop; cuRenderPanel(); p.scrollTop = sc; }
-function cuRenderPanel(){
-  const t = taskById(cuPanelId), p = $('cuPanel'); if (!t) { cuClose(); return; }
-  const l = listOf(t), st = statusOf(t), subs = cuSubs.filter(s => s.taskId === t.id), done = subs.filter(s => s.done).length;
-  const cms = cuComments.filter(c => c.taskId === t.id).sort((a, b) => a.at.localeCompare(b.at)), logs = cuTimeLogs.filter(x => x.taskId === t.id).sort((a, b) => b.date.localeCompare(a.date));
-  const fld = (label, inner) => `<div class="pf"><span>${label}</span>${inner}</div>`, id = t.id;
-  p.innerHTML = `<div class="ph"><input class="ptitle" value="${esc(t.title)}" onchange="cuSetField('${id}','title',this.value)"><button class="pclose" onclick="cuClose()" title="Close">✕</button></div>
-    <div class="pbody">
-    <div class="pgrid">
-      ${fld('Status', `<select class="stsel" style="background:${st.color}" onchange="cuSetField('${id}','status',this.value)">${l.statuses.map(s => `<option value="${s.id}" ${s.id === t.status ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>`)}
-      ${fld('Priority', `<select onchange="cuSetField('${id}','priority',this.value)">${Object.entries(PRI).map(([k, pr]) => `<option value="${k}" ${k === t.priority ? 'selected' : ''}>${pr.i} ${pr.l}</option>`).join('')}</select>`)}
-      ${fld('Assignee', `<div style="display:flex;gap:6px;align-items:center">${assigneeDot(t.assignee, 24)}<select onchange="cuSetField('${id}','assignee',this.value)">${empOpts(t.assignee)}</select></div>`)}
-      ${fld('Due Date', `<input type="date" value="${t.due || ''}" onchange="cuSetField('${id}','due',this.value)">`)}
-      ${fld('List', `<select onchange="cuSetField('${id}','listId',this.value)">${cuLists.map(x => `<option value="${x.id}" ${x.id === t.listId ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`)}
-      ${fld('Tags', `<div class="tagbox">${(t.tags || []).map(x => `<span class="tagchip">${esc(x)} <a onclick="cuDelTag('${id}',${(t.tags || []).indexOf(x)})">×</a></span>`).join('')}<input placeholder="+ Add tag" onkeydown="if(event.key==='Enter'){event.preventDefault();cuSetField('${id}','tags',[...(taskById('${id}').tags||[]),...parseTags(this.value)])}"></div>`)}
-      ${fld('Time Est', `<div style="display:flex;align-items:center;gap:6px"><input type="number" min="0" step="any" value="${t.estimate || 0}" style="width:80px" onchange="cuSetField('${id}','estimate',this.value)"> h</div>`)}
-      ${fld('Time Log', `<div style="display:flex;align-items:center;gap:8px"><b>${+hoursOf(id).toFixed(2)}h logged</b><button class="btn sm ghost" onclick="cuLogOpen=!cuLogOpen;cuRefreshPanel()">+ Log time</button></div>`)}
-      ${fld('Repeat', `<div style="display:flex;gap:6px"><select onchange="cuSetField('${id}','repeat',this.value)">${[['', 'Does not repeat'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly'], ['custom', 'Custom']].map(([v, n]) => `<option value="${v}" ${v === (t.repeat || '') ? 'selected' : ''}>${n}</option>`).join('')}</select>${t.repeat === 'custom' ? `<input type="number" min="1" value="${t.repeatDays || 7}" style="width:64px" title="every N days" onchange="cuSetField('${id}','repeatDays',+this.value||1)">` : ''}</div>`)}
+/* ----- TEAM (workload) ----- */
+function cuTeam(list){
+  const people = [...employees.filter(e => !e.archived).map(e => ({id:e.id, name:e.name})), {id:'', name:'Unassigned'}];
+  return `<div class="cu-team">${people.map(p => { const ts = list.filter(t => p.id ? asgOf(t).includes(p.id) : !asgOf(t).length).sort(cuSorter()), open = ts.filter(isOpenT);
+    return `<div class="tcard"><div class="thead">${p.id ? cuAv(p.name, 30) : '<span class="av empty" style="width:30px;height:30px"></span>'}<b>${esc(p.name)}</b><span class="tstat">${open.length} open</span><span class="tstat ${open.filter(isOverdueT).length ? 'red' : ''}">${open.filter(isOverdueT).length} overdue</span><span class="tstat">${open.filter(isTodayT).length} today</span><span class="tstat">${+sum(open, t => t.estimate || 0).toFixed(1)}h est.</span></div>
+      ${ts.map(t => `<div class="trow2" onclick="cuOpen('${t.id}')"><span class="spill" style="background:${statusOf(t).color}">${esc(statusOf(t).name)}</span><span class="tt">${esc(t.title)}</span><span class="cdue ${isOverdueT(t) ? 'od' : isTodayT(t) ? 'td' : ''}">${t.due ? fdate(t.due) : ''}</span>${flag(t.priority, false)}</div>`).join('') || '<div class="muted" style="padding:8px 4px;font-size:12px">No tasks</div>'}</div>`; }).join('')}</div>`;
+}
+
+/* ----- CHANNEL / DIRECT MESSAGES (saved on this device) ----- */
+function threadHtml(scope, placeholder){
+  const ms = cuMessages.filter(m => m.scope === scope).sort((a, b) => a.at.localeCompare(b.at));
+  let last = '';
+  return `<div class="thread">${ms.map(m => { const d = dayHeader(m.at), hd = d !== last ? `<div class="cdiv"><span>${d}</span></div>` : ''; last = d;
+    return `${hd}<div class="act">${cuAv(m.by, 28)}<div><div class="who"><b>${esc(m.by)}</b> <span>${clockT(m.at)}</span></div><div class="txt">${esc(m.text)}</div></div></div>`; }).join('') || '<div class="muted" style="padding:20px 0">No messages yet — say something.</div>'}</div>
+    <form class="msgform" onsubmit="cuSendMsg(event,'${scope}')"><input name="text" placeholder="${placeholder}" required autocomplete="off"><button class="addbtn">Send</button></form>`;
+}
+function cuSendMsg(ev, scope){ ev.preventDefault(); const t = new FormData(ev.target).get('text').trim(); if (!t) return; cuMessages.push({id:uid(), scope, at:new Date().toISOString(), by:'You', text:t}); save(); render(); const i = document.querySelector('.msgform input'); if (i) i.focus(); }
+function cuChannel(){
+  if (cuScope.type !== 'list') return '<div class="cu-empty"><p class="muted">Channels belong to a List. Open a List to chat about it.</p></div>';
+  return `<div class="cu-chat"><div class="muted" style="margin-bottom:8px;font-size:12px"># ${esc(listById(cuScope.id).name)} — messages for this list (stored on this device)</div>${threadHtml('list:' + cuScope.id, 'Message #' + esc(listById(cuScope.id).name))}</div>`;
+}
+function cuDmView(){
+  const e = empById(cuScope.id); if (!e) return '<div class="cu-empty">Contact not found.</div>';
+  return `<div class="cu-crumb"><span class="cur">${cuAv(e.name, 26)} ${esc(e.name)}</span><span class="muted">${esc(e.designation || '')} · direct messages are saved on this device only</span></div><div class="cu-chat">${threadHtml('dm:' + e.id, 'Message ' + esc(e.name))}</div>`;
+}
+function cuNewMsg(){
+  const emps = employees.filter(e => !e.archived);
+  if (!emps.length) { openModal('<h2>New message</h2><p style="margin-bottom:12px">Add employees first — they appear here as contacts.</p><div class="modal-actions"><button class="btn" onclick="closeModal()">OK</button></div>'); return; }
+  openModal(`<h2>New message</h2><form onsubmit="cuSaveNewMsg(event)"><div class="field"><label>To</label><select name="to">${emps.map(e => `<option value="${e.id}">${esc(e.name)}</option>`).join('')}</select></div><div class="field"><label>Message</label><textarea name="text" rows="3" required></textarea></div>
+    <p class="muted" style="font-size:12px">Messages are saved in this app only — nothing is sent to the person.</p><div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Send</button></div></form>`);
+}
+function cuSaveNewMsg(ev){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); cuMessages.push({id:uid(), scope:'dm:' + f.to, at:new Date().toISOString(), by:'You', text:f.text.trim()}); closeModal(); cuGo({type:'dm', id:f.to}); }
+
+/* ----- TASK DETAIL: full page + comments panel ----- */
+function cuOpen(id){ cuPanelId = id; cuLogOpen = false; cuMenu = null; render(); window.scrollTo(0, 0); }
+function cuClose(){ cuPanelId = null; render(); }
+const fmtElapsed = ms => { const s = Math.floor(ms / 1000); return String(Math.floor(s / 3600)).padStart(2, '0') + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+function cuTimerToggle(id){
+  if (cuTimer && cuTimer.taskId === id) { const h = Math.max(0.01, +((Date.now() - cuTimer.start) / 3600000).toFixed(2)); cuTimeLogs.push({id:uid(), taskId:id, hours:h, date:today(), note:'Tracked with timer', by:'You'}); cuTimer = null; save(); }
+  else cuTimer = {taskId:id, start:Date.now()};
+  render();
+}
+setInterval(() => { const el = document.getElementById('cuTimerLbl'); if (el && cuTimer) el.textContent = fmtElapsed(Date.now() - cuTimer.start); }, 1000);
+function cuDetail(t){
+  const l = listOf(t), f = folderById(l.folderId), sp = f && spaceById(f.spaceId), st = statusOf(t), id = t.id;
+  const subs = cuSubs.filter(s => s.taskId === id), logs = cuTimeLogs.filter(x => x.taskId === id).sort((a, b) => b.date.localeCompare(a.date));
+  const doneSt = l.statuses.find(s => s.kind === 'done'), timing = cuTimer && cuTimer.taskId === id;
+  const row = (label, inner) => `<div class="drow"><span class="dl">${label}</span><div class="dv">${inner}</div></div>`;
+  const q = cuCmSearch.toLowerCase(), cms = cuComments.filter(c => c.taskId === id && (!q || c.text.toLowerCase().includes(q) || c.by.toLowerCase().includes(q))).sort((a, b) => a.at.localeCompare(b.at));
+  let last = '';
+  const feed = cms.map(c => { const d = dayHeader(c.at), hd = d !== last ? `<div class="cdiv"><span>${d} ▾</span></div>` : ''; last = d;
+    return `${hd}${c.kind === 'activity' ? `<div class="act sys"><div class="txt"><b>${esc(c.by)}</b> ${esc(c.text)} <span>${clockT(c.at)}</span></div></div>` : `<div class="act">${cuAv(c.by, 28)}<div><div class="who"><b>${esc(c.by)}</b> <span>${clockT(c.at)}</span></div><div class="txt">${esc(c.text)}</div></div></div>`}`; }).join('') || '<div class="muted" style="padding:14px 0;font-size:13px">No activity yet.</div>';
+  return `<div class="cu-detail"><div class="dmain">
+    <div class="cu-crumb"><span class="back" onclick="cuClose()">← ${esc(sp ? sp.name : '')}</span><i>/</i><span class="back" onclick="cuClose()">${esc(l.name)}</span></div>
+    <div class="dtype"><span>○ Task</span><span class="muted">|</span><span>👥 ${asgOf(t).length}</span>${t.repeat ? '<span title="Repeats">🔁</span>' : ''}<button class="tbtn" style="margin-left:auto;color:#ef4444" onclick="cuDelTask('${id}')">Delete</button></div>
+    <input class="dtitle" value="${esc(t.title)}" onchange="cuSetField('${id}','title',this.value)">
+    <div class="dgrid">
+      <div>
+        ${row('Status', `<select class="stsel" style="background:${st.color}" onchange="cuSetField('${id}','status',this.value)">${l.statuses.map(s => `<option value="${s.id}" ${s.id === t.status ? 'selected' : ''}>${esc(s.name.toUpperCase())}</option>`).join('')}</select>${doneSt && st.kind !== 'done' ? `<button class="chkbtn" title="Mark ${esc(doneSt.name)}" onclick="cuSetStatus(taskById('${id}'),'${doneSt.id}')">✓</button>` : st.kind === 'done' ? '<span class="chkbtn on">✓</span>' : ''}`)}
+        ${row('Dates', `<input type="date" style="width:128px" value="${t.start || ''}" onchange="cuSetField('${id}','start',this.value)"><span class="muted">→</span><input type="date" style="width:128px" value="${t.due || ''}" onchange="cuSetField('${id}','due',this.value)">`)}
+        ${row('Time estimate', `<input type="number" min="0" step="any" placeholder="Empty" value="${t.estimate || ''}" style="width:90px" onchange="cuSetField('${id}','estimate',this.value)"> <span class="muted">hours</span>`)}
+        ${row('Tags', `<div class="tagbox">${(t.tags || []).map((x, i) => `<span class="tagchip">${esc(x)} <a onclick="cuDelTag('${id}',${i})">×</a></span>`).join('')}<input placeholder="${(t.tags || []).length ? '+ Add' : 'Empty'}" onkeydown="if(event.key==='Enter'){event.preventDefault();cuSetField('${id}','tags',[...(taskById('${id}').tags||[]),...parseTags(this.value)])}"></div>`)}
+      </div>
+      <div>
+        ${row('Assignees', `<span onclick="cuAsgPick('${id}')" style="cursor:pointer;display:flex;align-items:center;gap:6px">${stack(t, 26, 4)}<span class="plus">+</span></span>`)}
+        ${row('Priority', `<select onchange="cuSetField('${id}','priority',this.value)">${Object.entries(PRI).map(([k, p]) => `<option value="${k}" ${k === t.priority ? 'selected' : ''}>${p.l}</option>`).join('')}</select> ${flag(t.priority, false)}`)}
+        ${row('Track time', `<button class="tbtn ${timing ? 'on' : ''}" onclick="cuTimerToggle('${id}')">${timing ? '■ Stop <span id="cuTimerLbl">' + fmtElapsed(Date.now() - cuTimer.start) + '</span>' : '▶ Start'}</button> <span class="muted">${+hoursOf(id).toFixed(2)}h logged</span> <a class="lnk" onclick="cuLogOpen=!cuLogOpen;render()">+ manual</a>`)}
+      </div>
     </div>
-    ${cuLogOpen ? `<form class="logform" onsubmit="cuAddLog(event,'${id}')"><input name="hours" type="number" min="0.1" step="any" placeholder="Hours" required style="width:90px"><input name="date" type="date" value="${today()}"><input name="note" placeholder="Note (optional)" style="flex:1"><button class="btn sm">Add</button></form>` : ''}
+    ${cuLogOpen ? `<form class="logform" onsubmit="cuAddLog(event,'${id}')"><input name="hours" type="number" min="0.1" step="any" placeholder="Hours" required style="width:90px"><input name="date" type="date" value="${today()}"><input name="note" placeholder="Note (optional)" style="flex:1"><button class="addbtn">Add</button></form>` : ''}
     ${logs.length ? `<div class="loglist">${logs.map(x => `<div><span>${fdate(x.date)}</span><b>${x.hours}h</b><span class="muted">${esc(x.note || '')} ${x.by ? '· ' + esc(x.by) : ''}</span><a onclick="cuDelLog('${x.id}')">✕</a></div>`).join('')}</div>` : ''}
-    <div class="psec">DESCRIPTION</div>
+    <div class="psec">DESCRIPTION / CONTENT</div>
     <div class="rtbar">${[['bold', '<b>B</b>'], ['italic', '<i>I</i>'], ['underline', '<u>U</u>'], ['insertUnorderedList', '• List'], ['insertOrderedList', '1. List']].map(([c, n]) => `<button type="button" onmousedown="event.preventDefault();document.execCommand('${c}')">${n}</button>`).join('')}</div>
     <div class="rte" contenteditable="true" data-ph="Write details here…" onblur="cuSaveDesc('${id}',this)">${t.description || ''}</div>
-    <div class="psec">SUBTASKS <span class="muted" style="font-weight:400;letter-spacing:0">${subs.length ? done + '/' + subs.length : ''}</span></div>
-    ${subs.map(s => `<div class="sub"><label><input type="checkbox" ${s.done ? 'checked' : ''} onchange="cuPanelSub('${s.id}')"><span style="${s.done ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(s.title)}</span></label><a onclick="cuDelSub('${s.id}')">✕</a></div>`).join('')}
+    <div class="psec">SUBTASKS <span class="muted" style="font-weight:400;letter-spacing:0">${subs.length ? subs.filter(s => s.done).length + '/' + subs.length : ''}</span></div>
+    ${subs.map(s => `<div class="sub"><label><span class="circ sm ${s.done ? 'done' : ''}" style="${s.done ? 'background:#22c55e;border-color:#22c55e' : ''}" onclick="cuPanelSub('${s.id}')">${s.done ? '✓' : ''}</span><span class="${s.done ? 'dn' : ''}">${esc(s.title)}</span></label><a onclick="cuDelSub('${s.id}')">✕</a></div>`).join('')}
     <input class="qadd" placeholder="+ Add subtask" onkeydown="if(event.key==='Enter'){event.preventDefault();cuAddSub('${id}',this)}">
-    <div class="psec">ACTIVITY / COMMENTS</div>
-    ${cms.map(c => `<div class="act ${c.kind === 'activity' ? 'sys' : ''}">${miniAv(c.by, 24)}<div><div class="who"><b>${esc(c.by)}</b> — ${fmtShort(c.at)}</div><div class="txt">${c.kind === 'activity' ? esc(c.text) : '“' + esc(c.text) + '”'}</div></div></div>`).join('')}
-    <form onsubmit="cuPost(event,'${id}')" class="cform"><select name="by">${['You', ...employees.filter(e => !e.archived).map(e => e.name)].map(a => `<option ${a === cuAuthor ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select><input name="text" placeholder="Add a comment…" required><button class="btn sm">Post</button></form>
-    <div style="margin-top:18px"><button class="btn sm danger" onclick="cuDelTask('${id}')">Delete task</button></div></div>`;
+    <div class="psec" style="cursor:pointer" onclick="cuFieldsOpen=!cuFieldsOpen;render()">${cuFieldsOpen ? '▾' : '▸'} FIELDS</div>
+    ${cuFieldsOpen ? `<div class="dgrid"><div>${row('List', `<select onchange="cuSetField('${id}','listId',this.value)">${cuLists.map(x => `<option value="${x.id}" ${x.id === t.listId ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`)}${row('Attachments', `<input value="${esc(t.attachments || '')}" placeholder="Describe what is attached" onchange="cuSetField('${id}','attachments',this.value)">`)}</div>
+      <div>${row('Repeat', `<select onchange="cuSetField('${id}','repeat',this.value)">${[['', 'Does not repeat'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly'], ['custom', 'Custom']].map(([v, n]) => `<option value="${v}" ${v === (t.repeat || '') ? 'selected' : ''}>${n}</option>`).join('')}</select>${t.repeat === 'custom' ? `<input type="number" min="1" value="${t.repeatDays || 7}" style="width:60px" title="every N days" onchange="cuSetField('${id}','repeatDays',+this.value||1)">` : ''}`)}</div></div>` : ''}
+    </div>
+    <aside class="dcom"><div class="chd"><b>Comments</b><span><input class="cmsearch" placeholder="Search" value="${esc(cuCmSearch)}" oninput="cuCmSearch=this.value;renderKeep(this)"> <button class="tbtn" title="Follow this task" onclick="taskById('${id}').follow=!taskById('${id}').follow;save();render()">${t.follow ? '🔔' : '🔕'}</button></span></div>
+      <div class="cfeed">${feed}</div>
+      <form class="cbox" onsubmit="cuPost(event,'${id}')"><div class="ctabs"><span class="on">Comment</span></div>
+        <textarea name="text" id="cuCmText" rows="3" placeholder="Write a comment…" required></textarea>
+        <div class="ctool"><span><button type="button" title="Emoji" onclick="cuIns('😊')">😊</button><button type="button" title="Attachment note" onclick="cuAttach('${id}')">📎</button><button type="button" title="Mention" onclick="cuMention()">@</button><button type="button" title="Thumbs up" onclick="cuIns('👍')">👍</button><button type="button" title="Done" onclick="cuIns('✅')">✅</button></span>
+        <span><select name="by">${['You', ...employees.filter(e => !e.archived).map(e => e.name)].map(a => `<option ${a === cuAuthor ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select><button class="addbtn">Post</button></span></div></form></aside></div>`;
 }
-function cuDelTag(id, i){ const t = taskById(id); if (t) cuSetField(id, 'tags', t.tags.filter((_, k) => k !== i)); }
+const cuIns = s => { const t = $('cuCmText'); if (t) { t.value += s; t.focus(); } };
+function cuMention(){ const e = employees.filter(x => !x.archived); if (!e.length) { toast('Add employees to mention them'); return; } openModal('<h2>Mention</h2>' + e.map(x => `<div class="tx" style="cursor:pointer" onclick="closeModal();cuIns(\'@${esc(x.name).replace(/\'/g, '')} \')"><div>${cuAv(x.name, 22)} ${esc(x.name)}</div></div>`).join('') + '<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button></div>'); }
+function cuAttach(id){ const v = prompt('Describe the attachment (e.g. "Logo files on Drive")'); if (v && v.trim()) { const t = taskById(id); t.attachments = (t.attachments ? t.attachments + '; ' : '') + v.trim(); cuComments.push({id:uid(), taskId:id, at:new Date().toISOString(), by:'You', text:'added an attachment note: ' + v.trim(), kind:'activity'}); save(); render(); } }
+const cuDelTag = (id, i) => { const t = taskById(id); if (t) cuSetField(id, 'tags', t.tags.filter((_, k) => k !== i)); };
 function cuSaveDesc(id, el){ const t = taskById(id); if (!t) return; const h = cleanHtml(el.innerHTML); if (h !== (t.description || '')) { t.description = h; save(); } }
 function cuAddSub(id, input){ const v = input.value.trim(); if (!v) return; cuSubs.push({id:uid(), taskId:id, title:v, done:false}); cuExpanded.add(id); save(); render(); }
 function cuPanelSub(sid){ const s = cuSubs.find(x => x.id === sid); if (s) { s.done = !s.done; save(); render(); } }
@@ -2061,8 +2223,6 @@ function cuDelSub(sid){ cuSubs = cuSubs.filter(x => x.id !== sid); save(); rende
 function cuPost(ev, id){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); if (!f.text.trim()) return; cuAuthor = f.by; cuComments.push({id:uid(), taskId:id, at:new Date().toISOString(), by:f.by, text:f.text.trim(), kind:'comment'}); save(); render(); }
 function cuAddLog(ev, id){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); cuTimeLogs.push({id:uid(), taskId:id, hours:+f.hours, date:f.date, note:(f.note || '').trim(), by:cuAuthor}); cuLogOpen = false; save(); render(); }
 function cuDelLog(lid){ cuTimeLogs = cuTimeLogs.filter(x => x.id !== lid); save(); render(); }
-
-function cuJump(id){ const t = taskById(id); if (!t) return; view = 'tasks'; cuScope = {type:'list', id:t.listId}; Object.keys(cf).forEach(k => cf[k] = ''); render(); cuOpen(id); }
 
 /* ========= Wiring ========= */
 /* keep the app name out of the printed page header */
