@@ -18,6 +18,7 @@
 body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;display:flex;min-height:100vh}
 button{font-family:inherit;cursor:pointer}
 /* sidebar */
+#importBanner{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(90deg,#7c3aed,#06b6d4);color:#fff;border-radius:10px;padding:14px 18px;margin:0 0 16px;box-shadow:0 4px 18px rgba(124,58,237,.35)}#importBanner .ib-t{flex:1;min-width:240px}#importBanner b{display:block;font-size:15px}#importBanner span{font-size:13px;opacity:.9}#importBanner .btn{background:#fff;color:#4c1d95;font-weight:700}
 .side-foot{margin-top:auto;border-top:1px solid #2a2a2a;padding:12px 6px 0;font-size:12px}.side-foot .who{color:#ccc;margin-bottom:4px;word-break:break-all}
 .sidebar{width:240px;background:var(--side);color:#cbd5e1;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column;padding:20px 14px;z-index:30;transition:transform .25s}
 .brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:17px;padding:4px 8px 22px}
@@ -2898,29 +2899,29 @@ async function pollChanges(){
   } catch (e) { /* offline — try again next tick */ }
 }
 
-/* ----- one-time import of the old browser-only data ----- */
+/* ----- import of the old browser-only (localStorage) data, offered through a banner ----- */
 const LEGACY_KEYS = [...SYNC_KEYS, 'channels_messages'];
-const hasLegacy = () => { try { return !!LS.getItem('data_version') && LEGACY_KEYS.some(k => { const a = JSON.parse(LS.getItem(k) || '[]'); return Array.isArray(a) && a.length; }); } catch (e) { return false; } };
-function importPrompt(){
-  return new Promise(resolve => {
-    window._imp = async go => {
-      if (!go) { closeModal(); resolve(false); return; }
-      const b = $('impGo'); b.disabled = true; b.textContent = 'Importing…';
-      try {
-        const get = k => { try { return JSON.parse(LS.getItem(k) || '[]'); } catch (e) { return []; } };
-        const order = SYNC_KEYS.filter(k => k !== 'cu_messages' && k !== 'channels'); order.push('channels', 'cu_messages');
-        let n = 0;
-        for (const k of order) { const arr = get(k); if (!Array.isArray(arr) || !arr.length) continue; for (let i = 0; i < arr.length; i += 150) { await MB.api('/api/admin/import', {method:'POST', body:{collections:{[k]:arr.slice(i, i + 150)}}}); } n += arr.length; b.textContent = 'Imported ' + n + ' records…'; }
-        const settings = {}; SETTING_KEYS.forEach(k => { const v = LS.getItem(k); if (v !== null) settings[k] = v; });
-        await MB.api('/api/admin/import', {method:'POST', body:{collections:{channels_messages:get('channels_messages')}, settings}});
-        [...LEGACY_KEYS, ...SETTING_KEYS, 'cu_folders', 'projects', 'tasks', 'subtasks', 'task_comments'].forEach(k => { try { LS.removeItem(k); } catch (e) {} });   // clear the local copy only after a successful import
-        closeModal(); resolve(true);
-      } catch (e) { b.disabled = false; b.textContent = 'Retry import'; toast('Import failed: ' + e.message); }
-    };
-    openModal(`<h2>Move your data to the cloud</h2><p style="margin-bottom:10px">This browser holds data from the old single-device version of Media Beem (invoices, clients, tasks, employees…).</p>
-      <p class="muted" style="margin-bottom:6px">Import it once into the shared database. After a successful import the local copy is cleared from this browser. Files you attached to chats or resource folders are stored on this device only and can’t be moved.</p>
-      <div class="modal-actions"><button class="btn ghost" onclick="_imp(false)">Start fresh instead</button><button class="btn" id="impGo" onclick="_imp(true)">Import my data</button></div>`);
-  });
+const hasLegacy = () => { try { return LEGACY_KEYS.some(k => { const a = JSON.parse(LS.getItem(k) || '[]'); return Array.isArray(a) && a.length; }); } catch (e) { return false; } };
+function showImportBanner(){
+  if (!hasLegacy() || $('importBanner')) return;
+  const d = document.createElement('div'); d.id = 'importBanner';
+  d.innerHTML = `<div class="ib-t"><b>We found existing data in this browser — click to import it into your account.</b><span id="ibMsg">Your invoices, clients, tasks, employees and more will be saved to the cloud. The local copy is cleared afterwards.</span></div><button class="btn" id="ibGo">Import my data</button>`;
+  document.querySelector('main').prepend(d);
+  $('ibGo').onclick = runImport;
+}
+async function runImport(){
+  const go = $('ibGo'), msg = $('ibMsg'); go.disabled = true; go.textContent = 'Importing…';
+  try {
+    await store.flush();
+    const get = k => { try { const a = JSON.parse(LS.getItem(k) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+    const order = SYNC_KEYS.filter(k => k !== 'cu_messages' && k !== 'channels'); order.push('channels', 'cu_messages');
+    let n = 0;
+    for (const k of order) { const arr = get(k); for (let i = 0; i < arr.length; i += 150) await MB.api('/api/admin/import', {method:'POST', body:{collections:{[k]:arr.slice(i, i + 150)}}}); n += arr.length; msg.textContent = 'Imported ' + n + ' records…'; }
+    const settings = {}; SETTING_KEYS.forEach(k => { const v = LS.getItem(k); if (v !== null) settings[k] = v; });
+    await MB.api('/api/admin/import', {method:'POST', body:{collections:{channels_messages:get('channels_messages')}, settings}});
+    [...LEGACY_KEYS, ...SETTING_KEYS, 'cu_folders', 'projects', 'tasks', 'subtasks', 'task_comments'].forEach(k => { try { LS.removeItem(k); } catch (e) {} });   // cleared only after every request succeeded
+    $('importBanner').remove(); toast('Import complete — loading your data…'); setTimeout(() => location.reload(), 900);
+  } catch (e) { go.disabled = false; go.textContent = 'Retry import'; msg.textContent = 'Import failed: ' + e.message + ' — your local data is untouched.'; }
 }
 
 /* ========= Boot ========= */
@@ -2929,9 +2930,8 @@ function importPrompt(){
     const me = await MB.guard('admin');
     $('whoAmI').textContent = me.email;
     let state = await MB.api('/api/admin/state');
-    if (!state.settings.data_version && hasLegacy()) { if (await importPrompt()) state = await MB.api('/api/admin/state'); }
     store.hydrate(state); portalUsers = state.users || []; chanMembers = state.members || {}; lastChanges = state.now - 3000;
-    init(); render();
+    init(); render(); showImportBanner();
     $('syncStat').textContent = '✓ All changes saved';
     if (backfillNote) setTimeout(() => toast(backfillNote), 600);
     setInterval(pollChanges, 6000); setInterval(chatSync, 4000);
