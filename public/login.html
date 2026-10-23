@@ -23,14 +23,14 @@
 <script>
 (async () => {
   // already signed in? go straight to the right portal
-  if (MB.token()) { try { const { user } = await MB.api('/api/auth/me', { noRedirect: true }); MB.go(MB.HOME[user.role] || '/login'); return; } catch (e) { MB.clear(); } }
+  if (MB.token()) { try { const { user } = await MB.api('/api/auth/me', { noRedirect: true }); MB.goPortal(user.role); return; } catch (e) { MB.clear(); } }
   const f = document.getElementById('f'), err = document.getElementById('err'), go = document.getElementById('go');
   f.addEventListener('submit', async ev => {
     ev.preventDefault(); err.style.display = 'none'; go.disabled = true; go.textContent = 'Signing in…';
     try {
       const r = await MB.api('/api/auth/login', { method: 'POST', body: { email: f.email.value, password: f.password.value }, noRedirect: true });
       MB.setSession(r.token, r.user);
-      MB.go(MB.HOME[r.user.role] || '/login');   // admin → /admin, employee → /employee, client → /client
+      MB.goPortal(r.user.role, r.token);   // admin → admin.mediabeem.com, employee → employee.mediabeem.com, client → client.mediabeem.com
     } catch (e) { err.textContent = e.message; err.style.display = 'block'; go.disabled = false; go.textContent = 'Login'; }
   });
 })();

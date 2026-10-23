@@ -3147,6 +3147,8 @@ async function attSaveSettings(ev){
     $('whoAmI').textContent = me.email;
     let state = await MB.api('/api/admin/state');
     store.hydrate(state); portalUsers = state.users || []; chanMembers = state.members || {}; lastChanges = state.now - 3000;
+    // safety net: the legacy "first run" path empties every list — never let it fire when the database already holds records
+    if (!store.getItem('data_version') && SYNC_KEYS.some(k => { try { return JSON.parse(store.mem[k] || '[]').length; } catch (e) { return false; } })) store.mem.data_version = '4';
     MB.att.injectCss(); init(); render(); attLoadOverview(); setInterval(attPoll, 60000);
     $('syncStat').textContent = '✓ All changes saved';
     if (backfillNote) setTimeout(() => toast(backfillNote), 600);

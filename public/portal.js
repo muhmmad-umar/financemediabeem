@@ -7,6 +7,15 @@
   const LSS = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
   const LSD = k => { try { localStorage.removeItem(k); } catch (e) {} };
   const HOME = { admin: '/admin', employee: '/employee', client: '/client' };
+  const PORTALS = cfg.PORTALS || { admin: 'https://admin.mediabeem.com', employee: 'https://employee.mediabeem.com', client: 'https://client.mediabeem.com' };
+  const DEV = ['localhost', '127.0.0.1'].includes(location.hostname);   // local dev keeps everything on one host
+
+  /* Each portal lives on its own origin, and localStorage is per-origin — so the sign-in is handed over in the URL
+     fragment (#t=…). Fragments are never sent to a server; the token is stripped from the address bar immediately. */
+  try {
+    const m = /(?:^|[#&])t=([^&]+)/.exec(location.hash || '');
+    if (m) { LSS(TK, decodeURIComponent(m[1])); LSD(UK); history.replaceState(null, '', location.pathname + location.search); }
+  } catch (e) {}
   const MB = window.MB = {
     HOME,
     token: () => LSG(TK),
@@ -14,6 +23,14 @@
     setSession(token, user) { LSS(TK, token); LSS(UK, JSON.stringify(user)); },
     clear() { LSD(TK); LSD(UK); },
     go(path) { location.replace(path); },
+    /** the page a role belongs on — its own subdomain in production */
+    portalUrl: role => DEV ? HOME[role] : (PORTALS[role] || '') + HOME[role],
+    /** send a signed-in user to their portal, carrying the session across origins when the subdomain differs */
+    goPortal(role, token) {
+      const url = MB.portalUrl(role); if (!HOME[role]) return MB.go('/login');
+      let cross = false; try { cross = new URL(url, location.href).origin !== location.origin; } catch (e) {}
+      MB.go(cross ? url + '#t=' + encodeURIComponent(token || MB.token() || '') : url);
+    },
     logout() { MB.clear(); MB.go('/login'); },
     async api(path, opts = {}) {
       const headers = { 'Content-Type': 'application/json' };
@@ -30,7 +47,7 @@
     async guard(role) {
       if (!MB.token()) { MB.go('/login'); return new Promise(() => {}); }
       const { user } = await MB.api('/api/auth/me');
-      if (user.role !== role) { MB.go(HOME[user.role] || '/login'); return new Promise(() => {}); }
+      if (user.role !== role) { MB.goPortal(user.role); return new Promise(() => {}); }
       LSS(UK, JSON.stringify(user));
       return user;
     },
