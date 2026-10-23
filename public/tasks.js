@@ -149,7 +149,7 @@
         const att = MB.punch && MB.punch.state, active = att && att.log && att.log.active_task_id === t.id, spent = d.time_logs.reduce((n, x) => n + (+x.hours || 0), 0);
         panel.innerHTML = `<div class="tk-ph"><span class="muted">${esc(sp.name || '')} › ${esc(l.name || '')}</span><span style="margin-left:auto"><button class="ibtn" id="pDel" title="Delete task">🗑</button><button class="ibtn" id="pX" title="Close">✕</button></span></div>
           <div class="tk-pb"><input class="tk-pt" id="pTitle" value="${esc(t.title)}" maxlength="300">
-          <div class="tk-props"><label>Status<select id="pSt" style="background:${esc(st.color)}">${(l.statuses || []).map(s => `<option value="${esc(s.id)}" ${s.id === t.status ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
+          <div class="tk-props"><label>Status<select id="pSt" style="background:${esc(st.color)};color:#fff">${(l.statuses || []).map(s => `<option value="${esc(s.id)}" ${s.id === t.status ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
             <label>Due<input type="date" id="pDue" value="${esc(t.due || '')}"></label>
             <label>Priority<select id="pPri">${Object.entries(PRI).map(([k, [n]]) => `<option value="${k}" ${k === (t.priority || 'normal') ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
             <label>Estimate (h)<input type="number" id="pEst" min="0" step="0.5" value="${t.estimate || 0}"></label></div>

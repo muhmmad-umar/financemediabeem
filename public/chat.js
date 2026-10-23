@@ -61,28 +61,28 @@
   const dayKey = iso => { const d = new Date(iso); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); };
   const dayLabel = iso => { const d = new Date(iso), n = new Date(), y = new Date(); y.setDate(n.getDate() - 1); if (dayKey(iso) === dayKey(n)) return 'Today'; if (dayKey(iso) === dayKey(y)) return 'Yesterday'; return d.toLocaleDateString('en-US', d.getFullYear() === n.getFullYear() ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' }); };
   const css = `
-.rc{display:flex;flex-direction:column;min-height:0;height:100%;background:#1e1e1e;color:#e5e5e5;font-size:14px}
-.rc-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid #2a2a2a}.rc-head b{color:#fff}
-.rc-on{font-size:12px;color:#888}.rc-on i{font-style:normal;color:#22c55e}.rc-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:4px}.rc-dot.off{background:#555}
+.rc{display:flex;flex-direction:column;min-height:0;height:100%;background:var(--panel);color:var(--text);font-size:14px}
+.rc-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line)}.rc-head b{color:var(--strong)}
+.rc-on{font-size:12px;color:var(--muted)}.rc-on i{font-style:normal;color:#22c55e}.rc-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:4px}.rc-dot.off{background:var(--dim)}
 .rc-feed{flex:1;min-height:0;overflow:auto;padding:10px 16px;position:relative}
-.rc-day{text-align:center;margin:14px 0 8px}.rc-day span{font-size:11px;color:#888;border:1px solid #3a3a3a;border-radius:99px;padding:2px 10px;background:#1e1e1e}
-.rc-m{display:flex;gap:10px;padding:2px 0;position:relative;border-radius:6px}.rc-m:hover{background:#242424}.rc-m.cont{padding-left:44px}
+.rc-day{text-align:center;margin:14px 0 8px}.rc-day span{font-size:11px;color:var(--muted);border:1px solid var(--line2);border-radius:99px;padding:2px 10px;background:var(--panel)}
+.rc-m{display:flex;gap:10px;padding:2px 0;position:relative;border-radius:6px}.rc-m:hover{background:var(--panel2)}.rc-m.cont{padding-left:44px}
 .rc-av{width:34px;height:34px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
-.rc-b{flex:1;min-width:0}.rc-h b{color:#fff}.rc-h span{color:#888;font-size:11px;margin-left:6px}.rc-t{white-space:pre-wrap;word-break:break-word}
-.rc-t.gone{color:#777;font-style:italic}.rc-ed{color:#777;font-size:11px;margin-left:6px}
-.rc-tick{font-size:11px;margin-left:6px;color:#888}.rc-tick.seen{color:#38bdf8}.rc-pend{opacity:.55}
-.rc-act{display:none;position:absolute;right:8px;top:-12px;background:#2a2a2a;border:1px solid #3a3a3a;border-radius:8px;padding:2px 4px;gap:2px;z-index:2}.rc-m:hover .rc-act{display:flex}
-.rc-act button{background:none;border:0;color:#ccc;cursor:pointer;font-size:14px;padding:2px 6px;border-radius:5px}.rc-act button:hover{background:#3a3a3a}
-.rc-pick{display:none;position:absolute;right:8px;top:14px;background:#2a2a2a;border:1px solid #3a3a3a;border-radius:8px;padding:4px;gap:2px;z-index:3}.rc-pick.open{display:flex}.rc-pick button{background:none;border:0;font-size:18px;cursor:pointer;padding:3px 6px;border-radius:5px}.rc-pick button:hover{background:#3a3a3a}
-.rc-rx{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}.rc-rx button{background:#2a2a2a;border:1px solid #3a3a3a;color:#ddd;border-radius:99px;padding:1px 8px;font-size:12px;cursor:pointer}.rc-rx button.me{border-color:#7c3aed;background:#2d2150}
-.rc-ev{color:#888;font-style:italic;font-size:12px;padding:3px 0 3px 4px}
-.rc-more{text-align:center;color:#888;font-size:12px;padding:6px}
+.rc-b{flex:1;min-width:0}.rc-h b{color:var(--strong)}.rc-h span{color:var(--muted);font-size:11px;margin-left:6px}.rc-t{white-space:pre-wrap;word-break:break-word}
+.rc-t.gone{color:var(--muted);font-style:italic}.rc-ed{color:var(--muted);font-size:11px;margin-left:6px}
+.rc-tick{font-size:11px;margin-left:6px;color:var(--muted)}.rc-tick.seen{color:#38bdf8}.rc-pend{opacity:.55}
+.rc-act{display:none;position:absolute;right:8px;top:-12px;background:var(--line);border:1px solid var(--line2);border-radius:8px;padding:2px 4px;gap:2px;z-index:2}.rc-m:hover .rc-act{display:flex}
+.rc-act button{background:none;border:0;color:var(--sub);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:5px}.rc-act button:hover{background:var(--line2)}
+.rc-pick{display:none;position:absolute;right:8px;top:14px;background:var(--line);border:1px solid var(--line2);border-radius:8px;padding:4px;gap:2px;z-index:3}.rc-pick.open{display:flex}.rc-pick button{background:none;border:0;font-size:18px;cursor:pointer;padding:3px 6px;border-radius:5px}.rc-pick button:hover{background:var(--line2)}
+.rc-rx{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}.rc-rx button{background:var(--line);border:1px solid var(--line2);color:var(--sub);border-radius:99px;padding:1px 8px;font-size:12px;cursor:pointer}.rc-rx button.me{border-color:#7c3aed;background:var(--accentSoft)}
+.rc-ev{color:var(--muted);font-style:italic;font-size:12px;padding:3px 0 3px 4px}
+.rc-more{text-align:center;color:var(--muted);font-size:12px;padding:6px}
 .rc-ty{min-height:20px;padding:0 16px 2px;font-size:12px;color:#a78bfa;font-style:italic}
-.rc-c{display:flex;gap:8px;align-items:flex-end;border-top:1px solid #2a2a2a;padding:10px 12px}.rc-c textarea{flex:1;resize:none;max-height:140px;background:#161616;border:1px solid #3a3a3a;border-radius:6px;padding:9px 12px;color:#e5e5e5;font:inherit;outline:none}.rc-c textarea:focus{border-color:#7c3aed}
-.rc-c button.rc-send{background:#7c3aed;color:#fff;border:0;border-radius:6px;padding:9px 16px;font-weight:600;cursor:pointer}.rc-c label{font-size:12px;color:#aaa;white-space:nowrap}
-.rc-edit{display:flex;gap:6px;margin-top:2px}.rc-edit input{flex:1;background:#161616;border:1px solid #7c3aed;border-radius:6px;padding:6px 10px;color:#fff;font:inherit}
-.rc-none{color:#777;text-align:center;margin-top:30px}.rt-stat{font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;background:#1a1a1a;border:1px solid #2f2f2f;white-space:nowrap}.rt-stat.ok{color:#4ade80}.rt-stat.bad{color:#f87171}
-.rc-task .rc-m{padding:6px 0;border-bottom:1px solid #2a2a2a}.rc-task .rc-av{width:26px;height:26px;font-size:11px}.rc-task .rc-m.cont{padding-left:0}.rc-task .rc-feed{flex:none;overflow:auto;padding:0;max-height:380px}.rc-task{height:auto;background:transparent}.rc-task .rc-c{border-top:0;padding:0 0 10px;flex-wrap:wrap}.rc-task .rc-c label{order:-1;width:100%}.rc-task .rc-head{padding:0 0 8px;border:0}`;
+.rc-c{display:flex;gap:8px;align-items:flex-end;border-top:1px solid var(--line);padding:10px 12px}.rc-c textarea{flex:1;resize:none;max-height:140px;background:var(--input);border:1px solid var(--line2);border-radius:6px;padding:9px 12px;color:var(--text);font:inherit;outline:none}.rc-c textarea:focus{border-color:#7c3aed}
+.rc-c button.rc-send{background:#7c3aed;color:#fff;border:0;border-radius:6px;padding:9px 16px;font-weight:600;cursor:pointer}.rc-c label{font-size:12px;color:var(--sub);white-space:nowrap}
+.rc-edit{display:flex;gap:6px;margin-top:2px}.rc-edit input{flex:1;background:var(--input);border:1px solid #7c3aed;border-radius:6px;padding:6px 10px;color:var(--strong);font:inherit}
+.rc-none{color:var(--muted);text-align:center;margin-top:30px}.rt-stat{font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--side);border:1px solid var(--line);white-space:nowrap}.rt-stat.ok{color:#4ade80}.rt-stat.bad{color:#f87171}
+.rc-task .rc-m{padding:6px 0;border-bottom:1px solid var(--line)}.rc-task .rc-av{width:26px;height:26px;font-size:11px}.rc-task .rc-m.cont{padding-left:0}.rc-task .rc-feed{flex:none;overflow:auto;padding:0;max-height:380px}.rc-task{height:auto;background:transparent}.rc-task .rc-c{border-top:0;padding:0 0 10px;flex-wrap:wrap}.rc-task .rc-c label{order:-1;width:100%}.rc-task .rc-head{padding:0 0 8px;border:0}`;
   const injectCss = () => { if (!document.getElementById('rcCss')) { const s = document.createElement('style'); s.id = 'rcCss'; s.textContent = css; document.head.appendChild(s); } };
 
   MB.chat = {

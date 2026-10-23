@@ -12,7 +12,7 @@
     const { log, settings } = P.state, tz = settings.timezone, os = openSession(log), hrs = A.liveHours(log, nowIso());
     const act = log && log.active_task_id && (P.state.my_tasks.find(t => t.id === log.active_task_id) || {}).title;
     const txt = os ? `🟢 Checked In <span class="muted" style="font-weight:400">(since ${A.fmtTime(os.check_in, tz)})</span>` : log ? `⚪ Checked out <span class="muted" style="font-weight:400">(${A.fmtTime(log.check_out, tz)})</span>` : '⚪ Not checked in';
-    P.el.innerHTML = `<div class="punch"><span class="ptxt">${txt}</span><span class="phrs">Today: <b style="color:#fff">${A.fmtH(hrs)}</b></span>${act ? `<span class="pact" id="pActive" title="Active task — click to open">⏱ ${esc(act)}</span>` : ''}
+    P.el.innerHTML = `<div class="punch"><span class="ptxt">${txt}</span><span class="phrs">Today: <b style="color:var(--strong)">${A.fmtH(hrs)}</b></span>${act ? `<span class="pact" id="pActive" title="Active task — click to open">⏱ ${esc(act)}</span>` : ''}
       <button class="btn ${os ? 'out' : 'inn'}" id="punchTop">${os ? '⏹ Check Out' : log ? '▶ Check In again' : '▶ Check In'}</button></div>`;
     P.el.querySelector('#punchTop').onclick = P.toggle;
     const pa = P.el.querySelector('#pActive'); if (pa) pa.onclick = () => P.openActive && P.openActive(log.active_task_id);
@@ -30,7 +30,7 @@
   };
   function checkoutForm() {
     const s = P.state, log = s.log, picked = new Set(log.task_ids || []), tasks = s.my_tasks.slice().sort((a, b) => (picked.has(b.id) - picked.has(a.id)) || (a.due || '9').localeCompare(b.due || '9'));
-    MB.openModal(`<h2>Check out</h2><p class="muted" style="margin-bottom:12px">Today so far: <b style="color:#fff">${A.fmtH(A.liveHours(log, nowIso()))}</b></p>
+    MB.openModal(`<h2>Check out</h2><p class="muted" style="margin-bottom:12px">Today so far: <b style="color:var(--strong)">${A.fmtH(A.liveHours(log, nowIso()))}</b></p>
       <div class="field"><label>Add a note about today's work (optional)</label><textarea id="coNote" rows="4" maxlength="4000" placeholder="What did you work on today?">${esc(log.activity_note || '')}</textarea></div>
       <div class="task-sec"><h4>Tasks I worked on</h4>${tasks.map(t => `<label class="sub"><input type="checkbox" data-co="${esc(t.id)}" ${picked.has(t.id) || t.id === log.active_task_id ? 'checked' : ''}><span>${esc(t.title)}</span></label>`).join('') || '<div class="muted">No tasks assigned to you.</div>'}</div>
       <div class="modal-actions"><button class="btn ghost" id="coCancel">Stay checked in</button><button class="btn out" id="coGo" style="background:var(--red)">Check out</button></div>`);

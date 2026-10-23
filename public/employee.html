@@ -1,19 +1,21 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-portal="employee">
 <head>
 <meta charset="utf-8">
+<script>/* apply the saved theme before first paint (no flash) */(function(){var r=document.documentElement,p=r.getAttribute('data-portal'),t=null;try{t=localStorage.getItem('mb_theme_'+p)}catch(e){}r.setAttribute('data-theme',t==='light'||t==='dark'?t:(p==='client'?'light':'dark'));})();</script>
+<link rel="stylesheet" href="theme.css?v=20261023d">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Media Beem — Employee</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="portal.css?v=20261023b">
+<link rel="stylesheet" href="portal.css?v=20261023d">
 </head>
 <body>
-<script src="config.js?v=20261023b"></script>
-<script src="portal.js?v=20261023b"></script>
-<script src="chat.js?v=20261023b"></script>
-<script src="tasks.js?v=20261023b"></script>
-<script src="punch.js?v=20261023b"></script>
+<script src="config.js?v=20261023d"></script>
+<script src="portal.js?v=20261023d"></script>
+<script src="chat.js?v=20261023d"></script>
+<script src="tasks.js?v=20261023d"></script>
+<script src="punch.js?v=20261023d"></script>
 <script>
 (async () => {
   const user = await MB.guard('employee');
@@ -59,9 +61,9 @@
     const mine = td.my_tasks.slice().sort((a, b) => (a.due || '9').localeCompare(b.due || '9')), picked = new Set(log ? log.task_ids : []);
     const rec = hist ? (() => { const byDate = {}; hist.logs.forEach(l => { byDate[l.date] = l; }); return { byDate, ctx: { settings: hist.settings, now: hist.now, logsByDate: byDate, leaves: new Set(hist.leaves.map(l => l.date)), join: hist.join_date } }; })() : null;
     $('view').innerHTML = `<div class="card"><div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
-        <div style="flex:1;min-width:220px"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.07em">Today · ${dayNames[A.dow(td.now.date)]}</div><div style="font-size:22px;font-weight:700;color:#fff">${A.longDate(td.now.date)}</div>
+        <div style="flex:1;min-width:220px"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.07em">Today · ${dayNames[A.dow(td.now.date)]}</div><div style="font-size:22px;font-weight:700;color:var(--strong)">${A.longDate(td.now.date)}</div>
           <div class="muted" style="margin-top:4px">Work hours ${A.t12(s.start_time)} – ${A.t12(s.end_time)}${log ? ' · ' + A.pill(log.status) : ''}</div>
-          <div style="margin-top:10px;font-size:26px;font-weight:700;color:#fff" id="liveH">${A.fmtH(A.liveHours(log, td.now.iso))}</div><div class="muted" style="font-size:12px">${open ? 'Checked in — timer running' : log ? 'Checked out' : 'Not checked in yet'}</div></div>
+          <div style="margin-top:10px;font-size:26px;font-weight:700;color:var(--strong)" id="liveH">${A.fmtH(A.liveHours(log, td.now.iso))}</div><div class="muted" style="font-size:12px">${open ? 'Checked in — timer running' : log ? 'Checked out' : 'Not checked in yet'}</div></div>
         <button class="btn ac-big ${open ? 'out' : ''}" id="punchBtn">${open ? '⏹ ' : '▶ '}${label}</button></div>
       ${td.stale_open ? `<div class="login-err" style="margin-top:14px">You did not check out on ${A.longDate(td.stale_open.date)}. It will be closed at the official end time when you next check in or out.</div>` : ''}
       ${log && log.sessions.length ? `<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:8px">${log.sessions.map(x => `<div class="row" style="padding:6px 0"><div class="grow">🟢 In <b>${A.fmtTime(x.check_in, tz)}</b></div><div class="grow">${x.check_out ? '🔴 Out <b>' + A.fmtTime(x.check_out, tz) + '</b>' : '<span class="muted">working…</span>'}</div></div>`).join('')}</div>` : ''}</div>

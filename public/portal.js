@@ -133,6 +133,7 @@
       <div class="scrim" id="scrim"></div>
       <main class="main"><div class="topbar"><button class="menu-btn" id="menuBtn">☰</button><div><h1 id="title"></h1><p id="subtitle"></p></div><span class="rt-slot" id="rtStat"></span><div class="topbar-r" id="topRight"></div></div><div id="view"></div></main></div>
       <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div><div class="toast" id="toast"></div>`;
+    if (MB.theme) MB.theme.mount(document.querySelector('.topbar'));
     if (MB.rt) { MB.rt.start(); MB.rt.bindStatus($('rtStat')); }   // 🟢 Connected / 🔴 Reconnecting in the top bar
     const side = $('side'), scrim = $('scrim');
     $('logout').onclick = MB.logout;
@@ -221,23 +222,42 @@
   };
   A.css = `
 .pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;color:#fff;white-space:nowrap}
-.ac-sec{margin-bottom:16px}.ac-sec h4{font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;font-weight:600}
-.ac-row{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid #2a2a2a}.ac-row:last-child{border:0}.ac-row .grow{flex:1}
+.ac-sec{margin-bottom:16px}.ac-sec h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;font-weight:600}
+.ac-row{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)}.ac-row:last-child{border:0}.ac-row .grow{flex:1}
 .ac-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.ac-h{font-size:11px;color:#888;text-align:center;text-transform:uppercase;letter-spacing:.06em;padding:2px 0}
-.ac-d{min-height:56px;border-radius:8px;padding:6px 8px;border:1px solid #2a2a2a;background:#1a1a1a;display:flex;flex-direction:column;justify-content:space-between;font-size:11px;color:#aaa}
-.ac-d b{font-size:13px;color:#fff}.ac-d span{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ac-h{font-size:11px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.06em;padding:2px 0}
+.ac-d{min-height:56px;border-radius:8px;padding:6px 8px;border:1px solid var(--line);background:var(--side);display:flex;flex-direction:column;justify-content:space-between;font-size:11px;color:var(--sub)}
+.ac-d b{font-size:13px;color:var(--strong)}.ac-d span{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ac-blank{border:0;background:none}.ac-click{cursor:pointer}.ac-click:hover{filter:brightness(1.25)}
 .ac-present{background:rgba(34,197,94,.18);border-color:#22c55e}.ac-late{background:rgba(234,179,8,.2);border-color:#eab308}
 .ac-half{background:rgba(249,115,22,.2);border-color:#f97316}.ac-absent{background:rgba(239,68,68,.2);border-color:#ef4444}
-.ac-off{background:#252525;border-color:#333;color:#777}.ac-leave{background:rgba(100,116,139,.22);border:1px dashed #64748b}
+.ac-off{background:var(--panel2);border-color:var(--line2);color:var(--muted)}.ac-leave{background:rgba(100,116,139,.22);border:1px dashed #64748b}
 .ac-before,.ac-future{opacity:.45}.ac-pending{border-style:dashed}.ac-today{box-shadow:0 0 0 2px #7c3aed}
-.ac-leg{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:#999}.ac-leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid}
-.ac-leg i.ac-present{border-color:#22c55e}.ac-leg i.ac-late{border-color:#eab308}.ac-leg i.ac-half{border-color:#f97316}.ac-leg i.ac-absent{border-color:#ef4444}.ac-leg i.ac-off{border-color:#444}.ac-leg i.ac-leave{border-color:#64748b}
+.ac-leg{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--sub)}.ac-leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid}
+.ac-leg i.ac-present{border-color:#22c55e}.ac-leg i.ac-late{border-color:#eab308}.ac-leg i.ac-half{border-color:#f97316}.ac-leg i.ac-absent{border-color:#ef4444}.ac-leg i.ac-off{border-color:var(--line2)}.ac-leg i.ac-leave{border-color:#64748b}
 .ac-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:0 0 16px}
-.ac-sum div{background:#161616;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px}.ac-sum b{display:block;font-size:20px;color:#fff}.ac-sum span{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.05em}
-.ac-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px}.ac-nav b{min-width:150px;text-align:center;color:#fff}
+.ac-sum div{background:var(--input);border:1px solid var(--line);border-radius:8px;padding:10px 12px}.ac-sum b{display:block;font-size:20px;color:var(--strong)}.ac-sum span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.ac-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px}.ac-nav b{min-width:150px;text-align:center;color:var(--strong)}
 .ac-big{font-size:17px;padding:14px 34px;border-radius:10px;font-weight:600}.ac-big.out{background:#ef4444}
 @media(max-width:600px){.ac-d{min-height:46px;padding:4px}.ac-d span{display:none}}`;
   A.injectCss = () => { if (!document.getElementById('attCss')) { const st = document.createElement('style'); st.id = 'attCss'; st.textContent = A.css; document.head.appendChild(st); } };
+})();
+
+/* ---------- light / dark theme (per portal, remembered in localStorage) ---------- */
+(function () {
+  const MB = window.MB, root = document.documentElement, portal = root.getAttribute('data-portal') || 'admin';
+  const KEY = 'mb_theme_' + portal, DEFAULT = portal === 'client' ? 'light' : 'dark';   // admin + employee default dark, client default light
+  const stored = () => { try { const v = localStorage.getItem(KEY); return v === 'light' || v === 'dark' ? v : null; } catch (e) { return null; } };
+  const T = MB.theme = {
+    listeners: [],
+    get: () => root.getAttribute('data-theme') || stored() || DEFAULT,
+    paint() { const dark = T.get() === 'dark'; document.querySelectorAll('.theme-btn').forEach(b => { b.textContent = dark ? '🌙' : '☀️'; b.title = dark ? 'Dark mode — click for light' : 'Light mode — click for dark'; b.setAttribute('aria-label', b.title); }); },
+    set(t, save = true) { root.setAttribute('data-theme', t); if (save) { try { localStorage.setItem(KEY, t); } catch (e) {} } T.paint(); T.listeners.forEach(f => { try { f(t); } catch (e) {} }); },
+    toggle() { T.set(T.get() === 'dark' ? 'light' : 'dark'); },
+    /** adds the 🌙 / ☀️ button as the last item of a top bar */
+    mount(parent) { if (!parent || parent.querySelector('.theme-btn')) return; const b = document.createElement('button'); b.className = 'theme-btn'; b.id = 'themeBtn'; b.type = 'button'; b.onclick = T.toggle; parent.appendChild(b); T.paint(); },
+    on(fn) { T.listeners.push(fn); },
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', T.paint); else T.paint();
+  if (portal !== 'login') window.addEventListener('storage', e => { if (e.key === KEY && (e.newValue === 'light' || e.newValue === 'dark')) T.set(e.newValue, false); });   // another tab changed it
 })();

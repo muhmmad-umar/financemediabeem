@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-portal="admin">
 <head>
 <meta charset="UTF-8">
+<script>/* apply the saved theme before first paint (no flash) */(function(){var r=document.documentElement,p=r.getAttribute('data-portal'),t=null;try{t=localStorage.getItem('mb_theme_'+p)}catch(e){}r.setAttribute('data-theme',t==='light'||t==='dark'?t:(p==='client'?'light':'dark'));})();</script>
+<link rel="stylesheet" href="theme.css?v=20261023d">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Media Beem — Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -625,6 +627,7 @@ tfoot td{border-top:1px solid #2a2a2a}
 @media print{.inv-sheet{border:0!important;border-radius:0!important;padding:0!important}}
 @media(max-width:600px){.inv-bar{grid-template-columns:1fr 1fr}.inv-sheet{padding:22px}.inv-brand{font-size:28px}.inv-doc b{font-size:26px}}
 </style>
+<link rel="stylesheet" href="admin-light.css?v=20261023d">
 </head>
 <body>
 
@@ -648,7 +651,7 @@ tfoot td{border-top:1px solid #2a2a2a}
     <div class="nav-sep">Personal</div>
     <button data-view="personal" class="personal">👤 Personal Finance</button>
   </nav>
-  <div class="side-foot"><div class="who" id="whoAmI"></div><div id="syncStat" style="color:#888;font-size:11px;margin-bottom:8px">Loading…</div><button class="btn ghost sm" onclick="MB.logout()" style="width:100%">Log out</button></div>
+  <div class="side-foot"><div class="who" id="whoAmI"></div><div id="syncStat" style="color:#888;font-size:11px;margin-bottom:8px">Loading…</div><div style="display:flex;gap:8px;align-items:center"><button class="btn ghost sm" onclick="MB.logout()" style="flex:1">Log out</button><button class="theme-btn" type="button" onclick="MB.theme.toggle()" style="margin:0;width:32px;height:32px;font-size:15px;border-radius:8px" title="Switch theme"></button></div></div>
 </aside>
 <div class="scrim" id="scrim"></div>
 
@@ -660,6 +663,7 @@ tfoot td{border-top:1px solid #2a2a2a}
     </div>
     <span id="rtStat" style="margin-left:auto"></span>
     <div id="topActions"></div>
+    <button class="theme-btn" id="themeBtn" type="button" onclick="MB.theme.toggle()"></button>
   </div>
   <div id="filterBar"></div>
   <div id="view"></div>
@@ -668,9 +672,9 @@ tfoot td{border-top:1px solid #2a2a2a}
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 
-<script src="config.js?v=20261023b"></script>
-<script src="portal.js?v=20261023b"></script>
-<script src="chat.js?v=20261023b"></script>
+<script src="config.js?v=20261023d"></script>
+<script src="portal.js?v=20261023d"></script>
+<script src="chat.js?v=20261023d"></script>
 <script>
 /* ========= Cloud storage shim =========
    The app below was written against localStorage. `store` keeps the same getItem/setItem interface, but is backed by
@@ -1110,7 +1114,13 @@ const badge = s => `<span class="badge b-${s}">${STATUS_LABEL[s] || (s[0].toUppe
 const charts = [];
 function chart(id, cfg){ const el = $(id); if (!el || typeof Chart === 'undefined') return; charts.push(new Chart(el, cfg)); }
 function destroyCharts(){ while (charts.length) charts.pop().destroy(); }
-if (typeof Chart !== 'undefined') { Chart.defaults.color = '#888888'; Chart.defaults.borderColor = '#2a2a2a'; Chart.defaults.font.family = 'Inter, system-ui, sans-serif'; }
+/* Chart.js follows the theme: axis text, grid lines and legends are read from the CSS tokens and charts are rebuilt on change */
+function applyChartTheme(){
+  if (typeof Chart === 'undefined') return;
+  const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue(k).trim();
+  Chart.defaults.color = v('--muted') || '#888888'; Chart.defaults.borderColor = v('--line') || '#2a2a2a'; Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+}
+applyChartTheme(); MB.theme.on(() => { applyChartTheme(); render(); });
 const chartOpts = {responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{font:{family:'Inter'}}}}};
 const axisFmt = v => v >= 1e6 ? (v/1e6) + 'M' : v >= 1e3 ? (v/1e3) + 'k' : v;
 
@@ -3203,7 +3213,7 @@ function rtOnTick(what){
     store.hydrate(state); portalUsers = state.users || []; chanMembers = state.members || {}; lastChanges = state.now - 3000;
     // safety net: the legacy "first run" path empties every list — never let it fire when the database already holds records
     if (!store.getItem('data_version') && SYNC_KEYS.some(k => { try { return JSON.parse(store.mem[k] || '[]').length; } catch (e) { return false; } })) store.mem.data_version = '4';
-    MB.att.injectCss(); MB.rt.start(); MB.rt.bindStatus($('rtStat')); MB.rt.on(rtOnTick); init(); render(); attLoadOverview(); setInterval(attPoll, 60000);
+    MB.theme.paint(); MB.att.injectCss(); MB.rt.start(); MB.rt.bindStatus($('rtStat')); MB.rt.on(rtOnTick); init(); render(); attLoadOverview(); setInterval(attPoll, 60000);
     $('syncStat').textContent = '✓ All changes saved';
     if (backfillNote) setTimeout(() => toast(backfillNote), 600);
     setInterval(pollChanges, 6000);

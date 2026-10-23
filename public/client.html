@@ -1,17 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-portal="client">
 <head>
 <meta charset="utf-8">
+<script>/* apply the saved theme before first paint (no flash) */(function(){var r=document.documentElement,p=r.getAttribute('data-portal'),t=null;try{t=localStorage.getItem('mb_theme_'+p)}catch(e){}r.setAttribute('data-theme',t==='light'||t==='dark'?t:(p==='client'?'light':'dark'));})();</script>
+<link rel="stylesheet" href="theme.css?v=20261023d">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Media Beem — Client Portal</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="portal.css?v=20261023b">
+<link rel="stylesheet" href="portal.css?v=20261023d">
 </head>
 <body>
-<script src="config.js?v=20261023b"></script>
-<script src="portal.js?v=20261023b"></script>
-<script src="chat.js?v=20261023b"></script>
+<script src="config.js?v=20261023d"></script>
+<script src="portal.js?v=20261023d"></script>
+<script src="chat.js?v=20261023d"></script>
 <script>
 (async () => {
   const user = await MB.guard('client');
@@ -33,7 +35,7 @@
     let list; try { list = (await MB.api('/api/client/invoices')).invoices; } catch (e) { v.innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
     const billed = list.reduce((t, i) => t + i.total, 0), paid = list.reduce((t, i) => t + i.received, 0);
     v.innerHTML = `<div class="grid" style="margin-bottom:16px"><div class="stat"><div class="l">Total billed</div><div class="v">${fmt(billed)}</div></div><div class="stat"><div class="l">Paid</div><div class="v" style="color:var(--green)">${fmt(paid)}</div></div><div class="stat"><div class="l">Outstanding</div><div class="v" style="color:${billed - paid > 0 ? 'var(--amber)' : '#fff'}">${fmt(Math.max(0, billed - paid))}</div></div></div>
-      ${list.map(i => `<div class="card"><div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap"><div class="grow" style="flex:1;min-width:180px"><div style="color:#fff;font-weight:600;font-size:15px">${esc(i.service || 'Invoice')}</div><div class="t2 muted">Issued ${fdate(i.date)}${i.expected_by ? ' · Payment expected by ' + fdate(i.expected_by) : ''}</div></div>
+      ${list.map(i => `<div class="card"><div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap"><div class="grow" style="flex:1;min-width:180px"><div style="color:var(--strong);font-weight:600;font-size:15px">${esc(i.service || 'Invoice')}</div><div class="t2 muted">Issued ${fdate(i.date)}${i.expected_by ? ' · Payment expected by ' + fdate(i.expected_by) : ''}</div></div>
         <span class="badge b-${i.status}">${LABEL[i.status] || i.status}</span></div>
         <div class="bar" style="margin:14px 0 8px"><div style="width:${i.total ? Math.min(100, i.received / i.total * 100) : 0}%"></div></div>
         <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><span>Total <b>${fmt(i.total)}</b></span><span>Paid <b style="color:var(--green)">${fmt(i.received)}</b></span><span>Remaining <b>${fmt(i.remaining)}</b></span></div>

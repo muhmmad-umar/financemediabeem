@@ -81,3 +81,8 @@ npm run dev:web                           # frontend on :8080 (clean URLs: /admi
 * Every channel, DM pair and task is a `ChatRoom` Durable Object (`worker/src/chat.js`): `channel:{id}`, `dm:{userA}:{userB}`, `task:{id}`. WebSocket routes: `GET /api/ws/channel/:id`, `/api/ws/dm/:user_id`, `/api/ws/task/:id?token=<JWT>` — the Worker verifies the JWT, the origin and the caller's access before upgrading.
 * Messages are saved to D1 and broadcast instantly; presence, typing, edit (15 min), delete, 4 emoji reactions, DM ✓ / ✓✓, unread badges and 50-message paging are built in. If the socket drops the UI reconnects (1 → 8 s backoff) and polls every 5 s meanwhile.
 * Needs migration `0004_realtime.sql` and the `[[durable_objects]]` / `[[migrations]]` blocks in `worker/wrangler.toml` (SQLite-backed class, works on Free and Paid). Deploy with `npm run db:migrate && npm run deploy:api`.
+
+## Light / dark theme
+* Every portal has a 🌙 / ☀️ button (top bar, far right; in the admin Tasks view, where the top bar is hidden, use the one next to *Log out*). The choice is saved per portal in `localStorage` (`mb_theme_admin`, `mb_theme_employee`, `mb_theme_client`) and applied before first paint. Defaults: admin + employee dark, client light. The login page is always dark.
+* Tokens live in `public/theme.css` (dark: `#0d0d0d / #1a1a1a / #1e1e1e / #fff`, light: `#f8f9fa / #fff / #fff / #111827`). The admin app's hard-coded colours are mapped to the light palette by `scripts/gen-light-theme.py`, which writes `public/admin-light.css` — **re-run it after editing the admin CSS**.
+* Chart.js axis/grid colours follow the theme and charts are rebuilt on switch.
