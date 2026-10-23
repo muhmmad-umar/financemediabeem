@@ -7,7 +7,7 @@ compatibility_date = "2024-09-23"
 
 [vars]
 # Comma-separated list of frontend origins allowed to call the API (CORS).
-ALLOWED_ORIGINS = "https://mediabeem-pages.pages.dev,http://localhost:8080,http://127.0.0.1:8080"
+ALLOWED_ORIGINS = "https://admin.mediabeem.com,https://employee.mediabeem.com,https://client.mediabeem.com"
 
 [[d1_databases]]
 binding = "DB"
