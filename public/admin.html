@@ -18,6 +18,9 @@
 body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;display:flex;min-height:100vh}
 button{font-family:inherit;cursor:pointer}
 /* sidebar */
+.rc-host{flex:1;min-height:0;display:flex;flex-direction:column}.chat-main>.rc-host{min-height:0}
+.rc-badge{background:#ef4444;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:0 6px;margin-left:auto;font-style:normal}.cdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:6px;flex:none}.cdot.off{background:#555}
+#cuRoomSlot .rc-task{height:100%;display:flex}#cuRoomSlot .rc-task .rc-feed{flex:1;max-height:none;padding:0 14px}#cuRoomSlot .rc-task .rc-c{padding:10px 12px;border-top:1px solid #1f1f1f}#cuRoomSlot .rc-task .rc-head{padding:6px 14px}
 .att-alert{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:13px}.att-n{color:#c4b5fd;cursor:pointer;text-decoration:none}.att-n:hover{text-decoration:underline}
 /* keep Log out visible: the menu scrolls, the footer never gets pushed off-screen */
 .sidebar{overflow:hidden}.sidebar .nav{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
@@ -655,6 +658,7 @@ tfoot td{border-top:1px solid #2a2a2a}
       <button class="menu-btn" id="menuBtn">☰</button>
       <div><h1 id="title"></h1><p id="subtitle"></p></div>
     </div>
+    <span id="rtStat" style="margin-left:auto"></span>
     <div id="topActions"></div>
   </div>
   <div id="filterBar"></div>
@@ -664,8 +668,9 @@ tfoot td{border-top:1px solid #2a2a2a}
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 
-<script src="config.js?v=20261023a"></script>
-<script src="portal.js?v=20261023a"></script>
+<script src="config.js?v=20261023b"></script>
+<script src="portal.js?v=20261023b"></script>
+<script src="chat.js?v=20261023b"></script>
 <script>
 /* ========= Cloud storage shim =========
    The app below was written against localStorage. `store` keeps the same getItem/setItem interface, but is backed by
@@ -1152,6 +1157,7 @@ function render(){
   }[view];
   $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees, attendance:vAttendance, clients:vClients, tasks:vTasks}[view](t);
   ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah, personal:afterPersonal}[view] || (()=>{}))(t);
+  rtSync();
   if (view === 'tasks') { const ed = document.querySelector('[data-edit], #cuAddIn'); if (ed) ed.focus(); const cf2 = document.querySelector('.chat-feed'); if (cf2) { cf2.scrollTop = cf2.scrollHeight; const ci = document.getElementById('chatInput'); if (ci) chatGrow(ci); } }
 }
 
@@ -2337,7 +2343,7 @@ function cuTree(){
   const dot = (kind, id, color) => `<span class="dot" style="background:${color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('${kind}','${id}')"></span>`;
   const emps = employees.filter(e => !e.archived), favs = cuLists.filter(l => l.fav);
   return `<div class="tr-sec"><span>DIRECT MESSAGES</span></div>
-  ${emps.map(e => row('dm ' + (cuScope.type === 'dm' && cuScope.id === e.id ? 'sel' : ''), `${cuAv(e.name, 20)}<span class="nm">${esc(e.name)}</span>`, `view='tasks';cuGo({type:'dm',id:'${e.id}'})`)).join('') || '<div class="tr-note">Add employees to message them</div>'}
+  ${emps.map(e => row('dm ' + (cuScope.type === 'dm' && cuScope.id === e.id ? 'sel' : ''), `${cuAv(e.name, 20)}<span class="nm">${esc(e.name)}</span>${rtDot(e)}${rtBadge((MB.rt.unread.dms || {})[dmPeer(e)])}`, `view='tasks';cuGo({type:'dm',id:'${e.id}'})`)).join('') || '<div class="tr-note">Add employees to message them</div>'}
   ${row('newmsg', '<span class="nm">+ New message</span>', 'cuNewMsg()')}
   <div class="tr-sec"><span>SPACES</span><button title="New Space" onclick="cuNodeForm('space')">+</button></div>
   ${row('top ' + (cuScope.type === 'all' ? 'sel' : ''), '<span class="nm">☰ All Tasks</span>', "cuGo({type:'all'})")}
@@ -2345,7 +2351,7 @@ function cuTree(){
   ${favs.length || employees.some(e => e.chatFav) || cuChannels.some(c => c.fav) ? `<div class="tr-sec"><span>FAVORITES</span></div>${employees.filter(e => e.chatFav && !e.archived).map(e => row('dm ' + (cuScope.type === 'dm' && cuScope.id === e.id ? 'sel' : ''), `${cuAv(e.name, 18)}<span class="nm">${esc(e.name)}</span>`, `view='tasks';cuGo({type:'dm',id:'${e.id}'})`)).join('')}${cuChannels.filter(c => c.fav).map(c => row('ch ' + (cuScope.type === 'channel' && cuScope.id === c.id ? 'sel' : ''), `<span class="hash">#</span><span class="nm">${esc(c.name)}</span>`, `cuGo({type:'channel',id:'${c.id}'})`)).join('')}${favs.map(l => row('li fav ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : ''), `<span class="dot" style="background:${l.color}"></span><span class="nm">${esc(l.name)}</span>`, `cuOpenList('${l.id}')`)).join('')}` : ''}
   ${cuSpaces.map(sp => { const open = !cuCollapsed.has(sp.id);
     return `${row('sp ' + (cuMenu === 'sp:' + sp.id ? 'menuopen' : ''), `<span class="sq" style="background:${sp.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('space','${sp.id}')">${esc(initials(sp.name))}</span><span class="nm">${esc(sp.name)}</span><span class="acts"><button title="New List" onclick="event.stopPropagation();cuNodeForm('list',null,'${sp.id}')">+</button><button title="New channel" onclick="event.stopPropagation();cuChannelForm('${sp.id}')">#</button><button title="New folder for client files" onclick="event.stopPropagation();resFolderForm('${sp.id}')">📁</button><span class="cu-menuwrap" style="position:relative"><button title="Space options" onclick="event.stopPropagation();cuMenu=cuMenu==='sp:${sp.id}'?null:'sp:${sp.id}';render()">···</button>${cuMenuBox('sp:' + sp.id, `<div class="mi" onclick="cuMenu=null;cuRenameSpace('${sp.id}')">✏️ Rename Space</div><div class="mi" style="color:#f87171" onclick="cuMenu=null;cuDeleteSpace('${sp.id}')">🗑️ Delete Space</div>`)}</span></span><span class="arr">${open ? '▾' : '▸'}</span>`, `cuToggle('${sp.id}')`)}
-    ${open ? `${cuChannels.filter(c => c.spaceId === sp.id).map(c => row('ch ' + (cuScope.type === 'channel' && cuScope.id === c.id ? 'sel' : '') + menuOpen('channel', c.id), `<span class="hash">#</span><span class="nm">${esc(c.name)}</span>${c.permanent ? '<span class="cnt" title="This channel cannot be deleted">🔒</span>' : ''}${nodeMenu('channel', c.id, miRename(`cuRenameChannel('${c.id}')`, 'Channel') + (c.permanent ? '<div class="mi" title="This channel cannot be deleted" style="opacity:.45;cursor:not-allowed">🗑️ Delete Channel</div>' : miDelete(`cuDelChannel('${c.id}')`, 'Channel')))}`, `cuGo({type:'channel',id:'${c.id}'})`)).join('')}
+    ${open ? `${cuChannels.filter(c => c.spaceId === sp.id).map(c => row('ch ' + (cuScope.type === 'channel' && cuScope.id === c.id ? 'sel' : '') + menuOpen('channel', c.id), `<span class="hash">#</span><span class="nm">${esc(c.name)}</span>${rtBadge((MB.rt.unread.channels || {})[c.id])}${c.permanent ? '<span class="cnt" title="This channel cannot be deleted">🔒</span>' : ''}${nodeMenu('channel', c.id, miRename(`cuRenameChannel('${c.id}')`, 'Channel') + (c.permanent ? '<div class="mi" title="This channel cannot be deleted" style="opacity:.45;cursor:not-allowed">🗑️ Delete Channel</div>' : miDelete(`cuDelChannel('${c.id}')`, 'Channel')))}`, `cuGo({type:'channel',id:'${c.id}'})`)).join('')}
       ${cuLists.filter(l => l.spaceId === sp.id).map(l => row('li ' + (cuScope.type === 'list' && cuScope.id === l.id ? 'sel' : '') + menuOpen('list', l.id), `<span class="lico" style="color:${l.color}" title="Change colour" onclick="event.stopPropagation();cuNodeForm('list','${l.id}')">📋</span><span class="nm">${esc(l.name)}</span><span class="cnt">${cuTasks.filter(t => t.listId === l.id && isOpenT(t)).length || ''}</span>${nodeMenu('list', l.id, miRename(`cuRenameList('${l.id}')`, 'List') + miDelete(`cuDeleteList('${l.id}')`, 'List'))}`, `cuOpenList('${l.id}')`)).join('')}
       ${resFolders.filter(f => f.spaceId === sp.id).map(f => row('rf ' + (cuScope.type === 'resfolder' && cuScope.id === f.id ? 'sel' : '') + menuOpen('folder', f.id), `<span class="lico">📁</span><span class="nm">${esc(f.name)}</span><span class="cnt">${resFiles.filter(x => x.folderId === f.id).length || ''}</span>${nodeMenu('folder', f.id, miRename(`resFolderForm(null,'${f.id}')`, 'Folder') + miDelete(`resDeleteFolder('${f.id}')`, 'Folder'))}`, `cuGo({type:'resfolder',id:'${f.id}'})`)).join('')}
       ` : ''}`; }).join('')}`;
@@ -2707,7 +2713,7 @@ function cuNewMsg(){
   openModal(`<h2>New message</h2><form onsubmit="cuSaveNewMsg(event)"><div class="field"><label>To</label><select name="to">${emps.map(e => `<option value="${e.id}">${esc(e.name)}</option>`).join('')}</select></div><div class="field"><label>Message</label><textarea name="text" rows="3" required></textarea></div>
     <p class="muted" style="font-size:12px">Messages are saved in this app only — nothing is sent to the person.</p><div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Send</button></div></form>`);
 }
-async function cuSaveNewMsg(ev){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); const emp = empById(f.to); closeModal(); if (!emp) return; cuGo({type:'dm', id:f.to}); await chatPost({kind:'dm', emp}, f.text.trim()); render(); }
+async function cuSaveNewMsg(ev){ ev.preventDefault(); const f = Object.fromEntries(new FormData(ev.target)); const emp = empById(f.to); closeModal(); if (!emp) return; try { await MB.api('/api/chat/send', {method:'POST', body:{kind:'dm', id:dmPeer(emp), text:f.text.trim()}}); } catch (e) { toast(e.message); } cuGo({type:'dm', id:f.to}); }
 
 /* ----- CHAT: direct messages, client channels, list channels (ClickUp-style, dark, no bubbles) ----- */
 let chatTab = 'chat', chatPanel = '', chatSearch = '', chatReply = null, chatEnterSends = true, chatDraft = '';
@@ -2794,7 +2800,7 @@ function chatFullPage(ctx){
   let body;
   if (chatTab === 'calendar') body = `<div class="chat-pad">${cuCalendar(ctx.tasks())}</div>`;
   else if (chatTab === 'tasks') body = `<div class="chat-pad">${chatTasks(ctx)}</div>`;
-  else body = `<div class="chat-feed">${chatThread(ctx)}</div>${chatComposer(ctx)}`;
+  else body = ctx.kind === 'list' ? `<div class="chat-feed">${chatThread(ctx)}</div>${chatComposer(ctx)}` : '<div id="rcSlot" class="rc-host"></div>';   // DMs + channels are live rooms
   return `<div class="chat-page"><div class="chat-main">
     <div class="chat-head"><div class="chat-id">${icon}<b>${esc(ctx.title)}</b><span style="position:relative"><button class="ibtn" title="Menu" onclick="chatPop('dotsPop')">···</button>${menu}</span><button class="ibtn star ${fav ? 'on' : ''}" title="Favorite" onclick="chatFav()">${fav ? '★' : '☆'}</button></div>
       <div class="chat-right"><button class="ibtn pill" onclick="chatNA('Calls')">📞 ▾</button><button class="ibtn pill" onclick="chatNA('AI features')">Brain²</button><button class="ibtn pill" onclick="chatPanel=chatPanel==='profile'?'':'profile';render()">Show profile</button></div></div>
@@ -2805,7 +2811,7 @@ function chatFullPage(ctx){
 }
 const chatFav = () => { const c = chatCtx(); if (c) { c.toggleFav(); save(); render(); } };
 function chatViewsForm(){ openModal(`<h2>Views</h2>${[['chat', '💬 Chat', 'The conversation'], ['calendar', '📅 Calendar', 'Their tasks by due date'], ['tasks', '✅ Tasks', 'Their open tasks']].map(([k, n, d]) => `<div class="tx" style="cursor:pointer" onclick="chatTab='${k}';closeModal();render()"><div><div class="t1">${n}</div><div class="t2">${d}</div></div></div>`).join('')}<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Close</button></div>`); }
-async function chatClear(){ const ctx = chatCtx(); if (!ctx || ctx.kind !== 'dm' || !confirm('Clear the whole conversation with ' + ctx.name + '?')) return; try { await MB.api('/api/admin/dm/' + encodeURIComponent(dmPeer(ctx.emp)), {method:'DELETE'}); cuMessages = cuMessages.filter(m => m.scope !== 'dm:' + ctx.emp.id); render(); } catch(e) { toast(e.message); } }
+async function chatClear(){ const ctx = chatCtx(); if (!ctx || ctx.kind !== 'dm' || !confirm('Clear the whole conversation with ' + ctx.name + '?')) return; try { await MB.api('/api/admin/dm/' + encodeURIComponent(dmPeer(ctx.emp)), {method:'DELETE'}); cuMessages = cuMessages.filter(m => m.scope !== 'dm:' + ctx.emp.id); rtAttach('rcSlot', null); render(); } catch(e) { toast(e.message); } }
 function chatTasks(ctx){
   const ts = ctx.tasks().sort((a, b) => (isOpenT(b) - isOpenT(a)) || (a.due || '9').localeCompare(b.due || '9'));
   return ts.length ? `<div class="rtable">${ts.map(t => `<div class="rrow" style="cursor:pointer" onclick="cuOpen('${t.id}')"><span class="spill" style="background:${statusOf(t).color}">${esc(statusOf(t).name)}</span><div class="rn"><b>${esc(t.title)}</b><div class="muted" style="font-size:11px">${esc((listOf(t) || {}).name || '')}</div></div><span class="cdue ${isOverdueT(t) ? 'od' : isTodayT(t) ? 'td' : ''}">${t.due ? fdate(t.due) : ''}</span>${flag(t.priority, false)}${stack(t, 20)}</div>`).join('')}</div>` : '<div class="chat-none">No tasks yet.</div>';
@@ -2871,11 +2877,7 @@ function cuDetail(t){
       <div>${row('Repeat', `<select onchange="cuSetField('${id}','repeat',this.value)">${[['', 'Does not repeat'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['monthly', 'Monthly'], ['custom', 'Custom']].map(([v, n]) => `<option value="${v}" ${v === (t.repeat || '') ? 'selected' : ''}>${n}</option>`).join('')}</select>${t.repeat === 'custom' ? `<input type="number" min="1" value="${t.repeatDays || 7}" style="width:60px" title="every N days" onchange="cuSetField('${id}','repeatDays',+this.value||1)">` : ''}`)}</div></div>` : ''}
     </div>
     <aside class="dcom"><div class="chd"><b>Comments</b><span><input class="cmsearch" placeholder="Search" value="${esc(cuCmSearch)}" oninput="cuCmSearch=this.value;renderKeep(this)"> <button class="tbtn" title="Follow this task" onclick="taskById('${id}').follow=!taskById('${id}').follow;save();render()">${t.follow ? '🔔' : '🔕'}</button></span></div>
-      <div class="cfeed">${feed}</div>
-      <form class="cbox" onsubmit="cuPost(event,'${id}')"><div class="ctabs"><span class="on">Comment</span></div>
-        <textarea name="text" id="cuCmText" rows="3" placeholder="Write a comment…" required></textarea>
-        <div class="ctool"><span><button type="button" title="Emoji" onclick="cuIns('😊')">😊</button><button type="button" title="Attachment note" onclick="cuAttach('${id}')">📎</button><button type="button" title="Mention" onclick="cuMention()">@</button><button type="button" title="Thumbs up" onclick="cuIns('👍')">👍</button><button type="button" title="Done" onclick="cuIns('✅')">✅</button></span>
-        <span><label class="muted" style="font-size:12px;margin-right:8px" title="Clients can read comments marked visible"><input type="checkbox" name="client_visible" style="width:auto;margin-right:4px">Visible to client</label><select name="by">${['You', ...employees.filter(e => !e.archived).map(e => e.name)].map(a => `<option ${a === cuAuthor ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select><button class="addbtn">Post</button></span></div></form></aside></div>`;
+      <div id="cuRoomSlot" class="rc-host" style="flex:1"></div></aside></div>`;
 }
 const cuIns = s => { const t = $('cuCmText'); if (t) { t.value += s; t.focus(); } };
 function cuMention(){ const e = employees.filter(x => !x.archived); if (!e.length) { toast('Add employees to mention them'); return; } openModal('<h2>Mention</h2>' + e.map(x => `<div class="tx" style="cursor:pointer" onclick="closeModal();cuIns(\'@${esc(x.name).replace(/\'/g, '')} \')"><div>${cuAv(x.name, 22)} ${esc(x.name)}</div></div>`).join('') + '<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancel</button></div>'); }
@@ -2966,23 +2968,10 @@ function renderKeepChat(){
   const nf = document.querySelector('.chat-feed'); if (nf && stick) nf.scrollTop = nf.scrollHeight;
   if (had) { const i = $('chatInput'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = pos; } }
 }
-async function chatSync(){
-  if (view !== 'tasks' || document.hidden) return;
-  const ctx = chatCtx(); if (!ctx || (ctx.kind !== 'channel' && ctx.kind !== 'dm')) return;
-  try {
-    let sig;
-    if (ctx.kind === 'channel') {
-      const msgs = (await MB.api('/api/messages/channel/' + encodeURIComponent(ctx.ch.id))).messages.map(fromChan);
-      cuChanMsgs = cuChanMsgs.filter(m => m.channel_id !== ctx.ch.id).concat(msgs); sig = ctx.ch.id + ':' + msgs.length + ':' + (msgs.length ? msgs[msgs.length - 1].id : '');
-    } else {
-      const msgs = (await MB.api('/api/messages/dm/' + encodeURIComponent(dmPeer(ctx.emp)))).messages.map(m => fromDm(m, ctx.emp.id));
-      cuMessages = cuMessages.filter(m => m.scope !== 'dm:' + ctx.emp.id).concat(msgs); sig = ctx.emp.id + ':' + msgs.length + ':' + (msgs.length ? msgs[msgs.length - 1].id : '');
-    }
-    if (sig !== chatSig) { chatSig = sig; renderKeepChat(); }
-  } catch (e) { /* channel not saved yet, or offline — the next tick retries */ }
-}
+async function chatSync(){}   // DMs / channels are live rooms now (see rtSync) — no REST polling
+
 const _cuGo = cuGo;
-cuGo = function(scope){ _cuGo(scope); chatSig = ''; chatSync(); };
+cuGo = function(scope){ _cuGo(scope); };
 
 /* ----- live updates: tasks, subtasks and comments employees / clients change ----- */
 let lastChanges = 0;
@@ -3178,6 +3167,33 @@ async function attSaveSettings(ev){
   catch (e) { toast(e.message); }
 }
 
+/* ========= Real-time rooms (Durable Objects) in the admin app ========= */
+const rtRooms = {};   // slot id → {key, el, inst}: a room keeps its socket while the DOM around it is repainted
+function rtAttach(slotId, spec){
+  const slot = $(slotId), cur = rtRooms[slotId];
+  if (!slot || !spec) { if (cur) { cur.inst.close(); delete rtRooms[slotId]; } return; }
+  if (!cur || cur.key !== spec.key) {
+    if (cur) cur.inst.close();
+    const el = document.createElement('div'); el.style.cssText = 'height:100%;display:flex;flex-direction:column;min-height:0'; rtRooms[slotId] = {key:spec.key, el, inst:MB.chat.mount(el, spec.opts)};
+  }
+  if (rtRooms[slotId].el.parentNode !== slot) slot.appendChild(rtRooms[slotId].el);
+}
+function rtSync(){
+  let chat = null, taskRoom = null;
+  if (view === 'tasks' && $('rcSlot')) { const c = chatCtx(); if (c && c.kind === 'channel') chat = {key:'channel:' + c.ch.id, opts:{kind:'channel', id:c.ch.id}}; else if (c && c.kind === 'dm') { const id = dmPeer(c.emp); chat = {key:'dm:' + id, opts:{kind:'dm', id, peerId:id}}; } }
+  if (view === 'tasks' && cuPanelId && $('cuRoomSlot') && taskById(cuPanelId)) taskRoom = {key:'task:' + cuPanelId, opts:{kind:'task', id:cuPanelId, variant:'task', clientToggle:true}};
+  rtAttach('rcSlot', chat); rtAttach('cuRoomSlot', taskRoom);
+}
+const rtBadge = n => n ? `<i class="rc-badge">${n > 99 ? '99+' : n}</i>` : '';
+const rtDot = e => { const u = portalOf('employee', e.id); return u ? `<span class="cdot ${MB.rt.online.has(u.id) ? '' : 'off'}" title="${MB.rt.online.has(u.id) ? 'Online' : 'Offline'}"></span>` : ''; };
+let rtSnap = '';
+function rtOnTick(what){
+  if (what !== 'unread' && what !== 'presence') return;
+  const sig = JSON.stringify([MB.rt.unread, [...MB.rt.online]]); if (sig === rtSnap) return; rtSnap = sig;
+  const nb = document.querySelector('#nav button[data-view="tasks"]'), n = MB.rt.unread.total || 0; if (nb) nb.innerHTML = '✅ Tasks' + (n ? `<span class="nbadge" title="${n} unread message${n > 1 ? 's' : ''}">${n > 99 ? '99+' : n}</span>` : '');
+  const ae = document.activeElement; if (view === 'tasks' && !(ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName)) && !$('overlay').classList.contains('open')) render();   // refresh sidebar badges / dots
+}
+
 /* ========= Boot ========= */
 (async function boot(){
   try {
@@ -3187,10 +3203,10 @@ async function attSaveSettings(ev){
     store.hydrate(state); portalUsers = state.users || []; chanMembers = state.members || {}; lastChanges = state.now - 3000;
     // safety net: the legacy "first run" path empties every list — never let it fire when the database already holds records
     if (!store.getItem('data_version') && SYNC_KEYS.some(k => { try { return JSON.parse(store.mem[k] || '[]').length; } catch (e) { return false; } })) store.mem.data_version = '4';
-    MB.att.injectCss(); init(); render(); attLoadOverview(); setInterval(attPoll, 60000);
+    MB.att.injectCss(); MB.rt.start(); MB.rt.bindStatus($('rtStat')); MB.rt.on(rtOnTick); init(); render(); attLoadOverview(); setInterval(attPoll, 60000);
     $('syncStat').textContent = '✓ All changes saved';
     if (backfillNote) setTimeout(() => toast(backfillNote), 600);
-    setInterval(pollChanges, 6000); setInterval(chatSync, 4000);
+    setInterval(pollChanges, 6000);
     setInterval(async () => { try { portalUsers = (await MB.api('/api/admin/users')).users; } catch (e) {} }, 60000);
   } catch (e) {
     if (e && e.message !== 'Session expired') { $('view').innerHTML = `<div class="card empty">Could not load your data: ${esc(e.message)}<br><br><button class="btn" onclick="location.reload()">Retry</button></div>`; }

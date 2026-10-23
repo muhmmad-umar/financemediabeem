@@ -8,6 +8,9 @@
  * so the admin app (which works with rich objects) never loses a field.
  */
 
+import { loadMessages, persistMessage, roomKey, touchPresence, ChatError, EMOJIS } from './chat.js';
+export { ChatRoom } from './chat.js';   // the Durable Object class must be exported from the Worker entry
+
 const PBKDF2_ITERATIONS = 100000; // Workers' WebCrypto maximum
 const TOKEN_TTL_SECONDS = 7 * 24 * 3600;
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
@@ -98,10 +101,11 @@ async function linkedIdFor(env, user) {
   return null;
 }
 /** Verifies the bearer token, re-checks the user is still active, and enforces the allowed roles. */
-async function authenticate(req, env, roles) {
+async function authenticate(req, env, roles, allowQuery) {
   if (!env.JWT_SECRET) throw new HttpError(500, 'Server is missing JWT_SECRET');
   const m = /^Bearer (.+)$/.exec(req.headers.get('Authorization') || '');
-  const payload = m ? await verifyJwt(m[1], env.JWT_SECRET) : null;
+  const tok = m ? m[1] : allowQuery ? new URL(req.url).searchParams.get('token') : null;
+  const payload = tok ? await verifyJwt(tok, env.JWT_SECRET) : null;
   if (!payload) throw new HttpError(401, 'Not signed in');
   const u = await env.DB.prepare('SELECT id,email,name,role,active FROM users WHERE id=?').bind(payload.sub).first();
   if (!u || !u.active) throw new HttpError(401, 'Account is inactive');
@@ -412,6 +416,7 @@ async function addComment(env, taskId, { by, author_id, text, kind = 'comment', 
   const item = { id: uid(), taskId, at: nowIso(), by, author_id, text, kind, client_visible };
   const c = COLLECTIONS.cu_comments;
   await upsertStmt(env, c).bind(item.id, ...c.row(item), JSON.stringify(item), Date.now()).run();
+  await notifyRoom(env, 'task:' + taskId, { t: 'msg', msg: { id: item.id, room: 'task:' + taskId, author_id: author_id || null, author_name: by, text, ts: item.at, kind, client_visible: !!client_visible, deleted: false, edited_at: null, reply_to: null, reactions: {} } });
   return item;
 }
 async function setTaskStatus(env, user, task, statusId) {
@@ -495,6 +500,7 @@ async function postChannel(req, env, user) {
   const b = await readBody(req); const ch = await canAccessChannel(env, user, String(b.channel_id || ''));
   const msg = { id: uid(), channel_id: ch.id, author_id: user.id, author_name: user.name, text: cleanText(b.text), timestamp: nowIso(), reply_to: str(b.reply_to) };
   await env.DB.prepare('INSERT INTO channel_messages (id,channel_id,author_id,author_name,text,timestamp,reply_to) VALUES (?,?,?,?,?,?,?)').bind(msg.id, msg.channel_id, msg.author_id, msg.author_name, msg.text, msg.timestamp, msg.reply_to).run();
+  await notifyRoom(env, 'channel:' + ch.id, { t: 'msg', msg: { id: msg.id, room: 'channel:' + ch.id, author_id: msg.author_id, author_name: msg.author_name, text: msg.text, ts: msg.timestamp, deleted: false, edited_at: null, reply_to: msg.reply_to, reactions: {} } });
   return msg;
 }
 async function getChannel(env, user, id, url) {
@@ -519,6 +525,8 @@ async function postDm(req, env, user) {
   const b = await readBody(req); const peer = await resolveDmPeer(env, user, String(b.to_id || ''));
   const msg = { id: uid(), from_id: user.id, to_id: peer.id, from_name: user.name, text: cleanText(b.text), timestamp: nowIso(), reply_to: str(b.reply_to) };
   await env.DB.prepare('INSERT INTO dm_messages (id,from_id,to_id,from_name,text,timestamp,reply_to) VALUES (?,?,?,?,?,?,?)').bind(msg.id, msg.from_id, msg.to_id, msg.from_name, msg.text, msg.timestamp, msg.reply_to).run();
+  const room = roomKey('dm', null, [user.id, peer.id]);
+  await notifyRoom(env, room, { t: 'msg', msg: { id: msg.id, room, author_id: user.id, author_name: user.name, text: msg.text, ts: msg.timestamp, seen: false, deleted: false, edited_at: null, reply_to: msg.reply_to, reactions: {} } });
   return msg;
 }
 async function getDm(env, user, other, url) {
@@ -815,6 +823,61 @@ async function linkActiveTask(req, env, user) {
   return empAttendanceToday(env, user);
 }
 
+/* ---------------------------------------------------------------- real-time chat plumbing */
+async function notifyRoom(env, room, event) {
+  if (!env.CHAT_ROOM) return;
+  try { await env.CHAT_ROOM.get(env.CHAT_ROOM.idFromName(room)).fetch('https://chat.internal/notify', { method: 'POST', body: JSON.stringify({ event }) }); } catch (e) { /* live delivery is best-effort; history is already saved */ }
+}
+/** Verifies the caller may enter the room and returns its description {room,type,id,pair?}. kind: channel | dm | task */
+async function chatRoomFor(env, user, kind, id) {
+  if (kind === 'channel') { const ch = await canAccessChannel(env, user, id); return { room: roomKey('channel', ch.id), type: 'channel', id: ch.id, name: ch.name }; }
+  if (kind === 'dm') { const peer = await resolveDmPeer(env, user, id); return { room: roomKey('dm', null, [user.id, peer.id]), type: 'dm', pair: [user.id, peer.id] }; }
+  if (kind === 'task') {
+    const r = await env.DB.prepare('SELECT t.id, l.client_id FROM tasks t LEFT JOIN cu_lists l ON l.id=t.list_id WHERE t.id=?').bind(id).first();
+    if (!r) throw notFound('Task not found');
+    if (user.role === 'client' && !(r.client_id && r.client_id === user.linked_id)) throw forbidden('That task is not part of your projects');
+    return { room: roomKey('task', r.id), type: 'task', id: r.id };
+  }
+  throw notFound();
+}
+function checkOrigin(req, env) {   // a WebSocket handshake is not covered by CORS, so enforce the allow-list ourselves
+  const origin = req.headers.get('Origin'); if (!origin) return;
+  const allowed = String(env.ALLOWED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (!allowed.includes(origin)) throw forbidden('Origin not allowed');
+}
+async function wsUpgrade(req, env, seg) {
+  if (req.headers.get('Upgrade') !== 'websocket') throw new HttpError(426, 'Expected a WebSocket connection');
+  checkOrigin(req, env);
+  const user = await authenticate(req, env, null, true);   // JWT from ?token= is verified before anything is upgraded
+  const meta = await chatRoomFor(env, user, seg[2], decodeURIComponent(seg[3] || ''));
+  const stub = env.CHAT_ROOM.get(env.CHAT_ROOM.idFromName(meta.room)), h = new Headers(req.headers);
+  h.set('X-Chat-User', JSON.stringify({ id: user.id, name: user.name, role: user.role, linked_id: user.linked_id }));
+  h.set('X-Chat-Room', JSON.stringify(meta));
+  return stub.fetch(new Request('https://chat.internal/ws', { method: 'GET', headers: h }));
+}
+const ONLINE_WINDOW_MS = 150000;
+async function chatUnread(env, user) {
+  const since = new Date(Date.now() - 7 * 864e5).toISOString(), out = { channels: {}, dms: {}, total: 0 };
+  let ids = [];
+  if (user.role === 'admin') ids = (await env.DB.prepare('SELECT id FROM channels').all()).results.map(r => r.id);
+  else if (user.role === 'employee') ids = (await env.DB.prepare('SELECT channel_id AS id FROM channel_members WHERE user_id=?').bind(user.id).all()).results.map(r => r.id);
+  else if (user.linked_id) ids = (await env.DB.prepare('SELECT id FROM channels WHERE client_id=?').bind(user.linked_id).all()).results.map(r => r.id);
+  for (const part of chunk(ids, 80)) {
+    (await env.DB.prepare(`SELECT m.channel_id AS id, COUNT(*) AS n FROM channel_messages m LEFT JOIN chat_reads r ON r.user_id=? AND r.room='channel:'||m.channel_id
+      WHERE m.channel_id IN (${part.map(() => '?').join(',')}) AND m.deleted=0 AND COALESCE(m.author_id,'')<>? AND m.timestamp>COALESCE(r.last_read,?) GROUP BY m.channel_id`).bind(user.id, ...part, user.id, since).all()).results.forEach(r => { out.channels[r.id] = r.n; out.total += r.n; });
+  }
+  if (user.role !== 'client') {
+    (await env.DB.prepare(`SELECT m.from_id AS id, COUNT(*) AS n FROM dm_messages m LEFT JOIN chat_reads r ON r.user_id=? AND r.room=(CASE WHEN m.from_id<m.to_id THEN 'dm:'||REPLACE(m.from_id,':','~')||':'||REPLACE(m.to_id,':','~') ELSE 'dm:'||REPLACE(m.to_id,':','~')||':'||REPLACE(m.from_id,':','~') END)
+      WHERE m.to_id=? AND m.deleted=0 AND m.timestamp>COALESCE(r.last_read,?) GROUP BY m.from_id`).bind(user.id, user.id, since).all()).results.forEach(r => { out.dms[r.id] = r.n; out.total += r.n; });
+  }
+  return out;
+}
+async function chatPresence(env, user) {
+  if (user.role === 'client') return { online: [] };   // clients never learn who is on the team
+  const since = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
+  return { online: (await env.DB.prepare("SELECT user_id FROM user_presence WHERE status='online' AND last_seen>?").bind(since).all()).results.map(r => r.user_id) };
+}
+
 /* ------------------------------------------------------------------ router */
 async function route(req, env, url) {
   const path = url.pathname.replace(/\/+$/, '') || '/', method = req.method, seg = path.split('/').filter(Boolean);
@@ -829,6 +892,25 @@ async function route(req, env, url) {
     if (!(await verifyPassword(String(current_password || ''), row.password_hash))) throw new HttpError(401, 'Current password is incorrect');
     await env.DB.prepare('UPDATE users SET password_hash=? WHERE id=?').bind(await hashPassword(String(new_password)), u.id).run();
     return { ok: true };
+  }
+
+  if (seg[0] === 'api' && seg[1] === 'ws' && seg.length === 4 && method === 'GET') return wsUpgrade(req, env, seg);
+  if (seg[0] === 'api' && seg[1] === 'chat') {
+    if (seg[2] === 'offline') { const u = await authenticate(req, env, null, true); await touchPresence(env, u.id, 'offline'); return { ok: true }; }   // sendBeacon from pagehide (token in the query)
+    const user = await authenticate(req, env);
+    if (seg[2] === 'unread' && method === 'GET') return chatUnread(env, user);
+    if (seg[2] === 'presence' && method === 'GET') return chatPresence(env, user);
+    if (seg[2] === 'heartbeat' && method === 'POST') { await touchPresence(env, user.id, 'online'); return { ok: true }; }
+    if (seg[2] === 'history' && method === 'GET') {   // polling fallback + older pages: ?kind=channel|dm|task&id=…&before=ISO
+      const meta = await chatRoomFor(env, user, url.searchParams.get('kind'), url.searchParams.get('id') || '');
+      return loadMessages(env, meta, user, { before: url.searchParams.get('before') || undefined, limit: url.searchParams.get('limit') });
+    }
+    if (seg[2] === 'send' && method === 'POST') {   // REST fallback while the WebSocket is down
+      const b = await readBody(req), meta = await chatRoomFor(env, user, String(b.kind || ''), String(b.id || ''));
+      try { const msg = await persistMessage(env, meta, user, { text: b.text, reply_to: b.reply_to, client_visible: b.client_visible }); await notifyRoom(env, meta.room, { t: 'msg', msg }); return { msg }; }
+      catch (e) { if (e instanceof ChatError) throw bad(e.message); throw e; }
+    }
+    throw notFound();
   }
 
   /* messaging — shared by all roles, permission-checked per route */
@@ -926,6 +1008,7 @@ export default {
     if (!url.pathname.startsWith('/api/')) return respond(req, env, { error: 'Not found' }, 404);
     try {
       const data = await route(req, env, url);
+      if (data instanceof Response) return data;
       return respond(req, env, data);
     } catch (e) {
       if (e instanceof HttpError) return respond(req, env, { error: e.message }, e.status);

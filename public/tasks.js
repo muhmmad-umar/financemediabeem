@@ -129,7 +129,13 @@
         if (preloaded) S.detail = preloaded; else { S.detail = null; panel.innerHTML = '<div class="empty">Loading…</div>'; try { S.detail = await MB.api('/api/employee/task/' + id); } catch (e) { toastErr(e); closePanel(); return; } }
         paintPanel();
       }
-      function closePanel() { S.panelId = null; S.detail = null; panel.classList.remove('open'); scrim.classList.remove('open'); panel.setAttribute('aria-hidden', 'true'); }
+      /* the comment thread is a live room that survives panel repaints (field edits re-render the panel, not the connection) */
+      function mountRoom(taskId) {
+        if (!S.room || S.room.taskId !== taskId) { dropRoom(); const el = document.createElement('div'); S.room = { taskId, el, inst: MB.chat.mount(el, { kind: 'task', id: taskId, variant: 'task', clientToggle: false }) }; }
+        const slot = panel.querySelector('#pRoom'); if (slot) slot.appendChild(S.room.el);
+      }
+      function dropRoom() { if (S.room) { S.room.inst.close(); S.room = null; } }
+      function closePanel() { dropRoom(); S.panelId = null; S.detail = null; panel.classList.remove('open'); scrim.classList.remove('open'); panel.setAttribute('aria-hidden', 'true'); }
       scrim.onclick = closePanel;
       const onKey = e => { if (e.key === 'Escape' && S.panelId && !document.getElementById('overlay').classList.contains('open')) closePanel(); };
       document.addEventListener('keydown', onKey);
@@ -158,9 +164,8 @@
           <div class="tk-sec2">Time tracked <span class="muted">${A.fmtH(spent)}${t.estimate ? ' of ' + t.estimate + ' h estimate' : ''}</span></div>
           ${d.time_logs.map(x => `<div class="tk-subr"><span>⏱ <b>${A.fmtH(x.hours)}</b> · ${MB.fdate(x.date)} · ${esc(x.by || '')}${x.note ? ' — ' + esc(x.note) : ''}</span>${x.author_id === (MB.user() || {}).id ? `<u data-dtime="${esc(x.id)}" title="Remove">✕</u>` : ''}</div>`).join('')}
           <form id="pTimeF" class="tk-inline"><input id="pTimeH" type="number" min="0.01" max="24" step="any" placeholder="Hours" required style="max-width:90px"><input id="pTimeN" placeholder="What did you do? (optional)" maxlength="500"><button class="btn sm ghost">Log time</button></form>
-          <div class="tk-sec2">Activity &amp; comments</div>
-          <form id="pCmF" class="tk-inline" style="align-items:flex-start"><textarea id="pCmIn" rows="2" placeholder="Write a comment…" maxlength="4000" required></textarea><button class="btn sm">Post</button></form>
-          <div id="pCms">${d.comments.slice().reverse().map(c => c.kind === 'activity' ? `<div class="cm act">${esc(c.by)} ${esc(c.text)} <span class="at">${MB.fmtTs(c.at)}</span></div>` : `<div class="cm"><span class="by">${esc(c.by)}</span><span class="at">${MB.fmtTs(c.at)}</span><div style="white-space:pre-wrap">${esc(c.text)}</div></div>`).join('') || '<div class="muted">No activity yet.</div>'}</div></div>`;
+          <div class="tk-sec2">Activity &amp; comments</div><div id="pRoom"></div></div>`;
+        mountRoom(t.id);
         const $p = id => panel.querySelector('#' + id), act = fn => async (...a) => { try { await fn(...a); } catch (e) { toastErr(e); } };
         $p('pX').onclick = closePanel;
         $p('pDel').onclick = async () => { if (!confirm('Delete “' + t.title + '”? Its subtasks, comments and time entries are deleted too.')) return; try { await MB.api('/api/employee/task/' + t.id, { method: 'DELETE' }); S.ws.tasks = S.ws.tasks.filter(x => x.id !== t.id); closePanel(); paint(); MB.toast('Task deleted'); if (MB.punch) MB.punch.refresh().catch(() => {}); } catch (e) { toastErr(e); } };
@@ -180,7 +185,6 @@
         $p('pSubF').onsubmit = act(async e => { e.preventDefault(); const v = $p('pSubIn').value.trim(); if (!v) return; const r = await MB.api('/api/employee/task/' + t.id + '/subtasks', { method: 'POST', body: { title: v } }); d.subtasks.push(r.subtask); putTask(S.detail); paintPanel(); paint(); });
         $p('pTimeF').onsubmit = act(async e => { e.preventDefault(); const r = await MB.api('/api/employee/task/' + t.id + '/time', { method: 'POST', body: { hours: +$p('pTimeH').value, note: $p('pTimeN').value } }); d.time_logs.push(r.time_log); paintPanel(); MB.toast('Time logged'); });
         panel.querySelectorAll('[data-dtime]').forEach(u => u.onclick = act(async () => { await MB.api('/api/employee/time/' + u.dataset.dtime, { method: 'DELETE' }); d.time_logs = d.time_logs.filter(x => x.id !== u.dataset.dtime); paintPanel(); }));
-        $p('pCmF').onsubmit = act(async e => { e.preventDefault(); const v = $p('pCmIn').value.trim(); if (!v) return; const c = await MB.api('/api/employee/task/' + t.id + '/comments', { method: 'POST', body: { text: v } }); d.comments.push({ id: c.id, by: c.by, author_id: c.author_id, text: c.text, at: c.at, kind: 'comment' }); paintPanel(); });
       }
 
       paint();
@@ -188,7 +192,7 @@
         if (document.hidden || S.panelId || document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
         try { S.ws = await MB.api('/api/employee/workspace'); index(); paint(); } catch (e) {}
       }, 45000);
-      return { stop() { clearInterval(timer); document.removeEventListener('keydown', onKey); }, openTask: openPanel };
+      return { stop() { clearInterval(timer); document.removeEventListener('keydown', onKey); dropRoom(); }, openTask: openPanel };
     },
   };
 })();

@@ -83,7 +83,7 @@
   };
 
   MB.openModal = html => { $('modal').innerHTML = html; $('overlay').classList.add('open'); };
-  MB.closeModal = () => { $('overlay').classList.remove('open'); $('modal').innerHTML = ''; };
+  MB.closeModal = () => { $('overlay').classList.remove('open'); $('modal').innerHTML = ''; if (MB.modalCleanup) { const f = MB.modalCleanup; MB.modalCleanup = null; try { f(); } catch (e) {} } };
 
   const initials = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
   const hue = n => { let h = 0; for (const c of String(n)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
@@ -131,8 +131,9 @@
       <nav class="nav" id="nav">${items.map(i => `<button data-k="${i.key}">${i.icon ? `<span>${i.icon}</span>` : ''}${esc(i.label)}<span class="nb" id="nb-${i.key}" style="display:none"></span></button>`).join('')}</nav>
       <div class="side-foot"><div class="who">${esc(user.name || user.email)}<div class="muted">${esc(user.email)}</div></div><button class="btn ghost sm" style="width:100%" id="logout">Log out</button></div></aside>
       <div class="scrim" id="scrim"></div>
-      <main class="main"><div class="topbar"><button class="menu-btn" id="menuBtn">☰</button><div><h1 id="title"></h1><p id="subtitle"></p></div><div class="topbar-r" id="topRight"></div></div><div id="view"></div></main></div>
+      <main class="main"><div class="topbar"><button class="menu-btn" id="menuBtn">☰</button><div><h1 id="title"></h1><p id="subtitle"></p></div><span class="rt-slot" id="rtStat"></span><div class="topbar-r" id="topRight"></div></div><div id="view"></div></main></div>
       <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div><div class="toast" id="toast"></div>`;
+    if (MB.rt) { MB.rt.start(); MB.rt.bindStatus($('rtStat')); }   // 🟢 Connected / 🔴 Reconnecting in the top bar
     const side = $('side'), scrim = $('scrim');
     $('logout').onclick = MB.logout;
     $('menuBtn').onclick = () => { side.classList.add('open'); scrim.classList.add('open'); };

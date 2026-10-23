@@ -6,11 +6,12 @@
 <title>Media Beem — Client Portal</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="portal.css?v=20261023a">
+<link rel="stylesheet" href="portal.css?v=20261023b">
 </head>
 <body>
-<script src="config.js?v=20261023a"></script>
-<script src="portal.js?v=20261023a"></script>
+<script src="config.js?v=20261023b"></script>
+<script src="portal.js?v=20261023b"></script>
+<script src="chat.js?v=20261023b"></script>
 <script>
 (async () => {
   const user = await MB.guard('client');
@@ -58,15 +59,13 @@
   }
   function openTask(id) {
     const t = projects.tasks.find(x => x.id === id); if (!t) return;
-    const cms = t.comments.filter(c => c.kind !== 'activity');
     MB.openModal(`<h2>${esc(t.title)}</h2><div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">${MB.statusPill(t.status_name, t.status_color)}<span class="muted">${t.due ? 'Due ' + fdate(t.due) : 'No due date'}</span></div>
       ${t.description ? `<div class="task-sec"><h4>Details</h4><div class="desc">${MB.sanitize(t.description)}</div></div>` : ''}
       ${t.subtasks.length ? `<div class="task-sec"><h4>Checklist</h4>${t.subtasks.map(s => `<div class="sub"><span>${s.done ? '☑' : '☐'}</span><span style="${s.done ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(s.title)}</span></div>`).join('')}</div>` : ''}
-      <div class="task-sec"><h4>Comments</h4>${cms.map(c => `<div class="cm"><span class="by">${esc(c.by)}</span><span class="at">${MB.fmtTs(c.at)}</span><div style="white-space:pre-wrap">${esc(c.text)}</div></div>`).join('') || '<div class="muted">No comments yet.</div>'}</div>
-      <form id="cmForm" style="display:flex;gap:8px"><textarea id="cmIn" rows="2" placeholder="Leave a comment for the team…" maxlength="4000" required></textarea><button class="btn">Post</button></form>
+      <div class="task-sec"><h4>Comments</h4><div id="tRoom"></div></div>
       <div class="modal-actions"><button class="btn ghost" id="closeBtn">Close</button></div>`);
     $('closeBtn').onclick = MB.closeModal;
-    $('cmForm').onsubmit = async e => { e.preventDefault(); const text = $('cmIn').value.trim(); if (!text) return; try { const c = await MB.api('/api/client/tasks/' + id + '/comments', { method: 'POST', body: { text } }); t.comments.push({ id: c.id, by: c.by, text: c.text, at: c.at, kind: 'comment' }); openTask(id); } catch (er) { MB.toast(er.message); } };
+    const room = MB.chat.mount($('tRoom'), { kind: 'task', id, variant: 'task' }); MB.modalCleanup = () => room.close();   // comments arrive and send over a live connection
   }
 
   /* ---------------- Messages: only their own #general channel ---------------- */
@@ -75,8 +74,7 @@
     let ch; try { ch = (await MB.api('/api/client/channel')).channel; } catch (e) { v.innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
     if (!ch) { v.innerHTML = '<div class="card empty">Your message channel is not set up yet — please contact the Media Beem team.</div>'; return; }
     v.innerHTML = '<div class="chat single"><div class="chat-pane" id="cpane"></div></div>';
-    pane = MB.chatPane($('cpane'), { title: '# ' + ch.name, load: () => MB.api('/api/messages/channel/' + encodeURIComponent(ch.id)),
-      send: text => MB.api('/api/messages/channel', { method: 'POST', body: { channel_id: ch.id, text } }), norm: m => ({ id: m.id, uid: m.author_id, name: m.author_name, text: m.text, ts: m.timestamp }) });
+    const inst = MB.chat.mount($('cpane'), { kind: 'channel', id: ch.id, title: '# ' + ch.name }); pane = { stop: () => inst.close() };
   }
 })();
 </script>

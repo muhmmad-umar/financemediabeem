@@ -17,3 +17,13 @@ migrations_dir = "migrations"
 
 # JWT_SECRET is a secret, not a var:  npx wrangler secret put JWT_SECRET
 # (for local dev put JWT_SECRET=... in .dev.vars)
+
+# ---- real-time chat: one Durable Object per channel / DM pair / task --------------------------------
+[[durable_objects.bindings]]
+name = "CHAT_ROOM"
+class_name = "ChatRoom"
+
+# SQLite-backed Durable Object (works on the Free plan and on Paid; `new_classes` is Paid-only).
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ChatRoom"]

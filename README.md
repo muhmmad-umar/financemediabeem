@@ -76,3 +76,8 @@ npm run dev:web                           # frontend on :8080 (clean URLs: /admi
 * The employee top bar always shows a **Check In / Check Out** button (status, "since" time, today's hours, active task). Checking out asks for an optional note and the tasks worked on.
 * **Tasks** is a full ClickUp-style workspace: Spaces sidebar, *My Tasks* / *All Tasks* tabs, List / Board (drag to change status) / Calendar views and a slide-in task panel. Employees can create and delete tasks, reassign, change status, comment, tick subtasks and log time on any task, and link a task to today's attendance ("Work on this task"). They cannot create/delete Spaces or Lists, and the workspace API never returns finance, client money or salaries.
 * Needs migration `0003_workspace.sql` (`npm run db:migrate`) and a Worker deploy.
+
+## Real-time chat (Durable Objects)
+* Every channel, DM pair and task is a `ChatRoom` Durable Object (`worker/src/chat.js`): `channel:{id}`, `dm:{userA}:{userB}`, `task:{id}`. WebSocket routes: `GET /api/ws/channel/:id`, `/api/ws/dm/:user_id`, `/api/ws/task/:id?token=<JWT>` — the Worker verifies the JWT, the origin and the caller's access before upgrading.
+* Messages are saved to D1 and broadcast instantly; presence, typing, edit (15 min), delete, 4 emoji reactions, DM ✓ / ✓✓, unread badges and 50-message paging are built in. If the socket drops the UI reconnects (1 → 8 s backoff) and polls every 5 s meanwhile.
+* Needs migration `0004_realtime.sql` and the `[[durable_objects]]` / `[[migrations]]` blocks in `worker/wrangler.toml` (SQLite-backed class, works on Free and Paid). Deploy with `npm run db:migrate && npm run deploy:api`.

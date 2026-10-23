@@ -6,13 +6,14 @@
 <title>Media Beem — Employee</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="portal.css?v=20261023a">
+<link rel="stylesheet" href="portal.css?v=20261023b">
 </head>
 <body>
-<script src="config.js?v=20261023a"></script>
-<script src="portal.js?v=20261023a"></script>
-<script src="tasks.js?v=20261023a"></script>
-<script src="punch.js?v=20261023a"></script>
+<script src="config.js?v=20261023b"></script>
+<script src="portal.js?v=20261023b"></script>
+<script src="chat.js?v=20261023b"></script>
+<script src="tasks.js?v=20261023b"></script>
+<script src="punch.js?v=20261023b"></script>
 <script>
 (async () => {
   const user = await MB.guard('employee');
@@ -82,21 +83,30 @@
   }
 
   /* ---------------- Channels / DMs ---------------- */
+  /* unread badges (sidebar + conversation lists) and green online dots, refreshed whenever the unread / presence poll lands */
+  function paintBadges() {
+    const u = MB.rt.unread, sum = o => Object.values(o || {}).reduce((a, b) => a + b, 0), set = (el, n) => { if (!el) return; el.hidden = !n; el.textContent = n > 99 ? '99+' : n; };
+    const nbC = $('nb-channels'), nbD = $('nb-dms'); [[nbC, sum(u.channels)], [nbD, sum(u.dms)]].forEach(([el, n]) => { if (el) { el.style.display = n ? '' : 'none'; el.textContent = n; } });
+    document.querySelectorAll('[data-bch]').forEach(el => set(el, u.channels[el.dataset.bch]));
+    document.querySelectorAll('[data-bdm]').forEach(el => set(el, u.dms[el.dataset.bdm]));
+    document.querySelectorAll('[data-dot]').forEach(el => el.classList.toggle('off', !MB.rt.online.has(el.dataset.dot)));
+  }
+  MB.rt.on(w => { if (w === 'unread' || w === 'presence') paintBadges(); });
+
   function chatLayout(listHtml, wireList) {
     $('view').innerHTML = `<div class="chat"><div class="chat-list" id="clist">${listHtml}</div><div class="chat-pane" id="cpane"><div class="chat-none" style="margin:auto">Select a conversation</div></div></div>`;
-    wireList();
+    wireList(); paintBadges();
   }
   async function viewChannels() {
     $('view').innerHTML = '<div class="empty">Loading…</div>';
     let chans; try { chans = (await MB.api('/api/employee/channels')).channels; } catch (e) { $('view').innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
     if (!chans.length) { $('view').innerHTML = '<div class="card empty">You have not been added to any channels yet. The admin can add you to a team channel.</div>'; return; }
     const spaces = [...new Set(chans.map(c => c.space_name || 'General'))];
-    chatLayout(spaces.map(s => `<h5>${esc(s)}</h5>${chans.filter(c => (c.space_name || 'General') === s).map(c => `<button data-id="${esc(c.id)}"><span class="muted">#</span> ${esc(c.name)}</button>`).join('')}`).join(''), () => {
+    chatLayout(spaces.map(s => `<h5>${esc(s)}</h5>${chans.filter(c => (c.space_name || 'General') === s).map(c => `<button data-id="${esc(c.id)}"><span class="muted">#</span> ${esc(c.name)}<i class="rc-badge" data-bch="${esc(c.id)}" hidden></i></button>`).join('')}`).join(''), () => {
       document.querySelectorAll('#clist button').forEach(b => b.onclick = () => {
         stopPane(); document.querySelectorAll('#clist button').forEach(x => x.classList.toggle('on', x === b));
         const c = chans.find(x => x.id === b.dataset.id);
-        pane = MB.chatPane($('cpane'), { title: '# ' + c.name, load: () => MB.api('/api/messages/channel/' + encodeURIComponent(c.id)),
-          send: text => MB.api('/api/messages/channel', { method: 'POST', body: { channel_id: c.id, text } }), norm: m => ({ id: m.id, uid: m.author_id, name: m.author_name, text: m.text, ts: m.timestamp }) });
+        const inst = MB.chat.mount($('cpane'), { kind: 'channel', id: c.id, title: '# ' + c.name }); pane = { stop: () => inst.close() };
       });
       document.querySelector('#clist button').click();
     });
@@ -106,13 +116,12 @@
     let cs; try { cs = (await MB.api('/api/employee/contacts')).contacts; } catch (e) { $('view').innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
     if (!cs.length) { $('view').innerHTML = '<div class="card empty">No one to message yet.</div>'; return; }
     const admins = cs.filter(c => c.role === 'admin'), team = cs.filter(c => c.role !== 'admin');
-    const btn = c => `<button data-id="${esc(c.id)}">${MB.avatar(c.name)} ${esc(c.name)}${c.role === 'admin' ? ' <span class="muted">· Admin</span>' : ''}</button>`;
+    const btn = c => `<button data-id="${esc(c.id)}">${MB.avatar(c.name)} ${esc(c.name)}${c.role === 'admin' ? ' <span class="muted">· Admin</span>' : ''}<span class="cdot off" data-dot="${esc(c.id)}"></span><i class="rc-badge" data-bdm="${esc(c.id)}" hidden></i></button>`;
     chatLayout((admins.length ? '<h5>Admin</h5>' + admins.map(btn).join('') : '') + (team.length ? '<h5>Teammates</h5>' + team.map(btn).join('') : ''), () => {
       document.querySelectorAll('#clist button').forEach(b => b.onclick = () => {
         stopPane(); document.querySelectorAll('#clist button').forEach(x => x.classList.toggle('on', x === b));
         const c = cs.find(x => x.id === b.dataset.id);
-        pane = MB.chatPane($('cpane'), { title: c.name, load: () => MB.api('/api/messages/dm/' + encodeURIComponent(c.id)),
-          send: text => MB.api('/api/messages/dm', { method: 'POST', body: { to_id: c.id, text } }), norm: m => ({ id: m.id, uid: m.from_id, name: m.from_name, text: m.text, ts: m.timestamp }) });
+        const inst = MB.chat.mount($('cpane'), { kind: 'dm', id: c.id, peerId: c.id, title: c.name }); pane = { stop: () => inst.close() };
       });
       document.querySelector('#clist button').click();
     });
