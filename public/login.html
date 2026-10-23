@@ -42,7 +42,11 @@ function toPortal(role, token) {
       const r = await MB.api('/api/auth/login', { method: 'POST', body: { email: f.email.value, password: f.password.value }, noRedirect: true });
       MB.setSession(r.token, r.user);
       toPortal(r.user.role, r.token);   // admin → admin.mediabeem.com, employee → employee.mediabeem.com, client → client.mediabeem.com
-    } catch (e) { err.textContent = e.message; err.style.display = 'block'; go.disabled = false; go.textContent = 'Login'; }
+    } catch (e) {
+      // say what actually happened: wrong details, locked out, deactivated, or the API being unreachable
+      err.textContent = e.offline ? 'Cannot reach the server. Check your connection and try again. (API: ' + ((window.MB_CONFIG || {}).API_BASE || '?') + ')' : e.status === 401 ? 'Invalid email or password. If you were given a temporary password, copy it exactly or ask your admin to reset it.' : e.message;
+      err.style.display = 'block'; go.disabled = false; go.textContent = 'Login';
+    }
   });
 })();
 </script>

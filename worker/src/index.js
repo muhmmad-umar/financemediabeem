@@ -124,7 +124,8 @@ async function login(req, env) {
   const u = await env.DB.prepare('SELECT * FROM users WHERE email=?').bind(em).first();
   // verify even for unknown emails so response time does not reveal whether an account exists
   const ok = await verifyPassword(String(password), u ? u.password_hash : 'pbkdf2$100000$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
-  if (!u || !ok || !u.active) {
+  if (u && ok && !u.active) throw new HttpError(403, 'This account has been deactivated — ask your admin to reactivate it');   // only said to someone who knows the password, so it reveals nothing
+  if (!u || !ok) {
     await env.DB.prepare('INSERT INTO login_attempts (email, ts) VALUES (?,?)').bind(em, Date.now()).run();
     throw new HttpError(401, 'Invalid email or password');
   }
