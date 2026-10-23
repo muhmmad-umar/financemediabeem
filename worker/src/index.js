@@ -183,7 +183,7 @@ const COLLECTIONS = {
   personal_income: { t: 'personal_income', cols: ['amount', 'source', 'date', 'notes'], row: e => [num(e.amount), str(e.source), str(e.date), str(e.note)] },
   personal_withdrawals: { t: 'personal_withdrawals', cols: ['amount', 'date', 'note'], row: e => [num(e.amount), str(e.date), str(e.note)] },
 };
-const SETTING_KEYS = ['data_version', 'cu_migrated', 'cu_nofolders', 'allah_share_credit'];
+const SETTING_KEYS = ['data_version', 'cu_migrated', 'cu_nofolders', 'allah_share_credit', 'allah_share_credit_manual', 'allah_share_credit_manual_at', 'allah_share_credit_last'];
 /** collections that portal users can also change — the admin app polls these */
 const SHARED_KEYS = ['cu_tasks', 'cu_subtasks', 'cu_comments', 'cu_time_logs'];
 

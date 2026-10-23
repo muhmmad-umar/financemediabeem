@@ -13,7 +13,8 @@
     "deploy:api": "wrangler deploy -c worker/wrangler.toml",
     "deploy:pages": "wrangler pages deploy public --project-name mediabeem-pages",
     "deploy": "npm run db:migrate && npm run deploy:api && npm run deploy:pages",
-    "dev:web": "node scripts/dev-static.mjs"
+    "dev:web": "node scripts/dev-static.mjs",
+    "test:allah": "node scripts/test-allah-credit.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

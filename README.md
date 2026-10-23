@@ -91,3 +91,8 @@ npm run dev:web                           # frontend on :8080 (clean URLs: /admi
 * A **Voluntary** payment first settles the remaining obligation (all-time); anything above that becomes **credit** (`credit_added`). The form previews "₨X applied to obligation, ₨Y added to credit balance".
 * When later income raises the obligation, credit is used automatically (first, before anything shows as owed) and each use appears in the history as a golden **Credit Applied** row (`credit_applied`) with the income period it covered. Remaining = Owed − Paid − Credit applied; the credit rows hide when there is no credit.
 * Stored in D1: `allah_share_payments` gains `kind`, `obligated_part`, `credit_added`, `credit_applied`; the running balance is `app_settings.allah_share_credit`. Needs migration `0005_allah_credit.sql` and a Worker deploy (`npm run db:migrate && npm run deploy:api`). Old voluntary payments keep their original meaning (pure extra giving).
+
+### Credit balance — where it comes from and how to check it
+* Credit = (a) the excess of a voluntary payment over the remaining obligation, plus (b) any obligated payments above what is owed, plus (c) a manual adjustment: if `app_settings.allah_share_credit` is edited directly in D1 the app notices that it no longer matches what it last wrote (`allah_share_credit_last`) and adds the difference as a manual credit.
+* Dashboard and Allah's Share page show the credit row whenever the balance is above ₨0 (and the "You're ahead!" banner when it covers the whole obligation). `npm run test:allah` verifies this end to end, including the ₨5,000 database test.
+* Needs migrations `0005` + `0006` and a Worker deploy so the extra settings keys sync.

@@ -197,6 +197,7 @@ html[data-theme="light"] .tre{color:#6b7280}
 html[data-theme="light"] .pk{border-bottom:1px solid #e5e7eb}
 html[data-theme="light"] .pk span{color:#6b7280}
 html[data-theme="light"] .chat-embed{background:#f8f9fa;border:1px solid #e5e7eb}
+html[data-theme="light"] .dash-credit .value, html[data-theme="light"] .dash-credit .label{color:#867127 !important}
 html[data-theme="light"] .ptype label.on{border-color:#dffbf9}
 html[data-theme="light"] .dash-vol .value{color:#867127}
 html[data-theme="light"] .overlay{background:rgba(227,233,247,.55)}

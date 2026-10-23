@@ -373,6 +373,8 @@ main:not(.cu) .fab{display:none}
 .fcustom label{font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:8px}
 .fcustom input{width:auto}
 .badge{white-space:nowrap}
+.dash-credit{background:rgba(255,229,138,.18);border:1px solid rgba(255,229,138,.6);border-radius:12px;padding:8px 12px;margin:-8px 0}.dash-credit .value,.dash-credit .label{color:#ffe58a !important}
+.trk-row.credit b{font-size:20px}
 .b-credit{background:#fef3c7;color:#92400e;border:1px solid #f4d36b}.credit-txt{color:#b7791f;font-weight:700}.credit-note{font-size:12px;color:#a16207;margin-top:2px}
 .trk-row.credit{background:linear-gradient(90deg,#fffbeb,#fef3c7);border:1px solid #f4d36b;border-radius:10px;padding:10px 14px;margin:6px 0;color:#92400e}.trk-row.credit small{display:block;font-size:11px;font-weight:500;color:#a16207;margin-top:2px}.trk-row.credit b{color:#15803d}
 .credit-ahead{margin-top:10px;padding:10px 14px;border-radius:10px;background:linear-gradient(90deg,#14532d,#166534);color:#fef3c7;font-weight:600;font-size:14px}
@@ -684,7 +686,7 @@ tfoot td{border-top:1px solid #2a2a2a}
    The app below was written against localStorage. `store` keeps the same getItem/setItem interface, but is backed by
    Cloudflare D1: setItem() diffs the collection against the last server snapshot and POSTs only the changes. */
 const SYNC_KEYS = ['income_entries','invoices','charity_expenses','expenses','personal_expenses','personal_income','personal_withdrawals','recurring_alerts','employees','salary_payments','employee_leaves','clients','cu_spaces','cu_lists','cu_tasks','cu_subtasks','cu_comments','cu_time_logs','cu_messages','channels','resource_folders','resource_files'];
-const SETTING_KEYS = ['data_version','cu_migrated','cu_nofolders','allah_share_credit'];
+const SETTING_KEYS = ['data_version','cu_migrated','cu_nofolders','allah_share_credit','allah_share_credit_manual','allah_share_credit_manual_at','allah_share_credit_last'];
 const SHARED_KEYS = ['cu_tasks','cu_subtasks','cu_comments','cu_time_logs'];
 const slugOf = s => String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const syncId = (key, it) => key === 'recurring_alerts' ? 'ra-' + slugOf(it.client_name) : String(it.id);
@@ -759,7 +761,7 @@ const load = (k) => { try { return JSON.parse(store.getItem(k)); } catch(e){ ret
 const save = () => {
   syncIncome(); reconcileCredit();
   try {
-    store.setItem('allah_share_credit', String(allahCredit));
+    persistCredit();
     store.setItem(K.inc, JSON.stringify(income));
     store.setItem(K.inv, JSON.stringify(invoices));
     store.setItem(K.ch, JSON.stringify(charity));
@@ -843,16 +845,33 @@ const r2 = n => Math.round(n * 100) / 100;
 const oblPart = c => c.type === 'voluntary' ? (+c.obligated_part || 0) : c.type === 'credit' ? 0 : (+c.amount || 0);   // cash that settled the obligation
 const credAdded = c => c.type === 'voluntary' ? (+c.credit_added || 0) : 0;
 let allahCredit = 0;   // running credit balance (stored in D1 as app_settings 'allah_share_credit')
+let allahManual = 0, allahManualAt = '';   // credit added outside the payment ledger (e.g. edited straight in the database)
+/* The balance is persisted as app_settings.allah_share_credit and read back on every load. If that stored value no longer
+   matches what the app last wrote (…_last), someone changed it directly → the difference becomes a manual credit adjustment. */
+function loadCreditSettings(){
+  const num = k => { const v = parseFloat(store.getItem(k)); return Number.isFinite(v) ? v : null; };
+  const stored = num('allah_share_credit'), last = num('allah_share_credit_last');
+  allahManual = Math.max(0, num('allah_share_credit_manual') || 0); allahManualAt = store.getItem('allah_share_credit_manual_at') || '';
+  if (stored !== null && last !== null && Math.abs(stored - last) > 0.005) { allahManual = Math.max(0, r2(allahManual + stored - last)); allahManualAt = today(); }
+  if (allahManual <= 0.005) { allahManual = 0; allahManualAt = ''; }
+}
+function persistCredit(){
+  store.setItem('allah_share_credit', String(allahCredit)); store.setItem('allah_share_credit_last', String(allahCredit));
+  store.setItem('allah_share_credit_manual', String(allahManual)); store.setItem('allah_share_credit_manual_at', allahManualAt);
+}
 function creditLedger(){
   const inc = {}, exp = {}, pays = {};
   received().forEach(e => { inc[e.date] = (inc[e.date] || 0) + e.received_amount; });
   expenses.forEach(e => { exp[e.date] = (exp[e.date] || 0) + e.amount; });
   charity.filter(c => c.type !== 'credit').forEach(c => { (pays[c.date] = pays[c.date] || []).push(c); });
   const dates = [...new Set([...Object.keys(inc), ...Object.keys(exp), ...Object.keys(pays)])].sort();
+  if (allahManual > 0.005 && allahManualAt) { if (!dates.includes(allahManualAt)) dates.push(allahManualAt); dates.sort(); }   // a credit entered by hand joins the pool on the day it was entered
   let cum = 0, xPrev = 0, unpaid = 0, pool = 0; const events = [];
   dates.forEach(d => {
     cum += (inc[d] || 0) - (exp[d] || 0); const x = allahOf(cum), dx = x - xPrev; xPrev = x; unpaid += dx;   // new obligation from income that day
     (pays[d] || []).forEach(c => { unpaid -= oblPart(c); pool += credAdded(c); });
+    if (d === allahManualAt) pool += allahManual;
+    if (unpaid < -0.005) { pool += -unpaid; unpaid = 0; }   // paid more than is owed → the excess is credit
     if (unpaid > 0.005 && pool > 0.005) { const used = r2(Math.min(pool, unpaid)); unpaid -= used; pool -= used; events.push({date:d, used, income:dx > 0.005}); }
   });
   return {events, balance:r2(pool)};
@@ -916,7 +935,7 @@ function init(){
   else { recurring = []; [...invoices].sort((a, b) => a.date.localeCompare(b.date)).forEach(recOnInvoice); save(); }   // first time: build reminders from existing invoices
   clients.forEach(c => { if (!c.clientType) c.clientType = recFind(c.company) ? 'retainer' : 'onetime'; });   // before client types: clients with a reminder were effectively retainers
   backfillNote = backfillInvoiceLinks();
-  syncIncome(); reconcileCredit();
+  loadCreditSettings(); syncIncome(); reconcileCredit(); persistCredit();
 }
 
 /* ========= Date filter (shared by every tab, defaults to This Month) ========= */
@@ -1285,17 +1304,19 @@ function vDashboard(t){
   ${remindersPanel()}
   ${taskAlertsPanel()}
   <div class="card allah-card" style="margin-bottom:16px">
-    <div class="grid g3" style="gap:20px">
-      <div><div class="label">🤲 Allah's Share Owed (10% of net)</div><div class="value" style="font-size:30px">${fmt(t.allahTotal)}</div></div>
+    <div class="label" style="font-size:13px;letter-spacing:.1em;margin-bottom:10px">🕌 ALLAH'S SHARE</div>
+    <div class="grid ${t.creditBalance > 0 ? 'g4' : 'g3'}" style="gap:20px" id="dashAllah">
+      <div><div class="label">Owed (10% of net)</div><div class="value" style="font-size:30px">${fmt(t.allahTotal)}</div></div>
       <div><div class="label">Paid (Obligated)</div><div class="value" style="font-size:30px">${fmt(t.given)}</div></div>
-      <div><div class="label">Remaining Obligation</div><div class="value" style="font-size:30px">${fmt(Math.max(0, t.remaining))}</div></div>
+      ${t.creditBalance > 0 ? `<div class="dash-credit"><div class="label">Credit Balance ✨</div><div class="value" style="font-size:30px">${fmt(t.creditBalance)}</div></div>` : ''}
+      <div><div class="label">Remaining</div><div class="value" style="font-size:30px">${fmt(Math.max(0, t.remaining))}</div></div>
     </div>
     <div class="bar"><div style="width:${t.pct}%"></div></div>
     <div class="grid g2" style="gap:14px;margin-top:16px">
       <div class="dash-vol"><div class="label">✨ Extra Given Voluntarily</div><div class="value" style="font-size:24px">${fmt(t.voluntary)}</div><div class="sub">Given beyond obligation — from the heart</div></div>
       <div class="dash-vol total"><div class="label">Total Given in Allah's Way</div><div class="value" style="font-size:24px">${fmt(t.totalGiven)}</div><div class="sub">Obligated + voluntary</div></div>
     </div>
-    ${t.creditBalance > 0 ? `<div class="credit-ahead" style="margin-top:12px">✨ Credit Balance (Overpaid): ${fmt(t.creditBalance)}${t.remaining <= 0 ? " — you're ahead! It carries forward" : ''}</div>` : ''}
+    ${t.creditBalance > 0 && t.remaining <= 0 ? `<div class="credit-ahead" style="margin-top:12px">You're ahead! ✨ Credit of ${fmt(t.creditBalance)} carries forward</div>` : ''}
     <div class="sub" style="margin-top:12px">Based on ${fmt(t.totalIn)} received so far · ${t.pct.toFixed(1)}% of Allah's Share paid${t.remaining <= 0 ? ' · All Clear ✓' : ''}</div>
   </div>
   <div class="grid g-main">
@@ -1642,7 +1663,7 @@ function vAllah(t){
     <div class="trk-row"><span>Total Owed (10% of Net Profit) · ${periodLabel()}:</span><b>${fmt(t.allahTotal)}</b></div>
     <div class="trk-row"><span>Total Paid (Obligated):</span><b style="color:var(--green)">${fmt(t.given)}</b></div>
     ${t.creditApplied > 0 ? `<div class="trk-row credit"><span>✨ Credit Applied<small>Earlier overpayment, used against this period's obligation</small></span><b>− ${fmt(t.creditApplied)}</b></div>` : ''}
-    ${t.creditBalance > 0 ? `<div class="trk-row credit"><span>✨ Credit Balance (Overpaid)<small>Carries forward — used automatically when new income raises the obligation</small></span><b>${fmt(t.creditBalance)}</b></div>` : ''}
+    ${t.creditBalance > 0 ? `<div class="trk-row credit" id="creditRow"><span>✨ Credit Balance (Overpaid)<small>Carries forward — used automatically when new income raises the obligation${allahManual > 0 ? ' · includes ' + fmt(allahManual) + ' added manually' : ''}</small></span><b>${fmt(t.creditBalance)}</b></div>` : ''}
     <div class="trk-row last"><span>Remaining Obligation:</span><b class="trk-rem">${fmt(Math.max(0, t.remaining))}</b></div>
     ${clear && t.creditBalance > 0 ? `<div class="credit-ahead">You're ahead! ✨ Credit of ${fmt(t.creditBalance)} carries forward</div>` : ''}
     <div class="trk-bar"><div style="width:${pct}%"></div></div>
