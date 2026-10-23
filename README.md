@@ -86,3 +86,8 @@ npm run dev:web                           # frontend on :8080 (clean URLs: /admi
 * Every portal has a 🌙 / ☀️ button (top bar, far right; in the admin Tasks view, where the top bar is hidden, use the one next to *Log out*). The choice is saved per portal in `localStorage` (`mb_theme_admin`, `mb_theme_employee`, `mb_theme_client`) and applied before first paint. Defaults: admin + employee dark, client light. The login page is always dark.
 * Tokens live in `public/theme.css` (dark: `#0d0d0d / #1a1a1a / #1e1e1e / #fff`, light: `#f8f9fa / #fff / #fff / #111827`). The admin app's hard-coded colours are mapped to the light palette by `scripts/gen-light-theme.py`, which writes `public/admin-light.css` — **re-run it after editing the admin CSS**.
 * Chart.js axis/grid colours follow the theme and charts are rebuilt on switch.
+
+## Allah's Share — overpayment credit
+* A **Voluntary** payment first settles the remaining obligation (all-time); anything above that becomes **credit** (`credit_added`). The form previews "₨X applied to obligation, ₨Y added to credit balance".
+* When later income raises the obligation, credit is used automatically (first, before anything shows as owed) and each use appears in the history as a golden **Credit Applied** row (`credit_applied`) with the income period it covered. Remaining = Owed − Paid − Credit applied; the credit rows hide when there is no credit.
+* Stored in D1: `allah_share_payments` gains `kind`, `obligated_part`, `credit_added`, `credit_applied`; the running balance is `app_settings.allah_share_credit`. Needs migration `0005_allah_credit.sql` and a Worker deploy (`npm run db:migrate && npm run deploy:api`). Old voluntary payments keep their original meaning (pure extra giving).

@@ -155,7 +155,8 @@ const COLLECTIONS = {
   expenses: { t: 'expenses', cols: ['amount', 'category', 'vendor', 'date', 'description'], row: e => [num(e.amount), str(e.category), str(e.vendor), str(e.date), str(e.description)] },
   invoices: { t: 'invoices', cols: ['client_id', 'total_amount', 'received_amount', 'remaining', 'status', 'issue_date', 'expected_date', 'client_type'],
     row: e => { const rec = sum(paymentsOf(e), p => p.amount); return [str(e.clientId), num(e.total_amount), rec, Math.max(0, (+e.total_amount || 0) - rec), invoiceStatus(e), str(e.date), str(e.expectedBy), str(e.clientType)]; } },
-  charity_expenses: { t: 'allah_share_payments', cols: ['amount', 'type', 'given_to', 'date', 'notes'], row: e => [num(e.amount), e.type === 'voluntary' ? 'voluntary' : 'obligated', str(e.cause), str(e.date), str(e.notes)] },
+  charity_expenses: { t: 'allah_share_payments', cols: ['amount', 'type', 'given_to', 'date', 'notes', 'kind', 'obligated_part', 'credit_added', 'credit_applied'],
+    row: e => [num(e.amount), e.type === 'voluntary' ? 'voluntary' : 'obligated', str(e.cause), str(e.date), str(e.notes), e.type === 'credit' ? 'credit_applied' : 'payment', e.type === 'voluntary' ? num(e.obligated_part) : null, e.type === 'voluntary' ? (+e.credit_added || 0) : 0, e.type === 'credit' ? (+e.credit_applied || +e.amount || 0) : 0] },
   recurring_alerts: { t: 'recurring_alerts', cols: ['client_id', 'frequency_days', 'last_invoice_date', 'next_alert_date', 'active'], id: e => 'ra-' + slug(e.client_name),
     row: e => [str(e.client_id), num(e.frequency_days), str(e.last_invoice_date), str(e.next_alert_date), e.active ? 1 : 0] },
   employees: { t: 'employees', cols: ['name', 'role', 'salary', 'join_date', 'bank_name', 'account_number', 'phone', 'email', 'status'],
@@ -182,7 +183,7 @@ const COLLECTIONS = {
   personal_income: { t: 'personal_income', cols: ['amount', 'source', 'date', 'notes'], row: e => [num(e.amount), str(e.source), str(e.date), str(e.note)] },
   personal_withdrawals: { t: 'personal_withdrawals', cols: ['amount', 'date', 'note'], row: e => [num(e.amount), str(e.date), str(e.note)] },
 };
-const SETTING_KEYS = ['data_version', 'cu_migrated', 'cu_nofolders'];
+const SETTING_KEYS = ['data_version', 'cu_migrated', 'cu_nofolders', 'allah_share_credit'];
 /** collections that portal users can also change — the admin app polls these */
 const SHARED_KEYS = ['cu_tasks', 'cu_subtasks', 'cu_comments', 'cu_time_logs'];
 

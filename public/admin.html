@@ -373,6 +373,9 @@ main:not(.cu) .fab{display:none}
 .fcustom label{font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:8px}
 .fcustom input{width:auto}
 .badge{white-space:nowrap}
+.b-credit{background:#fef3c7;color:#92400e;border:1px solid #f4d36b}.credit-txt{color:#b7791f;font-weight:700}.credit-note{font-size:12px;color:#a16207;margin-top:2px}
+.trk-row.credit{background:linear-gradient(90deg,#fffbeb,#fef3c7);border:1px solid #f4d36b;border-radius:10px;padding:10px 14px;margin:6px 0;color:#92400e}.trk-row.credit small{display:block;font-size:11px;font-weight:500;color:#a16207;margin-top:2px}.trk-row.credit b{color:#15803d}
+.credit-ahead{margin-top:10px;padding:10px 14px;border-radius:10px;background:linear-gradient(90deg,#14532d,#166534);color:#fef3c7;font-weight:600;font-size:14px}
 .b-obl{background:#ccfbf1;color:#0f766e}.b-vol{background:#fef3c7;color:#92400e;border:1px solid #f4d36b}
 .vol-txt{color:#b7791f;font-weight:600}
 .trk-hr{border:0;border-top:1px solid var(--line);margin:12px 0}
@@ -557,6 +560,7 @@ tfoot td{border-top:1px solid #2a2a2a}
 /* tracker / allah's share */
 .trk-row{border-bottom-color:#2a2a2a}
 .trk-row.vol{background:#2a2210;border-color:#78560f;color:#f4c542}.trk-row.vol small{color:#d9a441}.trk-row.vol b{color:#f59e0b}
+.trk-row.credit{background:#2a2210;border-color:#78560f;color:#f4c542}.trk-row.credit small{color:#d9a441}.trk-row.credit b{color:#4ade80}.b-credit{background:#451a03;color:#f4c542;border:0}.credit-txt{color:#f4c542}.credit-note{color:#d9a441}
 .trk-row.total b{color:#22c55e}
 .trk-hr{border-top-color:#2a2a2a}
 .quote{background:#241f10;color:#e9c46a;border-left-color:#d4a017}.quote span{color:#b8913a}
@@ -680,7 +684,7 @@ tfoot td{border-top:1px solid #2a2a2a}
    The app below was written against localStorage. `store` keeps the same getItem/setItem interface, but is backed by
    Cloudflare D1: setItem() diffs the collection against the last server snapshot and POSTs only the changes. */
 const SYNC_KEYS = ['income_entries','invoices','charity_expenses','expenses','personal_expenses','personal_income','personal_withdrawals','recurring_alerts','employees','salary_payments','employee_leaves','clients','cu_spaces','cu_lists','cu_tasks','cu_subtasks','cu_comments','cu_time_logs','cu_messages','channels','resource_folders','resource_files'];
-const SETTING_KEYS = ['data_version','cu_migrated','cu_nofolders'];
+const SETTING_KEYS = ['data_version','cu_migrated','cu_nofolders','allah_share_credit'];
 const SHARED_KEYS = ['cu_tasks','cu_subtasks','cu_comments','cu_time_logs'];
 const slugOf = s => String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const syncId = (key, it) => key === 'recurring_alerts' ? 'ra-' + slugOf(it.client_name) : String(it.id);
@@ -753,8 +757,9 @@ const K = {inc:'income_entries', inv:'invoices', ch:'charity_expenses', exp:'exp
   cl:'clients', cus:'cu_spaces', cul:'cu_lists', cut:'cu_tasks', cusb:'cu_subtasks', cuc:'cu_comments', cutl:'cu_time_logs', cum:'cu_messages', chn:'channels', chm:'channels_messages', rsf:'resource_folders', rsi:'resource_files'};
 const load = (k) => { try { return JSON.parse(store.getItem(k)); } catch(e){ return null; } };
 const save = () => {
-  syncIncome();
+  syncIncome(); reconcileCredit();
   try {
+    store.setItem('allah_share_credit', String(allahCredit));
     store.setItem(K.inc, JSON.stringify(income));
     store.setItem(K.inv, JSON.stringify(invoices));
     store.setItem(K.ch, JSON.stringify(charity));
@@ -830,7 +835,39 @@ const incLabel = e => `${fmt(e.total_amount)} total / <b style="color:var(--gree
 /* every payment actually received, dated when it came in */
 const rcv = () => received().filter(e => inRange(e.date));
 const expensesIn = () => expenses.filter(e => inRange(e.date));
-const cType = c => c.type === 'voluntary' ? 'voluntary' : 'obligated';   // payments without a type are obligated
+const cType = c => c.type === 'voluntary' ? 'voluntary' : c.type === 'credit' ? 'credit' : 'obligated';   // payments without a type are obligated
+/* ----- Allah's Share credit -----
+   A voluntary payment first settles the remaining obligation (obligated_part); the excess becomes credit (credit_added).
+   When income later raises the obligation, credit is used automatically — each use is an auto-generated type:'credit' row. */
+const r2 = n => Math.round(n * 100) / 100;
+const oblPart = c => c.type === 'voluntary' ? (+c.obligated_part || 0) : c.type === 'credit' ? 0 : (+c.amount || 0);   // cash that settled the obligation
+const credAdded = c => c.type === 'voluntary' ? (+c.credit_added || 0) : 0;
+let allahCredit = 0;   // running credit balance (stored in D1 as app_settings 'allah_share_credit')
+function creditLedger(){
+  const inc = {}, exp = {}, pays = {};
+  received().forEach(e => { inc[e.date] = (inc[e.date] || 0) + e.received_amount; });
+  expenses.forEach(e => { exp[e.date] = (exp[e.date] || 0) + e.amount; });
+  charity.filter(c => c.type !== 'credit').forEach(c => { (pays[c.date] = pays[c.date] || []).push(c); });
+  const dates = [...new Set([...Object.keys(inc), ...Object.keys(exp), ...Object.keys(pays)])].sort();
+  let cum = 0, xPrev = 0, unpaid = 0, pool = 0; const events = [];
+  dates.forEach(d => {
+    cum += (inc[d] || 0) - (exp[d] || 0); const x = allahOf(cum), dx = x - xPrev; xPrev = x; unpaid += dx;   // new obligation from income that day
+    (pays[d] || []).forEach(c => { unpaid -= oblPart(c); pool += credAdded(c); });
+    if (unpaid > 0.005 && pool > 0.005) { const used = r2(Math.min(pool, unpaid)); unpaid -= used; pool -= used; events.push({date:d, used, income:dx > 0.005}); }
+  });
+  return {events, balance:r2(pool)};
+}
+function reconcileCredit(){
+  const {events, balance} = creditLedger();
+  const next = events.map(ev => ({id:'cr-' + ev.date, type:'credit', kind:'credit_applied', date:ev.date, amount:ev.used, credit_applied:ev.used, cause:'Credit applied', period:monthKey(ev.date), income:ev.income, notes:'', auto:true}));
+  const cur = charity.filter(c => c.type === 'credit');
+  if (!(cur.length === next.length && cur.every((c, i) => c.id === next[i].id && c.amount === next[i].amount && c.income === next[i].income))) charity = [...charity.filter(c => c.type !== 'credit'), ...next];
+  allahCredit = balance;
+}
+function allahSplit(amount){   // how a voluntary payment divides: obligation first, remainder → credit
+  const R = Math.max(0, totals().allRemaining), applied = r2(Math.min(amount, R));
+  return {R, applied, credit:r2(amount - applied)};
+}
 const charityIn = () => charity.filter(c => inRange(c.date));
 const invoicesIn = () => invoices.filter(i => inRange(i.date));
 /* ledger rows for the period: invoices that received a payment in range, or were created in range with no payment yet */
@@ -852,7 +889,7 @@ function init(){
   }
   income = load(K.inc); invoices = load(K.inv); charity = load(K.ch); expenses = load(K.exp);
   [income, invoices, charity, expenses] = [income, invoices, charity, expenses].map(a => Array.isArray(a) ? a : []);
-  charity.forEach(c => { if (c.type !== 'voluntary') c.type = 'obligated'; });
+  charity.forEach(c => { if (c.type !== 'voluntary' && c.type !== 'credit') c.type = 'obligated'; });
   [personalExp, personalInc, personalWd] = [load(K.pe), load(K.pi), load(K.pw)].map(a => Array.isArray(a) ? a : []);
   if (ver !== DATA_VERSION) {   // merge the old separate income entries + invoices into single invoice records
     const direct = income.filter(e => !e.invoiceId);
@@ -879,7 +916,7 @@ function init(){
   else { recurring = []; [...invoices].sort((a, b) => a.date.localeCompare(b.date)).forEach(recOnInvoice); save(); }   // first time: build reminders from existing invoices
   clients.forEach(c => { if (!c.clientType) c.clientType = recFind(c.company) ? 'retainer' : 'onetime'; });   // before client types: clients with a reminder were effectively retainers
   backfillNote = backfillInvoiceLinks();
-  syncIncome();
+  syncIncome(); reconcileCredit();
 }
 
 /* ========= Date filter (shared by every tab, defaults to This Month) ========= */
@@ -1090,17 +1127,19 @@ function totals(){
   const totalIn = sum(rec, e => e.received_amount), totalExp = sum(expensesIn(), e => e.amount);
   const net = totalIn - totalExp;
   const allahTotal = allahOf(net), chIn = charityIn();
-  const given = sum(chIn.filter(c => cType(c) === 'obligated'), c => c.amount);   // only obligated payments reduce what is owed
-  const voluntary = sum(chIn.filter(c => cType(c) === 'voluntary'), c => c.amount);
+  const pay = chIn.filter(c => c.type !== 'credit');
+  const given = sum(pay, oblPart);   // cash that settled the obligation (obligated payments + the applied part of voluntary ones)
+  const voluntary = sum(pay.filter(c => c.type === 'voluntary'), c => Math.max(0, c.amount - oblPart(c) - credAdded(c)));   // legacy "extra" gifts
+  const creditAdded = sum(pay, credAdded), creditApplied = sum(chIn.filter(c => c.type === 'credit'), c => c.amount);
   const netAll = sum(received(), e => e.received_amount) - sum(expenses, e => e.amount);
   return {
     invoiced: sum(invs, i => i.total_amount),
     outstanding: sum(invs, invRemaining),
     overdueAmt: sum(invs.filter(i => invStatus(i) === 'overdue'), invRemaining),
     totalIn, totalExp, net,
-    mine: mineOf(net), allahTotal, given, voluntary, totalGiven: given + voluntary, remaining: allahTotal - given,
-    allRemaining: allahOf(netAll) - sum(charity.filter(c => cType(c) === 'obligated'), c => c.amount),
-    pct: allahTotal > 0 ? Math.min(100, given / allahTotal * 100) : 0
+    mine: mineOf(net), allahTotal, given, voluntary, creditAdded, creditApplied, creditBalance: allahCredit, totalGiven: sum(pay, c => c.amount), remaining: allahTotal - given - creditApplied,
+    allRemaining: allahOf(netAll) - sum(charity.filter(c => c.type !== 'credit'), oblPart) - sum(charity.filter(c => c.type === 'credit'), c => c.amount),
+    pct: allahTotal > 0 ? Math.min(100, (given + creditApplied) / allahTotal * 100) : 0
   };
 }
 
@@ -1256,6 +1295,7 @@ function vDashboard(t){
       <div class="dash-vol"><div class="label">✨ Extra Given Voluntarily</div><div class="value" style="font-size:24px">${fmt(t.voluntary)}</div><div class="sub">Given beyond obligation — from the heart</div></div>
       <div class="dash-vol total"><div class="label">Total Given in Allah's Way</div><div class="value" style="font-size:24px">${fmt(t.totalGiven)}</div><div class="sub">Obligated + voluntary</div></div>
     </div>
+    ${t.creditBalance > 0 ? `<div class="credit-ahead" style="margin-top:12px">✨ Credit Balance (Overpaid): ${fmt(t.creditBalance)}${t.remaining <= 0 ? " — you're ahead! It carries forward" : ''}</div>` : ''}
     <div class="sub" style="margin-top:12px">Based on ${fmt(t.totalIn)} received so far · ${t.pct.toFixed(1)}% of Allah's Share paid${t.remaining <= 0 ? ' · All Clear ✓' : ''}</div>
   </div>
   <div class="grid g-main">
@@ -1576,6 +1616,15 @@ function delInv(id){
 
 /* ----- Allah's Share tracker ----- */
 /* state: red = nothing paid yet, amber = partly paid, green = fully paid (remaining ≤ 0) */
+function charityRow(c){
+  if (c.type === 'credit') {
+    const why = c.income ? 'against ' + monthLabel(c.period) + ' income' : 'against the outstanding obligation';
+    return `<tr class="credit-row"><td>${fdate(c.date)}</td><td><span class="badge b-credit">✨ Credit Applied</span></td><td><b>${esc(c.cause)}</b><div class="muted" style="font-size:12px">${fmt(c.amount)} of credit used ${why}</div></td><td class="num credit-txt">${fmt(c.amount)}</td><td class="muted">Automatic — from an earlier overpayment</td><td></td></tr>`;
+  }
+  const vol = c.type === 'voluntary', split = vol && (c.obligated_part !== undefined || c.credit_added !== undefined);
+  const note = split ? `<div class="credit-note">${fmt(oblPart(c))} applied to obligation${credAdded(c) > 0 ? ' · ' + fmt(credAdded(c)) + ' added to credit' : ''}</div>` : '';
+  return `<tr><td>${fdate(c.date)}</td><td>${vol ? '<span class="badge b-vol">✨ Voluntary</span>' : '<span class="badge b-obl">Obligated</span>'}</td><td><b>${esc(c.cause)}</b></td><td class="num ${vol ? 'vol-txt' : 'gold-txt'}">${fmt(c.amount)}</td><td>${esc(c.notes)}${note}</td><td class="num"><button class="btn sm danger" onclick="delCharity('${c.id}')">✕</button></td></tr>`;
+}
 function allahState(t){ return t.remaining <= 0 ? 'green' : t.given <= 0 ? 'red' : 'amber'; }
 const af = {type:''};
 function vAllah(t){
@@ -1583,7 +1632,7 @@ function vAllah(t){
   const st = allahState(t), clear = t.remaining <= 0;
   const pct = t.allahTotal > 0 ? Math.min(100, t.given / t.allahTotal * 100) : (clear ? 100 : 0);
   const over = t.given - t.allahTotal;
-  const FL = {'':'Total shown (all payments)', obligated:'Total shown (obligated)', voluntary:'Total shown (voluntary)'};
+  const FL = {'':'Total shown (all payments)', obligated:'Total shown (obligated)', voluntary:'Total shown (voluntary)', credit:'Total shown (cash paid)'};
   return `
   <div class="card tracker ${st}" style="margin-bottom:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
@@ -1591,8 +1640,11 @@ function vAllah(t){
       ${clear ? '<span class="badge b-paid" style="font-size:13px;padding:5px 14px">All Clear ✓</span>' : ''}
     </div>
     <div class="trk-row"><span>Total Owed (10% of Net Profit) · ${periodLabel()}:</span><b>${fmt(t.allahTotal)}</b></div>
-    <div class="trk-row"><span>Paid (Obligated):</span><b style="color:var(--green)">${fmt(t.given)}</b></div>
+    <div class="trk-row"><span>Total Paid (Obligated):</span><b style="color:var(--green)">${fmt(t.given)}</b></div>
+    ${t.creditApplied > 0 ? `<div class="trk-row credit"><span>✨ Credit Applied<small>Earlier overpayment, used against this period's obligation</small></span><b>− ${fmt(t.creditApplied)}</b></div>` : ''}
+    ${t.creditBalance > 0 ? `<div class="trk-row credit"><span>✨ Credit Balance (Overpaid)<small>Carries forward — used automatically when new income raises the obligation</small></span><b>${fmt(t.creditBalance)}</b></div>` : ''}
     <div class="trk-row last"><span>Remaining Obligation:</span><b class="trk-rem">${fmt(Math.max(0, t.remaining))}</b></div>
+    ${clear && t.creditBalance > 0 ? `<div class="credit-ahead">You're ahead! ✨ Credit of ${fmt(t.creditBalance)} carries forward</div>` : ''}
     <div class="trk-bar"><div style="width:${pct}%"></div></div>
     <div class="sub" style="margin-top:8px">${pct.toFixed(1)}% of the obligation fulfilled (obligated payments only) · based on ${fmt(t.totalIn)} received so far</div>
     <div class="sub" style="margin-top:4px">${fmt(t.totalIn)} received − ${fmt(t.totalExp)} expenses = ${fmt(t.net)} net profit × 10%${t.net <= 0 ? ' (net profit is zero or negative → ₨ 0 owed)' : ''}</div>
@@ -1606,11 +1658,11 @@ function vAllah(t){
   </div>
   <div class="grid g-main">
     <div class="card"><h3>Payment History</h3>
-      <div class="psub" style="margin-bottom:12px">${[['','All'],['obligated','Obligated Only'],['voluntary','Voluntary Only']].map(([k,l]) => `<button class="${af.type === k ? 'on' : ''}" onclick="af.type='${k}';render()">${l}</button>`).join('')}</div>
+      <div class="psub" style="margin-bottom:12px">${[['','All'],['obligated','Obligated Only'],['voluntary','Voluntary Only'],['credit','Credit Applied']].map(([k,l]) => `<button class="${af.type === k ? 'on' : ''}" onclick="af.type='${k}';render()">${l}</button>`).join('')}</div>
       <div class="tablewrap"><table>
       <thead><tr><th>Date</th><th>Type</th><th>Given To / Cause</th><th class="num">Amount</th><th>Notes</th><th></th></tr></thead>
-      <tbody>${list.map(c => `<tr><td>${fdate(c.date)}</td><td>${cType(c) === 'voluntary' ? '<span class="badge b-vol">✨ Voluntary</span>' : '<span class="badge b-obl">Obligated</span>'}</td><td><b>${esc(c.cause)}</b></td><td class="num ${cType(c) === 'voluntary' ? 'vol-txt' : 'gold-txt'}">${fmt(c.amount)}</td><td>${esc(c.notes)}</td><td class="num"><button class="btn sm danger" onclick="delCharity('${c.id}')">✕</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">No Allah\'s Share payments found for this period</td></tr>'}</tbody>
-      <tfoot><tr><td colspan="3"><b>${FL[af.type]} · ${periodLabel()}</b></td><td class="num gold-txt"><b>${fmt(sum(list, c => c.amount))}</b></td><td colspan="2"></td></tr></tfoot>
+      <tbody>${list.map(charityRow).join('') || '<tr><td colspan="6" class="empty">No Allah\'s Share payments found for this period</td></tr>'}</tbody>
+      <tfoot><tr><td colspan="3"><b>${FL[af.type]} · ${periodLabel()}</b></td><td class="num gold-txt"><b>${fmt(sum(list.filter(c => c.type !== 'credit'), c => c.amount))}</b></td><td colspan="2" class="muted" style="font-size:12px">${list.some(c => c.type === 'credit') ? 'Credit rows are not new payments — they show earlier overpayment being used.' : ''}</td></tr></tfoot>
     </table></div></div>
     <div class="card"><h3>Obligated Paid vs Remaining</h3><div class="chart-box"><canvas id="cAllah"></canvas></div></div>
   </div>`;
@@ -1626,8 +1678,9 @@ function charityForm(){
       <label><input type="radio" name="type" value="voluntary" onchange="typeChanged(this)"><span>⬤ Voluntary<small>Extra, from the heart</small></span></label>
     </div>
     <div class="hint" id="typeNote">Remaining Obligation: <b>${fmt(Math.max(0, t.remaining))}</b> of ${fmt(t.allahTotal)} owed</div>
-    <div class="row2"><div class="field"><label>Amount Paid (₨)</label><input name="amount" type="number" min="1" step="any" required></div>
+    <div class="row2"><div class="field"><label>Amount Paid (₨)</label><input name="amount" type="number" min="1" step="any" required oninput="voluntaryPreview(this.form)"></div>
     <div class="field"><label>Date</label><input name="date" type="date" value="${today()}" required></div></div>
+    <div class="hint" id="splitNote" style="display:none"></div>
     <div class="field"><label>Given To / Cause</label><input name="cause" placeholder="e.g. Masjid, orphan, poor family" required></div>
     <div class="field"><label>Notes (optional)</label><textarea name="notes" rows="2"></textarea></div>
     <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn gold">Save Payment</button></div></form>`);
@@ -1636,16 +1689,27 @@ function charityForm(){
 function typeChanged(el){
   const vol = el.value === 'voluntary';
   el.closest('.ptype').querySelectorAll('label').forEach(l => l.classList.toggle('on', l.querySelector('input').checked));
-  $('typeNote').innerHTML = vol ? '✨ This will not reduce your remaining obligation.' : `Remaining Obligation: <b>${fmt(window._allahRem)}</b> of ${fmt(window._allahOwed)} owed`;
+  const R = Math.max(0, totals().allRemaining);
+  $('typeNote').innerHTML = vol ? `✨ Goes to your remaining obligation first (<b>${fmt(R)}</b> still owed, all time) — anything above that becomes a credit that is used automatically against future income.` : `Remaining Obligation: <b>${fmt(window._allahRem)}</b> of ${fmt(window._allahOwed)} owed`;
+  voluntaryPreview(el.form);
+}
+function voluntaryPreview(form){
+  const box = $('splitNote'); if (!box) return;
+  const vol = form.type.value === 'voluntary', amt = +form.amount.value;
+  if (!vol || !(amt > 0)) { box.style.display = 'none'; return; }
+  const sp = allahSplit(amt); box.style.display = ''; box.innerHTML = `<b>${fmt(sp.applied)}</b> applied to obligation, <b>${fmt(sp.credit)}</b> added to credit balance`;
 }
 function saveCharity(e){
   e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
   if (!(+f.amount > 0)) { alert('Enter the amount paid.'); return; }
-  const type = f.type === 'voluntary' ? 'voluntary' : 'obligated';
-  charity.push({id:uid(), type, amount:+f.amount, cause:f.cause.trim(), date:f.date, notes:(f.notes || '').trim()});
-  save(); closeModal(); render(); toast(type === 'voluntary' ? "Voluntary payment recorded ✨ — may Allah accept it" : "Allah's Share payment recorded — may Allah accept it 🤲");
+  const type = f.type === 'voluntary' ? 'voluntary' : 'obligated', rec = {id:uid(), type, amount:+f.amount, cause:f.cause.trim(), date:f.date, notes:(f.notes || '').trim()};
+  let sp = null;
+  if (type === 'voluntary') { sp = allahSplit(rec.amount); rec.obligated_part = sp.applied; rec.credit_added = sp.credit; }   // obligation first, the rest becomes credit
+  charity.push(rec);
+  save(); closeModal(); render();
+  toast(sp ? `${fmt(sp.applied)} applied to obligation, ${fmt(sp.credit)} added to credit balance ✨ — may Allah accept it` : "Allah's Share payment recorded — may Allah accept it 🤲");
 }
-function delCharity(id){ if (confirm("Delete this Allah's Share payment?")) { charity = charity.filter(c => c.id !== id); save(); render(); } }
+function delCharity(id){ const c = charity.find(x => x.id === id); if (!c || c.type === 'credit') return; if (confirm("Delete this Allah's Share payment?" + (credAdded(c) > 0 ? ' The credit it created is removed too.' : ''))) { charity = charity.filter(c => c.id !== id); save(); render(); } }
 
 /* ----- Reports ----- */
 function monthRows(){
@@ -1677,13 +1741,13 @@ function vReports(){
   </div>`;
 }
 function afterReports(){
-  const rows = monthRows(), ch = charityIn().filter(c => cType(c) === 'obligated'), ms = [...new Set([...rows.map(r => r.m), ...ch.map(c => monthKey(c.date))])].sort();
+  const rows = monthRows(), ch = charityIn().filter(c => c.type !== 'voluntary' || oblPart(c) > 0 || c.type === 'credit').filter(c => c.type !== 'credit'), ms = [...new Set([...rows.map(r => r.m), ...ch.map(c => monthKey(c.date))])].sort();
   const get = m => rows.find(r => r.m === m) || {inc:0, exp:0, net:0};
   chart('cMonthly', {type:'bar', data:{labels:ms.map(monthLabel), datasets:[
     {label:'Received', data:ms.map(m => get(m).inc), backgroundColor:'#7c3aed', borderRadius:4},
     {label:'Expenses', data:ms.map(m => get(m).exp), backgroundColor:'#06b6d4', borderRadius:4}]}, options:{...chartOpts, scales:{y:{ticks:{callback:axisFmt}}}}});
   let net = 0, g = 0; const cumA = [], cumG = [];
-  ms.forEach(m => { net += get(m).net; g += sum(ch.filter(c => monthKey(c.date) === m), c => c.amount); cumA.push(allahOf(net)); cumG.push(g); });
+  ms.forEach(m => { net += get(m).net; g += sum(ch.filter(c => monthKey(c.date) === m), oblPart); cumA.push(allahOf(net)); cumG.push(g); });
   chart('cCum', {type:'line', data:{labels:ms.map(monthLabel), datasets:[
     {label:"Allah's Share owed (10% of cumulative net)", data:cumA, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.15)', fill:true, tension:.3},
     {label:'Paid', data:cumG, borderColor:'#22c55e', tension:.3}]}, options:{...chartOpts, scales:{y:{ticks:{callback:axisFmt}}}}});
