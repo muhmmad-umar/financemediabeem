@@ -3151,7 +3151,7 @@ function vOnboarding(){
 }
 const ONB_FIELDS = [['full_name', 'Full name'], ['dob', 'Date of birth', 'date'], ['gender', 'Gender', ['Male', 'Female']], ['phone', 'Phone', 'tel'], ['email', 'Email', 'email'], ['cnic', 'CNIC'], ['address', 'Address'],
   ['emergency_name', 'Emergency contact'], ['emergency_phone', 'Emergency phone', 'tel'], ['emergency_relation', 'Relationship', ['Father', 'Mother', 'Spouse', 'Sibling', 'Other']],
-  ['bank_name', 'Bank', ['HBL', 'MCB', 'UBL', 'Meezan', 'Allied', 'Habib Metro', 'Standard Chartered', 'Other']], ['account_title', 'Account title'], ['account_number', 'Account number'], ['iban', 'IBAN (optional)'], ['payment_method', 'Payment method', ['Bank Transfer', 'EasyPaisa', 'JazzCash']]];
+  ['bank_name', 'Bank name'], ['account_title', 'Account title'], ['account_number', 'Account number'], ['iban', 'IBAN (optional)'], ['payment_method', 'Payment method', ['Bank Transfer', 'EasyPaisa', 'JazzCash']]];
 async function onbReview(id){
   let r; try { r = await MB.api('/api/admin/onboarding/submissions/' + id); } catch (e) { return toast(e.message); }
   const s = r.submission, ro = s.status !== 'pending', pro = proInfo({joinDate:s.start_date, salary:s.salary});

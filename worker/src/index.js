@@ -887,8 +887,8 @@ const DEFAULT_AGREEMENT = `<h2>Employment Agreement</h2>
 <p>This Employment Agreement is made between <b>Media Beem</b> ("the Company") and <b>{{employee_name}}</b> ("the Employee").</p>
 <h3>1. Position &amp; Compensation</h3>
 <p>The Employee is appointed as <b>{{designation}}</b> with effect from <b>{{start_date}}</b>. The Company shall pay the Employee a gross monthly salary of <b>{{salary}}</b>, payable through the payment method the Employee has provided, in accordance with the Company's payroll schedule. Salary for a part month is calculated pro-rata from the start date.</p>
-<h3>2. Probation</h3>
-<p>The first <b>{{probation_period}}</b> of employment form a probation period. During probation either party may end this agreement with written notice, and the Company may extend or confirm the appointment at the end of the period.</p>
+<h3>2. Probation Period</h3>
+<p>The Employee will serve a probation period of <b>{{probation_period}}</b> from the Start Date. During this probation period, both parties reserve the right to reassess the working relationship. The Company may choose to continue or discontinue employment based on performance, conduct, and business requirements. Similarly, the Employee may also choose to continue or discontinue their employment during this period. Upon completion of the probation period, a formal review will be conducted, after which the Company will communicate its decision to continue or conclude the employment arrangement.</p>
 <h3>3. Duties &amp; Conduct</h3>
 <p>The Employee shall perform the duties of the role diligently and in good faith, follow the Company's lawful instructions and policies, and act professionally with colleagues, clients and partners.</p>
 <h3>4. Working Hours &amp; Attendance</h3>
@@ -980,14 +980,14 @@ async function onbPublicInfo(req, env, token) {
     agreement: { content: t.agreement_content, version: t.agreement_version, probation_days: t.probation_days } };
 }
 const CNIC_RE = /^\d{5}-\d{7}-\d$/, EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const BANKS = ['HBL', 'MCB', 'UBL', 'Meezan', 'Allied', 'Habib Metro', 'Standard Chartered', 'Other'], RELATIONS = ['Father', 'Mother', 'Spouse', 'Sibling', 'Other'], METHODS = ['Bank Transfer', 'EasyPaisa', 'JazzCash'];
+const RELATIONS = ['Father', 'Mother', 'Spouse', 'Sibling', 'Other'], METHODS = ['Bank Transfer', 'EasyPaisa', 'JazzCash'];
 const isIsoDate = d => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d));
 /** one validator for both the employee's submission and the admin's edits */
 function validateOnb(b, { photoOptional = true } = {}) {
   const s = (k, max = 200) => String(b[k] ?? '').trim().slice(0, max);
   const v = { full_name: s('full_name', 120), dob: s('dob', 10), gender: s('gender', 10), phone: s('phone', 30), email: s('email', 160).toLowerCase(), address: s('address', 400), cnic: s('cnic', 15),
     emergency_name: s('emergency_name', 120), emergency_phone: s('emergency_phone', 30), emergency_relation: s('emergency_relation', 20),
-    bank_name: s('bank_name', 40), account_title: s('account_title', 120), account_number: s('account_number', 40), iban: s('iban', 40).toUpperCase().replace(/\s+/g, ''), payment_method: s('payment_method', 20) };
+    bank_name: s('bank_name', 60), account_title: s('account_title', 120), account_number: s('account_number', 40), iban: s('iban', 40).toUpperCase().replace(/\s+/g, ''), payment_method: s('payment_method', 20) };
   const need = (k, label) => { if (!v[k]) throw bad(label + ' is required'); };
   need('full_name', 'Full name');
   if (!isIsoDate(v.dob) || Date.parse(v.dob) > Date.now()) throw bad('Enter a valid date of birth');
@@ -999,7 +999,7 @@ function validateOnb(b, { photoOptional = true } = {}) {
   need('emergency_name', 'Emergency contact name');
   if (!/^[0-9+\-\s()]{7,20}$/.test(v.emergency_phone)) throw bad('Enter a valid emergency contact phone number');
   if (!RELATIONS.includes(v.emergency_relation)) throw bad('Select the emergency contact relationship');
-  if (!BANKS.includes(v.bank_name)) throw bad('Select a bank');
+  need('bank_name', 'Bank name');
   need('account_title', 'Account title'); need('account_number', 'Account number');
   if (v.iban && !/^[A-Z0-9]{15,34}$/.test(v.iban)) throw bad('IBAN looks invalid');
   if (!METHODS.includes(v.payment_method)) throw bad('Select a payment method');

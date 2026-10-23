@@ -86,7 +86,6 @@ var API = (window.MB_CONFIG && MB_CONFIG.API_BASE) || '';
 var token = new URLSearchParams(location.search).get('token') || '';
 var app = document.getElementById('app');
 var STEPS = ['Personal','Emergency','Bank','Agreement','Review'];
-var BANKS = ['HBL','MCB','UBL','Meezan','Allied','Habib Metro','Standard Chartered','Other'];
 var REL = ['Father','Mother','Spouse','Sibling','Other'];
 var METHODS = ['Bank Transfer','EasyPaisa','JazzCash'];
 var info = null, step = 1, F = {gender:'',payment_method:''}, photo = '', sig = '', agreed = false, scrolled = false, submitting = false;
@@ -159,7 +158,7 @@ function validate(n){
     if (!PHONE.test(F.emergency_phone||'')) bad.push(['emergency_phone','Enter a valid phone number']);
     need('emergency_relation','Select a relationship');
   } else if (n === 3) {
-    need('bank_name','Select a bank'); need('account_title'); need('account_number');
+    need('bank_name','Enter your bank name'); need('account_title'); need('account_number');
     if (F.iban && !/^[A-Za-z0-9 ]{15,40}$/.test(F.iban)) bad.push(['iban','IBAN looks too short or has invalid characters']);
     need('payment_method','Select a payment method');
   } else if (n === 4) {
@@ -200,7 +199,7 @@ function body(){
   if (step === 2) return '<h2>Emergency contact</h2><p class="lead">Someone we can reach if something happens.</p><div class="grid">'
     + inp('emergency_name','Contact name',{full:true,len:120}) + inp('emergency_phone','Contact phone',{type:'tel',mode:'tel'}) + sel('emergency_relation','Relationship',REL) + '</div>';
   if (step === 3) return '<h2>Bank details</h2><p class="lead">Where your salary will be paid.</p><div class="grid">'
-    + sel('bank_name','Bank name',BANKS) + inp('account_title','Account title',{len:120}) + inp('account_number','Account number',{mode:'numeric',len:40})
+    + inp('bank_name','Bank name',{ph:'e.g. HBL, Meezan Bank, MCB...',len:60}) + inp('account_title','Account title',{len:120}) + inp('account_number','Account number',{mode:'numeric',len:40})
     + inp('iban','IBAN',{opt:true,ph:'PK00 XXXX 0000 0000 0000 0000',len:40}) + radios('payment_method','Payment method',METHODS).replace('class="f"','class="f full"') + '</div>';
   if (step === 4) {
     var e = info.employee;
