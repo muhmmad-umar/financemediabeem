@@ -1354,7 +1354,7 @@ function vExpenses(t){
   <div class="card"><div class="muted" style="margin-bottom:10px">${Object.entries(byCat).sort((a,b) => b[1]-a[1]).map(([c,v]) => `${esc(c)}: <b>${fmt(v)}</b>`).join(' · ')}</div>
   <div class="tablewrap"><table>
     <thead><tr><th>Date</th><th>Category</th><th>Description</th><th class="num">Amount</th><th></th></tr></thead>
-    <tbody>${list.map(e => `<tr><td>${fdate(e.date)}</td><td>${esc(e.category)}</td><td>${esc(e.description)}</td><td class="num"><b>${fmt(e.amount)}</b></td><td class="num">${e.employee_id ? '<span class="muted" title="Remove it from the employee\'s Salary History">via Employees</span>' : `<button class="btn sm danger" onclick="delExpense('${e.id}')">✕</button>`}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">No expenses in this period</td></tr>'}</tbody>
+    <tbody>${list.map(e => `<tr><td>${fdate(e.date)}</td><td>${esc(e.category)}</td><td>${e.employee_id || e.salary_payment_id ? `<span class="badge b-due" title="Created from a salary payment">Salary — ${esc((empById(e.employee_id) || {}).name || 'Removed employee')}</span> ` : ''}${esc(e.description)}</td><td class="num"><b>${fmt(e.amount)}</b></td><td class="num"><button class="btn sm danger" title="Delete expense" onclick="delExpense('${e.id}')">🗑️ Delete</button></td></tr>`).join('') || '<tr><td colspan="5" class="empty">No expenses in this period</td></tr>'}</tbody>
   </table></div></div>`;
 }
 function expenseForm(){
@@ -1370,7 +1370,14 @@ function saveExpense(e){
   expenses.push({id:uid(), amount:+f.amount, date:f.date, category:f.category, description:f.description.trim()});
   save(); closeModal(); render(); toast('Expense added · net profit and shares updated');
 }
-function delExpense(id){ if (confirm('Delete this expense?')) { expenses = expenses.filter(x => x.id !== id); save(); render(); } }
+function delExpense(id){
+  const x = expenses.find(e => e.id === id); if (!x) return;
+  const pay = salaryPay.filter(p => p.expense_id === id || p.id === x.salary_payment_id), emp = empById(x.employee_id);
+  const msg = pay.length ? 'Delete this expense? It came from a salary payment' + (emp ? ' for ' + emp.name : '') + ', so that payment will also be removed from the salary history.' : 'Delete this expense? This cannot be undone.';
+  if (!confirm(msg)) return;
+  expenses = expenses.filter(e => e.id !== id); if (pay.length) salaryPay = salaryPay.filter(p => !pay.includes(p));
+  save(); render(); toast(pay.length ? 'Expense and its salary payment deleted' : 'Expense deleted · net profit and shares updated');
+}
 
 /* ----- Invoices ----- */
 const finv = {q:'', status:''};
@@ -1927,8 +1934,9 @@ function empSalary(e){
   return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h3 style="margin:0">Salary History · ${periodLabel()}</h3><button class="btn sm" onclick="salaryForm('${e.id}')">+ Record Salary Payment</button></div>
     <div class="muted" style="margin-bottom:10px">${paid.length} payments · total paid <b>${fmt(sum(paid, r => r.p.amount))}</b> · full monthly salary ${fmt(e.salary)}${pro ? ' · joining month is pro-rata' : ''}</div>
     <div class="tablewrap"><table><thead><tr><th>Month</th><th>Date paid</th><th>Method</th><th>Notes</th><th class="num">Amount</th><th></th></tr></thead>
-      <tbody>${rows.map(r => r.p ? `<tr><td><b>${monthName(r.month)}</b>${proCell(r.month)}</td><td>${fdate(r.p.date)}</td><td>${esc(r.p.method)}</td><td style="white-space:normal">${esc(r.p.notes)}</td><td class="num"><b>${fmt(r.p.amount)}</b></td><td class="num"><button class="btn sm danger" onclick="delSalary('${r.p.id}')">✕</button></td></tr>`
-        : `<tr style="background:#2a2210"><td><b>${monthName(r.month)}</b>${proCell(r.month)}</td><td colspan="3">${empMonthStatus(e) === 'overdue' && r.month === curMonth() ? '<span class="badge b-overdue">Overdue</span>' : '<span class="badge b-unpaid">Not recorded yet</span>'} · due ${fdate(payDueDate(e, r.month))}</td><td class="num"><b>${fmt(pro.amount)}</b></td><td class="num"><button class="btn sm" onclick="salaryForm('${e.id}','${r.month}')">Record</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">No salary payments in this period</td></tr>'}</tbody></table></div></div>`;
+      <tbody>${rows.map(r => r.p ? `<tr><td><b>${monthName(r.month)}</b>${proCell(r.month)}</td><td>${fdate(r.p.date)}</td><td>${esc(r.p.method)}</td><td style="white-space:normal">${esc(r.p.notes)}</td><td class="num"><b>${fmt(r.p.amount)}</b></td><td class="num" style="white-space:nowrap"><button class="btn sm ghost" title="Edit payment" onclick="editSalary('${r.p.id}')">✏️ Edit</button> <button class="btn sm danger" title="Delete payment" onclick="delSalary('${r.p.id}')">🗑️ Delete</button></td></tr>`
+        : `<tr style="background:#2a2210"><td><b>${monthName(r.month)}</b>${proCell(r.month)}</td><td colspan="3">${empMonthStatus(e) === 'overdue' && r.month === curMonth() ? '<span class="badge b-overdue">Overdue</span>' : '<span class="badge b-unpaid">Not recorded yet</span>'} · due ${fdate(payDueDate(e, r.month))}</td><td class="num"><b>${fmt(pro.amount)}</b></td><td class="num"><button class="btn sm" onclick="salaryForm('${e.id}','${r.month}')">Record</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">No salary payments in this period</td></tr>'}</tbody></table></div></div>
+  ${empPayments(e.id).length ? `<div class="card" style="margin-top:16px;border:1px solid #7f1d1d"><h3 style="color:#f87171">⚠ Danger zone</h3><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div class="muted" style="max-width:520px">Permanently deletes all ${empPayments(e.id).length} salary payment${empPayments(e.id).length > 1 ? 's' : ''} for ${esc(e.name)} (every month, not just the period shown) and removes them from Agency Expenses.</div><button class="btn danger" onclick="delAllSalary('${e.id}')">🗑️ Delete All Salary Payments</button></div></div>` : ''}`;
 }
 function empLeave(e){
   const list = empLeaves.filter(l => l.employee_id === e.id).sort((a, b) => b.date.localeCompare(a.date));
@@ -1985,10 +1993,40 @@ function saveSalary(ev, id){
   addSalaryPayment(e, f.month, Math.round(+f.amount * 100) / 100, f.date, f.method, (f.notes || '').trim());
   save(); closeModal(); render(); toast('Salary recorded · added to Agency Expenses');
 }
+const salExpense = p => expenses.find(x => x.id === p.expense_id || x.salary_payment_id === p.id);
+const salDesc = (e, month, notes) => 'Salary – ' + (e ? e.name : 'Removed employee') + ' (' + monthName(month) + ')' + (notes ? ' · ' + notes : '');
+function editSalary(pid){
+  const p = salaryPay.find(x => x.id === pid), e = p && empById(p.employee_id); if (!p) return;
+  openModal(`<h2>Edit Salary Payment · ${esc(e ? e.name : 'Removed employee')}</h2><form onsubmit="saveSalaryEdit(event,'${pid}')">
+    <div class="hint">${monthName(p.month)}. Changes also update the matching entry in Agency Expenses, so Net Profit, My Share and Allah's Share recalculate straight away.</div>
+    <div class="row2"><div class="field"><label>Amount (₨)</label><input name="amount" type="number" min="1" step="any" value="${p.amount}" required></div>
+    <div class="field"><label>Date paid</label><input name="date" type="date" value="${p.date}" required></div></div>
+    <div class="field"><label>Payment method</label><select name="method">${[...new Set([...PAY_METHODS, p.method].filter(Boolean))].map(x => `<option ${x === p.method ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
+    <div class="field"><label>Notes</label><input name="notes" value="${esc(p.notes || '')}"></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Save changes</button></div></form>`);
+}
+function saveSalaryEdit(ev, pid){
+  ev.preventDefault(); const p = salaryPay.find(x => x.id === pid), f = Object.fromEntries(new FormData(ev.target)); if (!p) return;
+  if (!(+f.amount > 0)) { alert('Enter the amount paid.'); return; }
+  p.amount = Math.round(+f.amount * 100) / 100; p.date = f.date; p.method = f.method; p.notes = (f.notes || '').trim();
+  const e = empById(p.employee_id); let x = salExpense(p);
+  if (x) { x.amount = p.amount; x.date = p.date; x.description = salDesc(e, p.month, p.notes); }
+  else { x = {id:uid(), date:p.date, category:'Salaries', description:salDesc(e, p.month, p.notes), amount:p.amount, employee_id:p.employee_id, salary_payment_id:p.id}; expenses.push(x); }   // the linked expense had been removed — restore it
+  p.expense_id = x.id; x.salary_payment_id = p.id;
+  save(); closeModal(); render(); toast('Salary payment updated · Agency Expenses recalculated');
+}
 function delSalary(pid){
-  if (!confirm('Delete this salary payment? Its Agency Expense entry is removed too, and the month becomes Unpaid.')) return;
+  if (!confirm('Delete this salary payment? This will also remove it from expenses.')) return;
   const p = salaryPay.find(x => x.id === pid); if (!p) return;
-  salaryPay = salaryPay.filter(x => x.id !== pid); expenses = expenses.filter(x => x.id !== p.expense_id && x.salary_payment_id !== pid); save(); render();
+  salaryPay = salaryPay.filter(x => x.id !== pid); expenses = expenses.filter(x => x.id !== p.expense_id && x.salary_payment_id !== pid); save(); render(); toast('Salary payment deleted · removed from expenses');
+}
+function delAllSalary(empId){
+  const e = empById(empId); if (!e) return;
+  if (!confirm('This will delete all salary payments for ' + e.name + ' and remove them from expenses. Are you sure?')) return;
+  const ids = new Set(empPayments(empId).map(p => p.id)), xs = new Set(empPayments(empId).map(p => p.expense_id));
+  salaryPay = salaryPay.filter(p => p.employee_id !== empId);
+  expenses = expenses.filter(x => !(xs.has(x.id) || ids.has(x.salary_payment_id) || x.employee_id === empId));   // also sweeps up leftover salary entries whose payment record is gone
+  save(); render(); toast('All salary payments for ' + e.name + ' deleted');
 }
 
 /* ----- add / edit / archive / delete ----- */
