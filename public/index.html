@@ -6,7 +6,7 @@
 <title>Media Beem — Sign in</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="portal.css">
+<link rel="stylesheet" href="portal.css?v=20261023a">
 </head>
 <body>
 <div class="login-wrap">
@@ -18,19 +18,29 @@
     <button class="btn" id="go">Login</button>
   </form>
 </div>
-<script src="config.js"></script>
-<script src="portal.js"></script>
+<script src="config.js?v=20261023a"></script>
+<script src="portal.js?v=20261023a"></script>
 <script>
+/* Self-contained redirect: login keeps working even if a stale cached portal.js is served that predates goPortal. */
+function toPortal(role, token) {
+  if (window.MB && typeof MB.goPortal === 'function') return MB.goPortal(role, token);
+  var cfg = window.MB_CONFIG || {}, P = cfg.PORTALS || { admin: 'https://admin.mediabeem.com', employee: 'https://employee.mediabeem.com', client: 'https://client.mediabeem.com' };
+  var HOME = { admin: '/admin', employee: '/employee', client: '/client' }, h = location.hostname;
+  if (!HOME[role]) return location.replace('/login');
+  if (h === 'localhost' || h === '127.0.0.1') return location.replace(HOME[role]);
+  var url = P[role] + HOME[role];
+  location.replace(new URL(url).origin === location.origin ? url : url + '#t=' + encodeURIComponent(token || (window.MB && MB.token && MB.token()) || ''));
+}
 (async () => {
   // already signed in? go straight to the right portal
-  if (MB.token()) { try { const { user } = await MB.api('/api/auth/me', { noRedirect: true }); MB.goPortal(user.role); return; } catch (e) { MB.clear(); } }
+  if (MB.token()) { try { const { user } = await MB.api('/api/auth/me', { noRedirect: true }); toPortal(user.role); return; } catch (e) { MB.clear(); } }
   const f = document.getElementById('f'), err = document.getElementById('err'), go = document.getElementById('go');
   f.addEventListener('submit', async ev => {
     ev.preventDefault(); err.style.display = 'none'; go.disabled = true; go.textContent = 'Signing in…';
     try {
       const r = await MB.api('/api/auth/login', { method: 'POST', body: { email: f.email.value, password: f.password.value }, noRedirect: true });
       MB.setSession(r.token, r.user);
-      MB.goPortal(r.user.role, r.token);   // admin → admin.mediabeem.com, employee → employee.mediabeem.com, client → client.mediabeem.com
+      toPortal(r.user.role, r.token);   // admin → admin.mediabeem.com, employee → employee.mediabeem.com, client → client.mediabeem.com
     } catch (e) { err.textContent = e.message; err.style.display = 'block'; go.disabled = false; go.textContent = 'Login'; }
   });
 })();
