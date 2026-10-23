@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <script>/* apply the saved theme before first paint (no flash) */(function(){var r=document.documentElement,p=r.getAttribute('data-portal'),t=null;try{t=localStorage.getItem('mb_theme_'+p)}catch(e){}r.setAttribute('data-theme',t==='light'||t==='dark'?t:(p==='client'?'light':'dark'));})();</script>
 <link rel="stylesheet" href="theme.css?v=20261024a">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <title>Media Beem — Client Portal</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="portal.css?v=20261024a">
+<link rel="stylesheet" href="portal.css?v=20261025a">
+<link rel="stylesheet" href="mobile.css?v=20261025b">
 </head>
 <body>
 <script src="config.js?v=20261024a"></script>
@@ -24,10 +25,26 @@
 
   MB.shell({
     user, role: 'client',
-    items: [{ key: 'invoices', label: 'Invoices' }, { key: 'projects', label: 'My Projects' }, { key: 'messages', label: 'Messages' }],
-    titles: { invoices: ['Invoices', 'What you have been billed and what has been paid'], projects: ['My Projects', 'Progress on your tasks'], messages: ['Messages', 'Talk to the Media Beem team'] },
-    onView: key => { stopPane(); ({ invoices: viewInvoices, projects: viewProjects, messages: viewMessages })[key](); },
+    items: [{ key: 'dashboard', label: 'Dashboard', icon: '🏠' }, { key: 'invoices', label: 'Invoices' }, { key: 'projects', label: 'My Projects' }, { key: 'messages', label: 'Messages' }],
+    titles: { dashboard: ['Dashboard', 'Where your projects and payments stand'], invoices: ['Invoices', 'What you have been billed and what has been paid'], projects: ['My Projects', 'Progress on your tasks'], messages: ['Messages', 'Talk to the Media Beem team'] },
+    onView: key => { stopPane(); ({ dashboard: viewDashboard, invoices: viewInvoices, projects: viewProjects, messages: viewMessages })[key](); },
   });
+
+  /* ---------------- Dashboard ---------------- */
+  async function viewDashboard() {
+    const v = $('view'); v.innerHTML = '<div class="empty">Loading…</div>';
+    let inv, pr;
+    try { [inv, pr] = await Promise.all([MB.api('/api/client/invoices'), MB.api('/api/client/projects')]); } catch (e) { v.innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
+    const list = inv.invoices, tasks = pr.tasks, isDone = t => t.status_kind === 'done' || t.status_kind === 'closed';
+    const billed = list.reduce((t, i) => t + i.total, 0), paid = list.reduce((t, i) => t + i.received, 0), open = tasks.filter(t => !isDone(t));
+    const soon = open.filter(t => t.due).sort((a, b) => a.due.localeCompare(b.due)).slice(0, 4), recent = list.slice(0, 3), done = tasks.length - open.length;
+    v.innerHTML = `<div class="grid" style="margin-bottom:16px"><div class="stat"><div class="l">Total billed</div><div class="v">${fmt(billed)}</div></div><div class="stat"><div class="l">Paid</div><div class="v" style="color:var(--green)">${fmt(paid)}</div></div>
+      <div class="stat"><div class="l">Outstanding</div><div class="v" style="color:var(--amber)">${fmt(Math.max(0, billed - paid))}</div></div><div class="stat"><div class="l">Open tasks</div><div class="v">${open.length}</div></div></div>
+      <div class="card"><h3>Project progress</h3><div class="bar" style="margin:10px 0 6px"><div style="width:${tasks.length ? done / tasks.length * 100 : 0}%"></div></div><div class="muted">${done} of ${tasks.length} task${tasks.length === 1 ? '' : 's'} complete</div></div>
+      <div class="card"><h3>Coming up</h3>${soon.map(t => `<div class="row click" data-go="projects"><div class="grow"><div class="t1">${esc(t.title)}</div><div class="muted" style="font-size:12px">Due ${fdate(t.due)}</div></div>${MB.statusPill(t.status_name, t.status_color)}</div>`).join('') || '<div class="muted">Nothing scheduled right now.</div>'}</div>
+      <div class="card"><h3>Recent invoices</h3>${recent.map(i => `<div class="row click" data-go="invoices"><div class="grow"><div class="t1">${esc(i.service || 'Invoice')}</div><div class="muted" style="font-size:12px">${fdate(i.date)}</div></div><div style="text-align:right"><b>${fmt(i.total)}</b><div><span class="badge b-${i.status}">${LABEL[i.status] || i.status}</span></div></div></div>`).join('') || '<div class="muted">No invoices yet.</div>'}</div>`;
+    v.querySelectorAll('[data-go]').forEach(r => r.onclick = () => { const b = document.querySelector(`#nav button[data-k="${r.dataset.go}"]`); if (b) b.click(); });
+  }
 
   /* ---------------- Invoices ---------------- */
   async function viewInvoices() {
@@ -35,12 +52,24 @@
     let list; try { list = (await MB.api('/api/client/invoices')).invoices; } catch (e) { v.innerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
     const billed = list.reduce((t, i) => t + i.total, 0), paid = list.reduce((t, i) => t + i.received, 0);
     v.innerHTML = `<div class="grid" style="margin-bottom:16px"><div class="stat"><div class="l">Total billed</div><div class="v">${fmt(billed)}</div></div><div class="stat"><div class="l">Paid</div><div class="v" style="color:var(--green)">${fmt(paid)}</div></div><div class="stat"><div class="l">Outstanding</div><div class="v" style="color:${billed - paid > 0 ? 'var(--amber)' : '#fff'}">${fmt(Math.max(0, billed - paid))}</div></div></div>
-      ${list.map(i => `<div class="card"><div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap"><div class="grow" style="flex:1;min-width:180px"><div style="color:var(--strong);font-weight:600;font-size:15px">${esc(i.service || 'Invoice')}</div><div class="t2 muted">Issued ${fdate(i.date)}${i.expected_by ? ' · Payment expected by ' + fdate(i.expected_by) : ''}</div></div>
+      ${list.map(i => `<div class="card inv-c" data-inv="${esc(i.id)}"><div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap"><div class="grow" style="flex:1;min-width:180px"><div style="color:var(--strong);font-weight:600;font-size:15px">${esc(i.service || 'Invoice')}</div><div class="t2 muted">Issued ${fdate(i.date)}${i.expected_by ? ' · Payment expected by ' + fdate(i.expected_by) : ''}</div></div>
         <span class="badge b-${i.status}">${LABEL[i.status] || i.status}</span></div>
         <div class="bar" style="margin:14px 0 8px"><div style="width:${i.total ? Math.min(100, i.received / i.total * 100) : 0}%"></div></div>
         <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><span>Total <b>${fmt(i.total)}</b></span><span>Paid <b style="color:var(--green)">${fmt(i.received)}</b></span><span>Remaining <b>${fmt(i.remaining)}</b></span></div>
+        <div class="inv-more">
         ${i.payments.length ? `<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:8px">${i.payments.map(p => `<div class="row" style="padding:6px 0"><div class="grow muted">${fdate(p.date)}${p.note ? ' · ' + esc(p.note) : ''}</div><b>${fmt(p.amount)}</b></div>`).join('')}</div>` : ''}
-        ${i.notes ? `<div class="muted" style="margin-top:8px;font-size:13px">${esc(i.notes)}</div>` : ''}</div>`).join('') || '<div class="card empty">No invoices yet.</div>'}`;
+        ${i.notes ? `<div class="muted" style="margin-top:8px;font-size:13px">${esc(i.notes)}</div>` : ''}</div>
+        <div class="inv-tap">Tap for details ›</div></div>`).join('') || '<div class="card empty">No invoices yet.</div>'}`;
+    v.querySelectorAll('.inv-c').forEach(c => c.onclick = () => {
+      const i = list.find(x => x.id === c.dataset.inv); if (!i) return;
+      MB.openModal(`<h2>${esc(i.service || 'Invoice')}</h2><div style="display:flex;gap:10px;align-items:center;margin-bottom:14px"><span class="badge b-${i.status}">${LABEL[i.status] || i.status}</span><span class="muted">Issued ${fdate(i.date)}${i.expected_by ? ' · expected by ' + fdate(i.expected_by) : ''}</span></div>
+        <div class="bar" style="margin:6px 0 12px"><div style="width:${i.total ? Math.min(100, i.received / i.total * 100) : 0}%"></div></div>
+        <div class="grid" style="margin-bottom:14px"><div class="stat"><div class="l">Total</div><div class="v">${fmt(i.total)}</div></div><div class="stat"><div class="l">Paid</div><div class="v" style="color:var(--green)">${fmt(i.received)}</div></div><div class="stat"><div class="l">Remaining</div><div class="v">${fmt(i.remaining)}</div></div></div>
+        <div class="task-sec"><h4>Payments</h4>${i.payments.map(p => `<div class="row" style="padding:8px 0"><div class="grow muted">${fdate(p.date)}${p.note ? ' · ' + esc(p.note) : ''}</div><b>${fmt(p.amount)}</b></div>`).join('') || '<div class="muted">No payments recorded yet.</div>'}</div>
+        ${i.notes ? `<div class="task-sec"><h4>Notes</h4><div class="muted">${esc(i.notes)}</div></div>` : ''}
+        <div class="modal-actions"><button class="btn ghost" id="closeBtn">Close</button></div>`);
+      $('closeBtn').onclick = MB.closeModal;
+    });
   }
 
   /* ---------------- My Projects (view + comment only) ---------------- */
@@ -80,5 +109,6 @@
   }
 })();
 </script>
+<script src="mobile.js?v=20261025b" defer></script>
 </body>
 </html>

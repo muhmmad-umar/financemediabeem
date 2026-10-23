@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>/* apply the saved theme before first paint (no flash) */(function(){var r=document.documentElement,p=r.getAttribute('data-portal'),t=null;try{t=localStorage.getItem('mb_theme_'+p)}catch(e){}r.setAttribute('data-theme',t==='light'||t==='dark'?t:(p==='client'?'light':'dark'));})();</script>
 <link rel="stylesheet" href="theme.css?v=20261024a">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <title>Media Beem — Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -455,7 +455,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #5eead4;border-color:v
 .toast.show{opacity:1;transform:none}
 .scrim{display:none}
 @media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr)}.g-main{grid-template-columns:1fr}}
-@media(max-width:820px){
+@media(max-width:900px){
   .sidebar{transform:translateX(-100%)}.sidebar.open{transform:none}
   .scrim.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:25}
   main{margin-left:0;padding:16px 14px 40px}.menu-btn{display:block}
@@ -635,6 +635,7 @@ tfoot td{border-top:1px solid #2a2a2a}
 @media(max-width:600px){.inv-bar{grid-template-columns:1fr 1fr}.inv-sheet{padding:22px}.inv-brand{font-size:28px}.inv-doc b{font-size:26px}}
 </style>
 <link rel="stylesheet" href="admin-light.css?v=20261024a">
+<link rel="stylesheet" href="mobile.css?v=20261025b">
 </head>
 <body>
 
@@ -1550,7 +1551,8 @@ function printInvoice(id){ viewInvoice(id); setTimeout(() => window.print(), 250
 async function downloadInvoice(id){
   const i = invById(id); if (!i) return;
   const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title> </title><style>${$('invCss').textContent}
-    body{margin:0;padding:24px;background:#e5e7eb}.inv-sheet{max-width:820px;margin:auto}@media print{body{background:#fff;padding:0.5in}.inv-sheet{border:0;border-radius:0;padding:0}}</style></head><body>${invoiceHTML(i)}</body></html>`;
+    body{margin:0;padding:24px;background:#e5e7eb}.inv-sheet{max-width:820px;margin:auto}@media print{body{background:#fff;padding:0.5in}.inv-sheet{border:0;border-radius:0;padding:0}}</style></head><body>${invoiceHTML(i)}
+</body></html>`;
   const filename = 'MEDIA-BEEM-Invoice-' + i.client.replace(/[^a-z0-9]+/gi, '-') + '.html';
   try {
     // inside claude.ai the viewer mediates downloads; opened as a plain file, fall back to a normal download
@@ -3463,5 +3465,6 @@ function rtOnTick(what){
 })();
 
 </script>
+<script src="mobile.js?v=20261025b" defer></script>
 </body>
 </html>

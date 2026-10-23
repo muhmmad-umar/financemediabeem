@@ -113,3 +113,15 @@ A new hire fills in their own details, bank information and signs the employment
 **Data** (`worker/migrations/0007_onboarding.sql`): `onboarding_tokens`, `onboarding_submissions`, `agreement_template`. Apply with `npm run db:migrate`, then redeploy the Worker (`npm run deploy:api`) and the Pages site.
 
 **Security notes**: tokens are 256-bit random values; the two public endpoints (`GET /api/onboarding/:token`, `POST /api/onboarding/:token/submit`) are the only unauthenticated routes, are origin-restricted by `ALLOWED_ORIGINS` and rate-limited per IP on bad tokens; all input is re-validated server-side, the agreement HTML is sanitised on save and placeholder values are escaped. The page sends no referrer and is `noindex`.
+
+## Mobile
+
+All three portals (admin, employee, client), the login page and the onboarding form are phone-ready. Breakpoints: mobile < 768px, tablet 768–1024px, desktop > 1024px (below ~900px the sidebar becomes a slide-over drawer).
+
+- **Shared layer:** `public/mobile.css` + `public/mobile.js` (loaded by each portal). Everything phone-specific sits inside a `max-width:767px` media query, so desktop is untouched. `viewport-fit=cover` and `interactive-widget=resizes-content` are set on every page so the keyboard doesn't push content off-screen; the chat uses `visualViewport` so the input stays above the keyboard.
+- **Navigation:** hamburger → drawer with ✕ and a dimmed overlay; bottom tab bar — admin *Home · Tasks · Finance · Team · More* (Finance/Team open quick sheets), employee *Home · Tasks · Chat · Profile*, client *Dashboard · Invoices · Projects · Messages*. Swipe right from the left edge goes back (closes a modal / task panel / chat, or opens the drawer).
+- **Tables → cards** (`.tablewrap`): each row becomes a card showing the key columns; tap the card (or ▾) for the rest. **Modals** are full-screen with a ✕ at the top right.
+- **Tasks:** board shows one column at a time (swipe or tap the column tabs, each with its count); list shows Name + Status + Due; calendar is a week view with ‹ › week navigation; task detail is a full-screen slide-up.
+- **Chat:** conversation list → full-screen chat with a back arrow (employee also has a Channels / Direct Messages switch).
+- **Client portal** gained a Dashboard (totals, coming up, recent invoices); invoice cards open a full-screen detail sheet.
+- 44px minimum tap targets and 16px inputs (no iOS zoom on focus) on phones.

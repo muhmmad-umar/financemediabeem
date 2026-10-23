@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
 <title>Employee Onboarding · Media Beem</title>
@@ -10,16 +10,16 @@
 <style>
 :root{--bg:#f4f6fb;--card:#fff;--ink:#0f172a;--sub:#475569;--mut:#94a3b8;--line:#e2e8f0;--brand:#0d9488;--brand2:#0f766e;--tint:#f0fdfa;--err:#dc2626;--ok:#16a34a;--r:14px}
 *{box-sizing:border-box}
-html{color-scheme:light}
+html{color-scheme:light;scroll-behavior:smooth}body{min-height:100dvh}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
 header{background:#fff;border-bottom:1px solid var(--line)}
 .top{max-width:760px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:12px}
 .logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--brand),#14b8a6);color:#fff;font-weight:800;display:grid;place-items:center;letter-spacing:.02em}
 .top b{display:block;font-size:17px;line-height:1.2}.top small{color:var(--sub);font-size:12px}
-main{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+main{max-width:760px;margin:0 auto;padding:12px 16px calc(60px + env(safe-area-inset-bottom))}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
 h1{font-size:22px;margin:0 0 4px}h2{font-size:18px;margin:0 0 4px}.lead{color:var(--sub);margin:0 0 18px}
-.prog{margin:0 0 18px}
+.prog{margin:0 0 18px;position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0 8px}
 .prog-top{display:flex;justify-content:space-between;font-size:13px;color:var(--sub);margin-bottom:8px;font-weight:600}
 .bar{height:8px;background:#e5e9f2;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),#14b8a6);border-radius:99px;transition:width .3s}
 .dots{display:flex;gap:6px;margin-top:10px}
@@ -30,7 +30,7 @@ h1{font-size:22px;margin:0 0 4px}h2{font-size:18px;margin:0 0 4px}.lead{color:va
 @media(max-width:560px){.grid{grid-template-columns:1fr}.card{padding:18px 16px}.dots span{font-size:10px}}
 label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:#1e293b}
 label em{color:var(--err);font-style:normal}
-input,select,textarea{width:100%;font:inherit;color:var(--ink);background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:11px 12px;min-height:44px;outline:none;transition:border-color .15s,box-shadow .15s}
+input,select,textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:11px 12px;min-height:44px;outline:none;transition:border-color .15s,box-shadow .15s}
 textarea{min-height:84px;resize:vertical}input,select,textarea{max-width:100%;min-width:0}input[type=date]{-webkit-appearance:none;appearance:none}
 input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(13,148,136,.15)}
 input[readonly]{background:#f1f5f9;color:var(--sub);cursor:not-allowed}

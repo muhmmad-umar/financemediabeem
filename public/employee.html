@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <script>/* apply the saved theme before first paint (no flash) */(function(){var r=document.documentElement,p=r.getAttribute('data-portal'),t=null;try{t=localStorage.getItem('mb_theme_'+p)}catch(e){}r.setAttribute('data-theme',t==='light'||t==='dark'?t:(p==='client'?'light':'dark'));})();</script>
 <link rel="stylesheet" href="theme.css?v=20261024a">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <title>Media Beem — Employee</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="portal.css?v=20261024a">
+<link rel="stylesheet" href="portal.css?v=20261025a">
+<link rel="stylesheet" href="mobile.css?v=20261025b">
 </head>
 <body>
 <script src="config.js?v=20261024a"></script>
@@ -96,7 +97,9 @@
   MB.rt.on(w => { if (w === 'unread' || w === 'presence') paintBadges(); });
 
   function chatLayout(listHtml, wireList) {
-    $('view').innerHTML = `<div class="chat"><div class="chat-list" id="clist">${listHtml}</div><div class="chat-pane" id="cpane"><div class="chat-none" style="margin:auto">Select a conversation</div></div></div>`;
+    const sw = `<div class="chat-switch"><button data-k="channels" class="${curKey === 'channels' ? 'on' : ''}"># Channels</button><button data-k="dms" class="${curKey === 'dms' ? 'on' : ''}">💬 Direct Messages</button></div>`;
+    $('view').innerHTML = sw + `<div class="chat"><div class="chat-list" id="clist">${listHtml}</div><div class="chat-pane" id="cpane"><div class="chat-none" style="margin:auto">Select a conversation</div></div></div>`;
+    $('view').querySelectorAll('.chat-switch button').forEach(b => b.onclick = () => { if (b.dataset.k !== curKey) shell.go(b.dataset.k); });
     wireList(); paintBadges();
   }
   async function viewChannels() {
@@ -110,7 +113,7 @@
         const c = chans.find(x => x.id === b.dataset.id);
         const inst = MB.chat.mount($('cpane'), { kind: 'channel', id: c.id, title: '# ' + c.name }); pane = { stop: () => inst.close() };
       });
-      document.querySelector('#clist button').click();
+      if (!window.matchMedia('(max-width:767px)').matches) document.querySelector('#clist button').click();   // phones: start on the list, open a chat full-screen on tap
     });
   }
   async function viewDms() {
@@ -125,7 +128,7 @@
         const c = cs.find(x => x.id === b.dataset.id);
         const inst = MB.chat.mount($('cpane'), { kind: 'dm', id: c.id, peerId: c.id, title: c.name }); pane = { stop: () => inst.close() };
       });
-      document.querySelector('#clist button').click();
+      if (!window.matchMedia('(max-width:767px)').matches) document.querySelector('#clist button').click();   // phones: start on the list, open a chat full-screen on tap
     });
   }
 
@@ -144,5 +147,6 @@
   }
 })();
 </script>
+<script src="mobile.js?v=20261025b" defer></script>
 </body>
 </html>
