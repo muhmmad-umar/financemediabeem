@@ -211,11 +211,12 @@ html[data-theme="light"] ::-webkit-scrollbar-thumb:hover{background:#d1d5db}
 html[data-theme="light"] .sidebar{background:#ffffff;border-right:1px solid #e5e7eb;color:#6b7280}
 html[data-theme="light"] .brand{color:#111827}
 html[data-theme="light"] .brand small{color:#6b7280 !important}
-html[data-theme="light"] .nav button{color:#6b7280}
-html[data-theme="light"] .nav button:hover{background:#f3f4f6;color:#111827}
+html[data-theme="light"] .nav button{color:#111827}
+html[data-theme="light"] .nav button:hover{background:#f3f4f6;color:#6b7280}
 html[data-theme="light"] .nav button.active, html[data-theme="light"] .nav button.allah.active, html[data-theme="light"] .nav button.personal.active{background:#e5e7eb}
-html[data-theme="light"] .nav button.allah, html[data-theme="light"] .nav button.personal{color:#6b7280}
-html[data-theme="light"] .nav button.allah:hover, html[data-theme="light"] .nav button.personal:hover{background:#f3f4f6;color:#111827}
+html[data-theme="light"] .nav button.allah{color:#977820}
+html[data-theme="light"] .nav button.personal{color:#3b2786}
+html[data-theme="light"] .nav button.allah:hover, html[data-theme="light"] .nav button.personal:hover{background:#f3f4f6;color:#6b7280}
 html[data-theme="light"] .nav-sep{color:#6b7280}
 html[data-theme="light"] .menu-btn{background:#e5e7eb}
 html[data-theme="light"] main{background:#f8f9fa}

@@ -30,8 +30,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 .brand{display:flex;align-items:center;gap:10px;padding:2px 8px 18px;color:var(--strong);font-weight:700;letter-spacing:.12em;font-size:15px}
 .brand .logo{width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;letter-spacing:0}
 .brand small{display:block;font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.08em}
-.nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;color:var(--sub);padding:9px 10px;border-radius:6px;cursor:pointer;margin-bottom:2px}
-.nav button:hover{background:var(--panel2);color:var(--strong)}.nav button.on{background:var(--accent);color:#fff}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;color:var(--strong);padding:9px 10px;border-radius:6px;cursor:pointer;margin-bottom:2px}
+.nav button:hover{background:var(--panel2);color:var(--muted)}.nav button.on,.nav button.on:hover{background:var(--accent);color:#fff}
 .nav .nb{margin-left:auto;background:var(--red);color:#fff;border-radius:99px;font-size:11px;padding:0 6px}
 .side{overflow:hidden}.side .nav{flex:1 1 auto;min-height:0;overflow-y:auto}
 .side-foot{flex:0 0 auto;margin-top:auto;border-top:1px solid var(--line);padding:12px 8px 2px;font-size:12px}

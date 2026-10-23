@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script>/* apply the saved theme before first paint (no flash) */(function(){var r=document.documentElement,p=r.getAttribute('data-portal'),t=null;try{t=localStorage.getItem('mb_theme_'+p)}catch(e){}r.setAttribute('data-theme',t==='light'||t==='dark'?t:(p==='client'?'light':'dark'));})();</script>
-<link rel="stylesheet" href="theme.css?v=20261023d">
+<link rel="stylesheet" href="theme.css?v=20261024a">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Media Beem — Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -479,12 +479,13 @@ b,strong{color:inherit}
 .sidebar{background:#1a1a1a;border-right:1px solid #2a2a2a;color:#888}
 .brand{color:#fff}
 .brand small{color:#888!important}
-.nav button{color:#888;border-radius:6px;border-left:3px solid transparent;padding:9px 12px 9px 10px;filter:grayscale(1)}
-.nav button:hover{background:#252525;color:#fff;filter:none}
+/* sidebar items: bright and clear by default; hover only dims slightly + a soft background (not brighter than default) */
+.nav button{color:#fff;border-radius:6px;border-left:3px solid transparent;padding:9px 12px 9px 10px;filter:none}
+.nav button:hover{background:#252525;color:#999;filter:grayscale(.6)}
 .nav button.active,.nav button.allah.active,.nav button.personal.active{background:#2d2d3d;border-left-color:#7c3aed;color:#fff;filter:none}
 .nav button.allah.active{border-left-color:#d4a017}
-.nav button.allah,.nav button.personal{color:#888}
-.nav button.allah:hover,.nav button.personal:hover{background:#252525;color:#fff}
+.nav button.allah{color:#f4c542}.nav button.personal{color:#c4b5fd}
+.nav button.allah:hover,.nav button.personal:hover{background:#252525;color:#999;filter:grayscale(.6)}
 .nav-sep{color:#666;letter-spacing:.14em}
 .nbadge{min-width:18px;text-align:center;padding:1px 6px;background:#ef4444;color:#fff;box-shadow:none}
 .menu-btn{background:#2d2d3d}
@@ -633,7 +634,7 @@ tfoot td{border-top:1px solid #2a2a2a}
 @media print{.inv-sheet{border:0!important;border-radius:0!important;padding:0!important}}
 @media(max-width:600px){.inv-bar{grid-template-columns:1fr 1fr}.inv-sheet{padding:22px}.inv-brand{font-size:28px}.inv-doc b{font-size:26px}}
 </style>
-<link rel="stylesheet" href="admin-light.css?v=20261023d">
+<link rel="stylesheet" href="admin-light.css?v=20261024a">
 </head>
 <body>
 
@@ -678,9 +679,9 @@ tfoot td{border-top:1px solid #2a2a2a}
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 
-<script src="config.js?v=20261023d"></script>
-<script src="portal.js?v=20261023d"></script>
-<script src="chat.js?v=20261023d"></script>
+<script src="config.js?v=20261024a"></script>
+<script src="portal.js?v=20261024a"></script>
+<script src="chat.js?v=20261024a"></script>
 <script>
 /* ========= Cloud storage shim =========
    The app below was written against localStorage. `store` keeps the same getItem/setItem interface, but is backed by
