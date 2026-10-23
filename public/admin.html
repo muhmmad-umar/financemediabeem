@@ -271,7 +271,7 @@ body.cu-mode .modal .tx{border-color:#2a2a2a}body.cu-mode .modal .tx .t2{color:#
 .psec{font-size:11px;font-weight:800;letter-spacing:.1em;color:#888;margin:20px 0 8px}
 .logform{display:flex;gap:6px;margin:8px 0 4px;flex-wrap:wrap}
 .loglist{margin:6px 0;font-size:12px}.loglist div{display:flex;gap:10px;padding:3px 0;border-bottom:1px dashed #262626}.loglist a{margin-left:auto;cursor:pointer;color:#ef4444}
-.rtbar{display:flex;gap:4px;margin-bottom:4px}.rtbar button{background:#1a1a1a;border:1px solid #2a2a2a;color:#ccc;border-radius:5px;padding:3px 9px;font-size:12px}
+.modal.onb{max-width:800px}.onb-agree{border:1px solid #2a2a2a;border-radius:8px;padding:12px 16px;max-height:260px;overflow:auto;font-size:13px;line-height:1.55;background:#141414}.onb-agree h2{font-size:16px}.onb-agree h3{font-size:13px;margin:12px 0 3px}.onb-agree p{margin:0 0 6px}.rtbar{display:flex;gap:4px;margin-bottom:4px}.rtbar button{background:#1a1a1a;border:1px solid #2a2a2a;color:#ccc;border-radius:5px;padding:3px 9px;font-size:12px}
 .rte{min-height:110px;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.55;outline:none;background:#141414;color:#e5e5e5}
 .rte:focus{border-color:#7c3aed}.rte:empty:before{content:attr(data-ph);color:#666}.rte ul,.rte ol{margin-left:20px}
 .sub{display:flex;justify-content:space-between;align-items:center;padding:4px 0}.sub label{display:flex;gap:9px;align-items:center;margin:0;color:#e5e5e5;font-weight:400;font-size:13px}.sub a{cursor:pointer;color:#777;padding:0 6px}
@@ -655,8 +655,11 @@ tfoot td{border-top:1px solid #2a2a2a}
     <div class="nav-sep">Team</div>
     <button data-view="employees">🧑‍💼 Employees</button>
     <button data-view="attendance">🕘 Attendance</button>
+    <button data-view="onboarding">📝 Onboarding Requests</button>
     <div class="nav-sep">Personal</div>
     <button data-view="personal" class="personal">👤 Personal Finance</button>
+    <div class="nav-sep">System</div>
+    <button data-view="settings">⚙️ Settings</button>
   </nav>
   <div class="side-foot"><div class="who" id="whoAmI"></div><div id="syncStat" style="color:#888;font-size:11px;margin-bottom:8px">Loading…</div><div style="display:flex;gap:8px;align-items:center"><button class="btn ghost sm" onclick="MB.logout()" style="flex:1">Log out</button><button class="theme-btn" type="button" onclick="MB.theme.toggle()" style="margin:0;width:32px;height:32px;font-size:15px;border-radius:8px" title="Switch theme"></button></div></div>
 </aside>
@@ -1196,6 +1199,8 @@ const meta = {
   tasks:['Tasks','Space › List › Task › Subtask'],
   attendance:['Attendance','Daily check-ins, work hours and attendance history'],
   employees:['Employees','Profiles, salaries and leave — salaries paid flow into agency expenses'],
+  onboarding:['Onboarding Requests','Review forms new hires submitted, then approve to create their profile and portal login'],
+  settings:['Settings','Agreement template and other admin options'],
   reports:['Reports',"Monthly breakdown, cumulative Allah's Share and top clients"],
 };
 
@@ -1206,7 +1211,7 @@ function render(){
   const nb = document.querySelector('#nav button[data-view="dashboard"]'), nDue = recDue().length;
   if (nb) nb.innerHTML = '📊 Dashboard' + (nDue ? `<span class="nbadge" title="${nDue} reminder${nDue > 1 ? 's' : ''} due">${nDue}</span>` : '');
   attBadge();
-  $('filterBar').innerHTML = (view === 'tasks' || view === 'attendance') ? '' : filterBar();   // Tasks has its own top bar
+  $('filterBar').innerHTML = (view === 'tasks' || view === 'attendance' || view === 'onboarding' || view === 'settings') ? '' : filterBar();   // Tasks has its own top bar
   document.querySelector('main').classList.toggle('cu', view === 'tasks');
   if (view !== 'tasks') cuPanelId = null;
   document.body.classList.toggle('cu-mode', view === 'tasks');
@@ -1222,9 +1227,11 @@ function render(){
     clients: clSel ? '' : '<button class="btn" onclick="clientForm()">+ New Client</button>',
     tasks: '',
     employees: empSel ? '' : '<button class="btn" onclick="empForm()">+ Add Employee</button>',
-    attendance: ''
+    attendance: '',
+    onboarding: '',
+    settings: ''
   }[view];
-  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees, attendance:vAttendance, clients:vClients, tasks:vTasks}[view](t);
+  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees, attendance:vAttendance, onboarding:vOnboarding, settings:vSettings, clients:vClients, tasks:vTasks}[view](t);
   ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah, personal:afterPersonal}[view] || (()=>{}))(t);
   rtSync();
   if (view === 'tasks') { const ed = document.querySelector('[data-edit], #cuAddIn'); if (ed) ed.focus(); const cf2 = document.querySelector('.chat-feed'); if (cf2) { cf2.scrollTop = cf2.scrollHeight; const ci = document.getElementById('chatInput'); if (ci) chatGrow(ci); } }
@@ -1986,7 +1993,7 @@ function vEmpList(){
   <div class="emp-grid">${list.map(e => { const ms = empMonthStatus(e); return `
     <div class="card emp-card" onclick="openEmp('${e.id}')">
       <div class="emp-head">${avatar(e)}<div style="flex:1;min-width:0"><b style="font-size:15px">${esc(e.name)}</b><div class="muted">${esc(e.designation || '—')} · ${esc(e.type)}</div></div>${stBadge(e.status)}</div>
-      <div class="emp-meta"><span>Salary</span><b>${fmt(e.salary)} <span class="muted" style="font-weight:400">/ ${esc(e.salaryType === 'Fixed' ? 'month' : e.salaryType.toLowerCase())}</span></b></div>
+      <div class="emp-meta"><span>Salary</span><b>${fmt(e.salary)} <span class="muted" style="font-weight:400">/ ${esc((e.salaryType || 'Fixed') === 'Fixed' ? 'month' : e.salaryType.toLowerCase())}</span></b></div>
       <div class="emp-meta"><span>${monthName(curMonth())}${proInfo(e) && proInfo(e).month === curMonth() ? ' · <b style="color:#b45309">Pro-Rata ' + fmt(proInfo(e).amount) + '</b>' : ''}</span>${payBadge(ms)}</div>
       ${['unpaid', 'overdue'].includes(ms) ? `<div class="inv-actions" style="margin-top:10px"><button class="btn sm" onclick="event.stopPropagation();salaryForm('${e.id}')">Mark Paid</button></div>` : ''}
     </div>`; }).join('') || '<div class="card empty" style="grid-column:1/-1">No employees found — click “+ Add Employee”.</div>'}</div>
@@ -2007,6 +2014,7 @@ function vEmpProfile(e){
     <div class="grow"><h2 style="font-size:22px">${esc(e.name)}</h2><div class="muted">${esc(e.designation || '—')} · ${esc(e.type)}</div><div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${stBadge(e.status)} ${e.archived ? '<span class="badge b-draft">Archived</span>' : ''} ${payBadge(empMonthStatus(e))} <span class="muted" style="font-size:12px">${monthName(curMonth())}</span></div></div>
     <div class="inv-actions"><button class="btn sm" onclick="salaryForm('${e.id}')">Record Salary</button><button class="btn sm ghost" onclick="empForm('${e.id}')">Edit</button> ${portalBtns('employee', e.id)}
       <button class="btn sm ghost" onclick="archiveEmp('${e.id}')">${e.archived ? 'Unarchive' : 'Archive'}</button><button class="btn sm danger" onclick="delEmp('${e.id}')">Delete</button></div></div></div>
+  ${onbCard(e)}
   <div class="psub">${tabs.map(([k, l]) => `<button class="${empTab === k ? 'on' : ''}" style="color:${empTab === k ? '#fff' : 'var(--teal)'};border-color:#3a3a3a;${empTab === k ? 'background:var(--teal)' : ''}" onclick="setEmpTab('${k}')">${l}</button>`).join('')}</div>${body}`;
 }
 const kv = (l, v) => `<div><span>${l}</span><b>${v ? esc(v) : '<span class="muted" style="display:inline;font-weight:400">—</span>'}</b></div>`;
@@ -3085,6 +3093,151 @@ async function pollChanges(){
   } catch (e) { /* offline — try again next tick */ }
 }
 
+/* ========= Employee onboarding: secure links, review panel, agreement template ========= */
+let onbLinks = {}, onbSubs = [], onbTpl = null, onbFilter = 'pending';
+const ONB_BADGE = {pending:'b-pending', approved:'b-paid', completed:'b-paid', rejected:'b-overdue', expired:'b-overdue', revoked:'b-draft'};
+const onbBadge = s => `<span class="badge ${ONB_BADGE[s] || 'b-draft'}">${({pending:'Pending', approved:'Approved', rejected:'Rejected', completed:'Completed', expired:'Expired', revoked:'Replaced'})[s] || esc(s)}</span>`;
+const onbUrl = t => ((MB_CONFIG.API_BASE.indexOf('localhost') > -1 ? location.origin : MB_CONFIG.PORTALS.employee) + '/onboarding?token=' + t);
+async function loadOnb(){
+  try {
+    const [t, s] = await Promise.all([MB.api('/api/admin/onboarding/tokens'), MB.api('/api/admin/onboarding/submissions')]);
+    onbLinks = {}; t.tokens.forEach(x => { onbLinks[x.employee_id] = x; });
+    const before = onbSubs.length; onbSubs = s.submissions;
+    const nb = document.querySelector('#nav button[data-view="onboarding"]'), n = onbSubs.filter(x => x.status === 'pending').length;
+    if (nb) nb.innerHTML = '📝 Onboarding Requests' + (n ? `<span class="nbadge" title="${n} awaiting review">${n}</span>` : '');
+    const ae = document.activeElement, typing = ae && (/INPUT|TEXTAREA|SELECT/.test(ae.tagName) || ae.isContentEditable);
+    if ((before !== onbSubs.length) && (view === 'onboarding' || (view === 'employees' && empSel)) && !$('overlay').classList.contains('open') && !typing) render();
+  } catch (e) { /* offline — next tick */ }
+}
+function onbCard(e){
+  const l = onbLinks[e.id], miss = [!String(e.designation || '').trim() && 'Designation', !(+e.salary > 0) && 'Salary', !/^\d{4}-\d{2}-\d{2}$/.test(e.joinDate || '') && 'Start Date'].filter(Boolean);
+  const live = l && l.status !== 'revoked';
+  let inner;
+  if (!live) inner = `<div class="muted" style="margin:6px 0 12px">Send ${esc(e.name)} a secure link to fill in their details, bank information and sign the employment agreement. Links expire after 7 days.</div>
+    ${miss.length ? `<div class="muted" style="color:#f59e0b;margin-bottom:10px">Fill in <b>${miss.join(', ')}</b> on this profile first (Edit).</div>` : ''}
+    <button class="btn" onclick="onbGenerate('${e.id}')" ${miss.length ? 'disabled title="Complete the profile first"' : ''}>🔗 Generate Onboarding Link</button>`;
+  else {
+    const url = onbUrl(l.token);
+    inner = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0">${onbBadge(l.status)}
+      <span class="muted">${l.status === 'pending' ? 'Expires ' + fdate(l.expires_at.slice(0, 10)) : l.status === 'expired' ? 'Expired ' + fdate(l.expires_at.slice(0, 10)) : 'Form submitted — see Onboarding Requests'}</span></div>
+      ${l.status === 'completed' ? '' : `<div style="display:flex;gap:8px;flex-wrap:wrap"><input id="onbUrl" readonly value="${esc(url)}" style="flex:1;min-width:220px" onclick="this.select()"><button class="btn sm" onclick="onbCopy()">Copy link</button></div>`}
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm ghost" onclick="onbGenerate('${e.id}',${l.status === 'completed' ? 1 : 0})">↻ Regenerate link</button>${l.status === 'completed' ? `<button class="btn sm ghost" onclick="view='onboarding';onbFilter='all';render()">Open request</button>` : ''}</div>`;
+  }
+  return `<div class="card" style="margin-bottom:16px"><h3 style="margin:0">📝 Employee Onboarding</h3>${inner}</div>`;
+}
+async function onbGenerate(id, confirmFirst){
+  const e = empById(id); if (!e) return;
+  if (confirmFirst && !confirm('This employee already submitted their form. Generate a fresh link anyway?')) return;
+  if (onbLinks[id] && onbLinks[id].status === 'pending' && !confirm('This replaces the current link — the old one stops working immediately. Continue?')) return;
+  try {
+    await store.flush();   // the server reads designation / salary / start date from the saved profile
+    const r = await MB.api('/api/admin/onboarding/link', {method:'POST', body:{employee_id:id}});
+    onbLinks[id] = r.link; render(); toast('Onboarding link ready — copy it and send it to ' + e.name.split(' ')[0]);
+  } catch (err) { toast(err.message); }
+}
+function onbCopy(){
+  const i = $('onbUrl'); if (!i) return; i.select();
+  (navigator.clipboard ? navigator.clipboard.writeText(i.value) : Promise.reject()).then(() => toast('Link copied'), () => { try { document.execCommand('copy'); toast('Link copied'); } catch (e) { toast('Press Ctrl+C to copy'); } });
+}
+
+/* ----- Onboarding Requests panel ----- */
+function vOnboarding(){
+  const cnt = k => onbSubs.filter(s => k === 'all' || s.status === k).length, rows = onbSubs.filter(s => onbFilter === 'all' || s.status === onbFilter);
+  return `<div class="fpills" style="margin-bottom:14px">${[['pending', 'Pending'], ['approved', 'Approved'], ['rejected', 'Rejected'], ['all', 'All']].map(([k, l]) => `<button class="${onbFilter === k ? 'on' : ''}" onclick="onbFilter='${k}';render()">${l} (${cnt(k)})</button>`).join('')}</div>
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Designation</th><th>Submitted</th><th>Status</th><th></th></tr></thead><tbody>
+  ${rows.map(s => `<tr><td><b>${esc(s.full_name)}</b><div class="muted" style="font-size:12px">${esc(s.email)}</div></td><td>${esc(s.designation || '—')}</td><td>${fdate((s.submitted_at || '').slice(0, 10))}</td><td>${onbBadge(s.status)}</td>
+    <td style="text-align:right"><button class="btn sm" onclick="onbReview('${s.id}')">Review</button></td></tr>`).join('') || `<tr><td colspan="5" class="empty">${onbSubs.length ? 'Nothing here.' : 'No onboarding forms yet. Generate a link from an employee profile and send it to the new hire.'}</td></tr>`}
+  </tbody></table></div></div>`;
+}
+const ONB_FIELDS = [['full_name', 'Full name'], ['dob', 'Date of birth', 'date'], ['gender', 'Gender', ['Male', 'Female']], ['phone', 'Phone', 'tel'], ['email', 'Email', 'email'], ['cnic', 'CNIC'], ['address', 'Address'],
+  ['emergency_name', 'Emergency contact'], ['emergency_phone', 'Emergency phone', 'tel'], ['emergency_relation', 'Relationship', ['Father', 'Mother', 'Spouse', 'Sibling', 'Other']],
+  ['bank_name', 'Bank', ['HBL', 'MCB', 'UBL', 'Meezan', 'Allied', 'Habib Metro', 'Standard Chartered', 'Other']], ['account_title', 'Account title'], ['account_number', 'Account number'], ['iban', 'IBAN (optional)'], ['payment_method', 'Payment method', ['Bank Transfer', 'EasyPaisa', 'JazzCash']]];
+async function onbReview(id){
+  let r; try { r = await MB.api('/api/admin/onboarding/submissions/' + id); } catch (e) { return toast(e.message); }
+  const s = r.submission, ro = s.status !== 'pending', pro = proInfo({joinDate:s.start_date, salary:s.salary});
+  const fld = ([k, l, t]) => `<div class="field"><label>${l}</label>${Array.isArray(t) ? `<select name="${k}" ${ro ? 'disabled' : ''}>${t.map(o => `<option ${o === s[k] ? 'selected' : ''}>${o}</option>`).join('')}</select>` : `<input name="${k}" type="${t || 'text'}" value="${esc(s[k] || '')}" ${ro ? 'readonly' : ''}>`}</div>`;
+  openModal(`<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><h2 style="margin:0">${esc(s.full_name)}</h2><div class="muted">${esc(s.designation)} · submitted ${fdate((s.submitted_at || '').slice(0, 10))}</div></div>${onbBadge(s.status)}</div>
+    ${s.status === 'rejected' ? `<div class="muted" style="margin:8px 0">Rejected${s.rejection_reason ? ': ' + esc(s.rejection_reason) : ''}</div>` : ''}
+    <form id="onbForm" onsubmit="return false">
+    <div style="display:flex;gap:14px;align-items:center;margin:14px 0">${s.photo ? `<img src="${s.photo}" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover">` : ''}
+      <div class="kv" style="flex:1"><div><span>Designation</span><b>${esc(s.designation)}</b></div><div><span>Monthly salary</span><b>${fmt(s.salary)}</b></div><div><span>Start date</span><b>${fdate(s.start_date)}</b></div></div></div>
+    ${pro ? `<div class="muted" style="margin-bottom:10px">Joining-month pro-rata: <b>${proText(pro)}</b> (calculated from the start date).</div>` : ''}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 14px">${ONB_FIELDS.map(fld).join('')}</div></form>
+    <h3 style="margin:14px 0 6px">Signed agreement <span class="muted" style="font-weight:400;font-size:12px">· template v${s.agreement_version} · exactly as signed</span></h3>
+    <div class="onb-agree">${s.agreement_text}</div>
+    <div style="margin-top:10px"><div class="muted" style="font-size:12px;margin-bottom:4px">Signature</div><img src="${s.signature_data}" alt="Signature" style="background:#fff;border:1px solid #ccc;border-radius:8px;max-width:280px;width:100%"></div>
+    ${ro ? '' : `<div class="field" id="onbRej" style="display:none;margin-top:14px"><label>Reason for rejection (optional)</label><input id="onbReason" maxlength="500" placeholder="e.g. CNIC number does not match"></div>
+    <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Close</button><button class="btn danger" id="onbRejBtn" onclick="onbRejectClick('${s.id}')">Reject</button><button class="btn ghost" onclick="onbSaveEdits('${s.id}')">Save changes</button><button class="btn" id="onbApproveBtn" onclick="onbApprove('${s.id}')">Approve &amp; create employee</button></div>`}
+    ${ro ? `<div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Close</button></div>` : ''}`, 'onb');
+}
+const onbFormData = () => Object.fromEntries(new FormData($('onbForm')));
+async function onbSaveEdits(id, quiet){
+  await MB.api('/api/admin/onboarding/submissions/' + id, {method:'PATCH', body:onbFormData()});
+  if (!quiet) toast('Changes saved');
+}
+async function onbRejectClick(id){
+  const box = $('onbRej');
+  if (box.style.display === 'none') { box.style.display = ''; $('onbReason').focus(); $('onbRejBtn').textContent = 'Confirm reject'; return; }
+  try { await MB.api('/api/admin/onboarding/submissions/' + id + '/reject', {method:'POST', body:{reason:$('onbReason').value}}); closeModal(); await loadOnb(); render(); toast('Submission rejected'); } catch (e) { toast(e.message); }
+}
+async function onbApprove(id){
+  const btn = $('onbApproveBtn'); btn.disabled = true;
+  try {
+    await onbSaveEdits(id, true);
+    await store.flush();
+    const r = await MB.api('/api/admin/onboarding/submissions/' + id + '/approve', {method:'POST', body:{}});
+    const i = employees.findIndex(x => x.id === r.employee.id); if (i >= 0) employees[i] = r.employee; else employees.push(r.employee);
+    save(); portalUsers = (await MB.api('/api/admin/users')).users; await loadOnb(); render();
+    const pro = r.pro_rata;
+    openModal(`<h2>✅ ${esc(r.employee.name)} is onboarded</h2>
+      <p class="muted" style="margin:6px 0 12px">The profile now appears under Employees${r.portal_existing ? '. A portal account already existed, so no new password was created.' : ' and a portal account was created.'}</p>
+      ${r.temp_password ? `<div class="card" style="margin-bottom:12px"><div class="kv"><div><span>Login email</span><b>${esc(r.login_email)}</b></div><div><span>Temporary password</span><b id="onbPw" style="font-family:monospace;font-size:16px">${esc(r.temp_password)}</b></div></div>
+        <button class="btn sm" style="margin-top:10px" onclick="navigator.clipboard.writeText('Email: ${esc(r.login_email)}\\nTemporary password: ${esc(r.temp_password)}').then(()=>toast('Copied'))">Copy login details</button>
+        <div class="muted" style="margin-top:8px;color:#f59e0b">Shown only once — share it privately. They can change it after signing in.</div></div>` : ''}
+      ${pro ? `<div class="muted">Pro-rata for ${pro.month}: ${pro.days} of ${pro.total} days — <b>${fmt(pro.amount)}</b> (shown in their Salary History).</div>` : '<div class="muted">Starts on the 1st — no pro-rata needed.</div>'}
+      <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Close</button><button class="btn" onclick="closeModal();view='employees';empSel='${r.employee.id}';empTab='overview';render()">Open profile</button></div>`);
+  } catch (e) { toast(e.message); btn.disabled = false; }
+}
+
+/* ----- Settings: employment agreement template ----- */
+async function onbTplLoad(){ try { onbTpl = (await MB.api('/api/admin/onboarding/template')).template; if (view === 'settings') render(); } catch (e) { toast(e.message); } }
+function vSettings(){
+  if (!onbTpl) { onbTplLoad(); return '<div class="card empty">Loading…</div>'; }
+  const chips = [['employee_name', 'Employee name'], ['designation', 'Designation'], ['salary', 'Salary'], ['start_date', 'Start date'], ['probation_period', 'Probation']];
+  return `<div class="card"><h3 style="margin:0 0 4px">📄 Employment Agreement Template</h3>
+    <div class="muted" style="margin-bottom:12px">This text is shown to new hires on their onboarding page. Changes apply to <b>future links only</b> — links already sent and forms already signed keep the version they were issued with (currently v${onbTpl.version}${onbTpl.updated_at ? ', saved ' + fdate(String(onbTpl.updated_at).slice(0, 10)) : ''}).</div>
+    <div class="rtbar">${[['bold', '<b>B</b>'], ['italic', '<i>I</i>'], ['underline', '<u>U</u>'], ['insertUnorderedList', '• List'], ['insertOrderedList', '1. List']].map(([c, n]) => `<button type="button" onmousedown="event.preventDefault();document.execCommand('${c}')">${n}</button>`).join('')}
+      <button type="button" onmousedown="event.preventDefault();document.execCommand('formatBlock',false,'h3')">Heading</button><button type="button" onmousedown="event.preventDefault();document.execCommand('formatBlock',false,'p')">Paragraph</button></div>
+    <div class="rte" id="tplEd" contenteditable="true" style="min-height:340px;max-height:60vh;overflow:auto">${onbTpl.content}</div>
+    <div class="muted" style="margin:10px 0 6px;font-size:12px">Click to insert a placeholder at the cursor — it is replaced with each employee's details:</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${chips.map(([k, l]) => `<button type="button" class="btn sm ghost" onmousedown="event.preventDefault();document.execCommand('insertText',false,'{{${k}}}')">{{${k}}} <span class="muted">${l}</span></button>`).join('')}</div>
+    <div class="field" style="margin-top:16px;max-width:260px"><label>Probation period (months)</label><input id="tplProb" type="number" min="1" max="24" value="${Math.round(onbTpl.probation_days / 30)}"></div>
+    <div class="muted" style="font-size:12px;margin:-4px 0 14px">Fills the <code>{{probation_period}}</code> placeholder in the Probation clause.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="onbTplSave()">Save template</button><button class="btn ghost" onclick="onbTplPreview()">Preview</button><button class="btn ghost" onclick="onbTplReset()">Restore saved</button></div></div>`;
+}
+function cleanAgree(html){   // same allow-list the server applies on save
+  const ok = new Set(['P','BR','B','STRONG','I','EM','U','S','UL','OL','LI','DIV','H1','H2','H3','BLOCKQUOTE']);
+  const doc = new DOMParser().parseFromString('<body>' + html + '</body>', 'text/html');
+  const walk = n => [...n.childNodes].map(c => c.nodeType === 3 ? esc(c.textContent) : c.nodeType === 1 ? (ok.has(c.tagName) ? `<${c.tagName.toLowerCase()}>${walk(c)}</${c.tagName.toLowerCase()}>` : walk(c)) : '').join('');
+  return walk(doc.body);
+}
+function onbSample(content, months){
+  const m = {employee_name:'Ahmed Khan', designation:'Social Media Manager', salary:'PKR ' + (60000).toLocaleString('en-US'), start_date:fdate(today()), probation_period:months + ' month' + (months > 1 ? 's' : '')};
+  return String(content).replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (x, k) => k in m ? esc(m[k]) : x);
+}
+function onbTplPreview(){
+  const months = Math.max(1, +$('tplProb').value || 3);
+  openModal(`<h2>Agreement preview</h2><p class="muted" style="margin-bottom:10px">Shown with sample details, exactly as a new hire will see it.</p><div class="onb-agree" style="max-height:60vh">${onbSample(cleanAgree($('tplEd').innerHTML), months)}</div><div class="modal-actions"><button class="btn" onclick="closeModal()">Close</button></div>`, 'onb');
+}
+async function onbTplSave(){
+  const content = $('tplEd').innerHTML, months = +$('tplProb').value;
+  try {
+    const r = await MB.api('/api/admin/onboarding/template', {method:'PUT', body:{content, probation_months:months}});
+    onbTpl = r.template; render(); toast('Template saved — applies to links generated from now on');
+  } catch (e) { toast(e.message); }
+}
+function onbTplReset(){ if (confirm('Discard unsaved changes?')) render(); }
+
 /* ========= Attendance (data lives on the server; employees write it from their portal) ========= */
 const AT = MB.att;
 let attOv = null;   // today's records + anything left open (dashboard card, alerts, nav badge)
@@ -3299,7 +3452,7 @@ function rtOnTick(what){
     store.hydrate(state); portalUsers = state.users || []; chanMembers = state.members || {}; lastChanges = state.now - 3000;
     // safety net: the legacy "first run" path empties every list — never let it fire when the database already holds records
     if (!store.getItem('data_version') && SYNC_KEYS.some(k => { try { return JSON.parse(store.mem[k] || '[]').length; } catch (e) { return false; } })) store.mem.data_version = '4';
-    MB.theme.paint(); MB.att.injectCss(); MB.rt.start(); MB.rt.bindStatus($('rtStat')); MB.rt.on(rtOnTick); init(); render(); attLoadOverview(); setInterval(attPoll, 60000);
+    MB.theme.paint(); MB.att.injectCss(); MB.rt.start(); MB.rt.bindStatus($('rtStat')); MB.rt.on(rtOnTick); init(); render(); attLoadOverview(); loadOnb(); setInterval(loadOnb, 60000); setInterval(attPoll, 60000);
     $('syncStat').textContent = '✓ All changes saved';
     if (backfillNote) setTimeout(() => toast(backfillNote), 600);
     setInterval(pollChanges, 6000);

@@ -880,6 +880,226 @@ async function chatPresence(env, user) {
   return { online: (await env.DB.prepare("SELECT user_id FROM user_presence WHERE status='online' AND last_seen>?").bind(since).all()).results.map(r => r.user_id) };
 }
 
+/* ------------------------------------------------------------ employee onboarding */
+const ONB_DAYS = 7;
+const ONB_TOKEN_RE = /^[A-Za-z0-9_-]{32,64}$/;
+const DEFAULT_AGREEMENT = `<h2>Employment Agreement</h2>
+<p>This Employment Agreement is made between <b>Media Beem</b> ("the Company") and <b>{{employee_name}}</b> ("the Employee").</p>
+<h3>1. Position &amp; Compensation</h3>
+<p>The Employee is appointed as <b>{{designation}}</b> with effect from <b>{{start_date}}</b>. The Company shall pay the Employee a gross monthly salary of <b>{{salary}}</b>, payable through the payment method the Employee has provided, in accordance with the Company's payroll schedule. Salary for a part month is calculated pro-rata from the start date.</p>
+<h3>2. Probation</h3>
+<p>The first <b>{{probation_period}}</b> of employment form a probation period. During probation either party may end this agreement with written notice, and the Company may extend or confirm the appointment at the end of the period.</p>
+<h3>3. Duties &amp; Conduct</h3>
+<p>The Employee shall perform the duties of the role diligently and in good faith, follow the Company's lawful instructions and policies, and act professionally with colleagues, clients and partners.</p>
+<h3>4. Working Hours &amp; Attendance</h3>
+<p>The Employee shall observe the working hours and attendance process set by the Company, and record attendance and work through the Company's systems.</p>
+<h3>5. Confidentiality</h3>
+<p>The Employee shall keep confidential all non-public information about the Company, its clients and its finances, during and after employment, and shall not use it for any purpose other than the Company's business.</p>
+<h3>6. Intellectual Property</h3>
+<p>All work created by the Employee in the course of employment belongs to the Company or its clients, as applicable.</p>
+<h3>7. Termination</h3>
+<p>After probation, either party may end this agreement by giving the notice period set out in Company policy. The Company may end employment without notice for serious misconduct.</p>
+<h3>8. Acceptance</h3>
+<p>By signing below, the Employee confirms that they have read, understood and agreed to all of the terms above.</p>`;
+
+const money = n => 'PKR ' + Math.round(+n || 0).toLocaleString('en-US');
+const prettyDate = d => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || '')); if (!m) return String(d || ''); return `${+m[3]} ${['January','February','March','April','May','June','July','August','September','October','November','December'][+m[2] - 1]} ${m[1]}`; };
+const probationText = days => { days = Math.max(1, Math.round(+days || 90)); if (days % 30 === 0) { const m = days / 30; return `${m} month${m > 1 ? 's' : ''}`; } return `${days} day${days > 1 ? 's' : ''}`; };
+const escHtml = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+/** fills the template placeholders — values are escaped, the template itself was sanitised when saved */
+function renderAgreement(content, v) {
+  const map = { employee_name: v.name, designation: v.designation, salary: money(v.salary), start_date: prettyDate(v.start_date), probation_period: probationText(v.probation_days) };
+  return String(content || '').replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (m, k) => (k in map ? escHtml(map[k]) : m));
+}
+async function getTemplate(env) {
+  let t = await env.DB.prepare('SELECT content,probation_days,version,updated_at FROM agreement_template WHERE id=1').first();
+  if (!t) {
+    await env.DB.prepare('INSERT OR IGNORE INTO agreement_template (id,content,probation_days,version,updated_at) VALUES (1,?,90,1,?)').bind(DEFAULT_AGREEMENT, nowIso()).run();
+    t = await env.DB.prepare('SELECT content,probation_days,version,updated_at FROM agreement_template WHERE id=1').first();
+  }
+  return t;
+}
+async function putTemplate(req, env) {
+  const b = await readBody(req), cur = await getTemplate(env);
+  const content = cleanHtml(String(b.content || '')).trim();
+  if (content.length < 50) throw bad('The agreement text is too short');
+  const months = Math.round(+b.probation_months);
+  const days = Number.isFinite(months) && months >= 0 && b.probation_months !== undefined ? Math.max(1, months) * 30 : cur.probation_days;
+  if (b.probation_months !== undefined && !(months >= 1 && months <= 24)) throw bad('Probation must be between 1 and 24 months');
+  await env.DB.prepare('UPDATE agreement_template SET content=?, probation_days=?, version=version+1, updated_at=? WHERE id=1').bind(content, days, nowIso()).run();
+  return { template: await getTemplate(env) };
+}
+const tokenStatus = t => (t.status === 'pending' && t.expires_at < nowIso() ? 'expired' : t.status);
+const tokenView = t => ({ id: t.id, employee_id: t.employee_id, token: t.token, status: tokenStatus(t), expires_at: t.expires_at, created_at: t.created_at, designation: t.designation, salary: t.salary, start_date: t.start_date });
+
+async function onbGenerateLink(req, env) {
+  const { employee_id } = await readBody(req);
+  const row = await env.DB.prepare('SELECT id,name,data FROM employees WHERE id=?').bind(String(employee_id || '')).first();
+  if (!row) throw notFound('Employee not found — save the profile first');
+  const e = safeJson(row.data, {});
+  const missing = [];
+  if (!String(e.designation || '').trim()) missing.push('Designation');
+  if (!(+e.salary > 0)) missing.push('Salary');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(e.joinDate || ''))) missing.push('Start Date');
+  if (missing.length) throw bad('Fill in ' + missing.join(', ') + ' on the profile before generating a link');
+  const tpl = await getTemplate(env);
+  const bytes = crypto.getRandomValues(new Uint8Array(32)), token = b64u.enc(bytes);
+  const id = uid(), exp = new Date(Date.now() + ONB_DAYS * 864e5).toISOString();
+  await env.DB.batch([
+    env.DB.prepare("UPDATE onboarding_tokens SET status='revoked' WHERE employee_id=? AND status='pending'").bind(row.id),
+    env.DB.prepare('INSERT INTO onboarding_tokens (id,employee_id,token,status,expires_at,created_at,designation,salary,start_date,agreement_content,agreement_version,probation_days) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
+      .bind(id, row.id, token, 'pending', exp, nowIso(), String(e.designation).trim(), +e.salary, e.joinDate, tpl.content, tpl.version, tpl.probation_days),
+  ]);
+  return { link: tokenView(await env.DB.prepare('SELECT * FROM onboarding_tokens WHERE id=?').bind(id).first()) };
+}
+async function onbTokens(env) {   // newest link per employee (status for the profile page)
+  const rs = await env.DB.prepare('SELECT * FROM onboarding_tokens ORDER BY created_at DESC, rowid DESC').all();
+  const seen = new Set(), out = [];
+  for (const t of rs.results) { if (seen.has(t.employee_id)) continue; seen.add(t.employee_id); out.push(tokenView(t)); }
+  return { tokens: out };
+}
+
+/** public side — the token is the only credential, so lookups are rate-limited per client address */
+async function onbThrottle(req, env, failed) {
+  const key = 'onb:' + (req.headers.get('CF-Connecting-IP') || 'local'), since = Date.now() - 15 * 60 * 1000;
+  if (failed) { await env.DB.prepare('INSERT INTO login_attempts (email, ts) VALUES (?,?)').bind(key, Date.now()).run(); return; }
+  const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM login_attempts WHERE email=? AND ts>?').bind(key, since).first();
+  if (n && n.n >= 20) throw new HttpError(429, 'Too many attempts — please try again later');
+}
+async function onbLoadToken(req, env, token) {
+  await onbThrottle(req, env, false);
+  const t = ONB_TOKEN_RE.test(token) ? await env.DB.prepare('SELECT * FROM onboarding_tokens WHERE token=?').bind(token).first() : null;
+  if (!t) { await onbThrottle(req, env, true); throw notFound('This onboarding link is not valid'); }
+  return t;
+}
+async function onbPublicInfo(req, env, token) {
+  const t = await onbLoadToken(req, env, token), status = tokenStatus(t);
+  if (status !== 'pending') return { status };
+  const emp = await env.DB.prepare('SELECT name FROM employees WHERE id=?').bind(t.employee_id).first();
+  return { status, expires_at: t.expires_at, employee: { designation: t.designation, salary: t.salary, start_date: t.start_date, name_hint: emp ? emp.name : '' },
+    agreement: { content: t.agreement_content, version: t.agreement_version, probation_days: t.probation_days } };
+}
+const CNIC_RE = /^\d{5}-\d{7}-\d$/, EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const BANKS = ['HBL', 'MCB', 'UBL', 'Meezan', 'Allied', 'Habib Metro', 'Standard Chartered', 'Other'], RELATIONS = ['Father', 'Mother', 'Spouse', 'Sibling', 'Other'], METHODS = ['Bank Transfer', 'EasyPaisa', 'JazzCash'];
+const isIsoDate = d => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d));
+/** one validator for both the employee's submission and the admin's edits */
+function validateOnb(b, { photoOptional = true } = {}) {
+  const s = (k, max = 200) => String(b[k] ?? '').trim().slice(0, max);
+  const v = { full_name: s('full_name', 120), dob: s('dob', 10), gender: s('gender', 10), phone: s('phone', 30), email: s('email', 160).toLowerCase(), address: s('address', 400), cnic: s('cnic', 15),
+    emergency_name: s('emergency_name', 120), emergency_phone: s('emergency_phone', 30), emergency_relation: s('emergency_relation', 20),
+    bank_name: s('bank_name', 40), account_title: s('account_title', 120), account_number: s('account_number', 40), iban: s('iban', 40).toUpperCase().replace(/\s+/g, ''), payment_method: s('payment_method', 20) };
+  const need = (k, label) => { if (!v[k]) throw bad(label + ' is required'); };
+  need('full_name', 'Full name');
+  if (!isIsoDate(v.dob) || Date.parse(v.dob) > Date.now()) throw bad('Enter a valid date of birth');
+  if (!['Male', 'Female'].includes(v.gender)) throw bad('Select a gender');
+  if (!/^[0-9+\-\s()]{7,20}$/.test(v.phone)) throw bad('Enter a valid phone number');
+  if (!EMAIL_RE.test(v.email)) throw bad('Enter a valid email address');
+  need('address', 'Address');
+  if (!CNIC_RE.test(v.cnic)) throw bad('CNIC must look like 12345-1234567-1');
+  need('emergency_name', 'Emergency contact name');
+  if (!/^[0-9+\-\s()]{7,20}$/.test(v.emergency_phone)) throw bad('Enter a valid emergency contact phone number');
+  if (!RELATIONS.includes(v.emergency_relation)) throw bad('Select the emergency contact relationship');
+  if (!BANKS.includes(v.bank_name)) throw bad('Select a bank');
+  need('account_title', 'Account title'); need('account_number', 'Account number');
+  if (v.iban && !/^[A-Z0-9]{15,34}$/.test(v.iban)) throw bad('IBAN looks invalid');
+  if (!METHODS.includes(v.payment_method)) throw bad('Select a payment method');
+  return v;
+}
+function cleanPhoto(p) {
+  if (p === undefined || p === null || p === '') return null;
+  if (typeof p !== 'string' || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p)) throw bad('Profile photo must be a JPEG, PNG or WebP image');
+  if (p.length > 1_500_000) throw bad('Profile photo is too large');
+  return p;
+}
+async function onbSubmit(req, env, token) {
+  const t = await onbLoadToken(req, env, token), st = tokenStatus(t);
+  if (st === 'completed') throw new HttpError(409, 'This form has already been submitted');
+  if (st !== 'pending') throw new HttpError(410, st === 'expired' ? 'This link has expired — ask your manager for a new one' : 'This link is no longer active');
+  const b = await readBody(req), v = validateOnb(b), photo = cleanPhoto(b.photo);
+  const sig = String(b.signature_data || '');
+  if (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(sig) || sig.length < 800) throw bad('Please sign the agreement');
+  if (sig.length > 600_000) throw bad('Signature is too large');
+  if (b.agreed !== true) throw bad('Please confirm you agree to the terms');
+  const text = renderAgreement(t.agreement_content, { name: v.full_name, designation: t.designation, salary: t.salary, start_date: t.start_date, probation_days: t.probation_days });
+  const id = uid(), now = nowIso();
+  const cols = ['full_name', 'dob', 'gender', 'phone', 'email', 'address', 'cnic', 'emergency_name', 'emergency_phone', 'emergency_relation', 'bank_name', 'account_title', 'account_number', 'iban', 'payment_method'];
+  const res = await env.DB.batch([
+    env.DB.prepare("UPDATE onboarding_tokens SET status='completed' WHERE id=? AND status='pending'").bind(t.id),
+    env.DB.prepare(`INSERT INTO onboarding_submissions (id,token_id,${cols.join(',')},signature_data,agreement_version,agreement_text,designation,salary,start_date,photo,submitted_at,status)
+      SELECT ?,?,${cols.map(() => '?').join(',')},?,?,?,?,?,?,?,?,'pending' WHERE changes() = 1`)
+      .bind(id, t.id, ...cols.map(c => v[c]), sig, t.agreement_version, text, t.designation, t.salary, t.start_date, photo, now),
+  ]);
+  if (!res[1].meta.changes) throw new HttpError(409, 'This form has already been submitted');
+  return { ok: true };
+}
+
+/** admin review */
+const SUB_LIST = 'id,token_id,full_name,designation,salary,start_date,email,phone,submitted_at,status,rejection_reason,reviewed_at,employee_id,agreement_version';
+async function onbSubmissions(env) { return { submissions: (await env.DB.prepare(`SELECT ${SUB_LIST} FROM onboarding_submissions ORDER BY submitted_at DESC`).all()).results }; }
+async function onbSubmission(env, id) {
+  const s = await env.DB.prepare('SELECT * FROM onboarding_submissions WHERE id=?').bind(id).first();
+  if (!s) throw notFound('Submission not found');
+  const portal = s.employee_id ? await env.DB.prepare('SELECT 1 AS x FROM employee_user WHERE employee_id=?').bind(s.employee_id).first() : null;
+  return { submission: s, has_portal: !!portal };
+}
+async function onbEdit(req, env, id) {
+  const s = await env.DB.prepare('SELECT status FROM onboarding_submissions WHERE id=?').bind(id).first();
+  if (!s) throw notFound('Submission not found');
+  if (s.status !== 'pending') throw bad('Only pending submissions can be edited');
+  const b = await readBody(req), v = validateOnb(b), cols = Object.keys(v);
+  await env.DB.prepare(`UPDATE onboarding_submissions SET ${cols.map(c => c + '=?').join(',')} WHERE id=?`).bind(...cols.map(c => v[c]), id).run();
+  return onbSubmission(env, id);
+}
+async function onbReject(req, env, id) {
+  const s = await env.DB.prepare('SELECT status FROM onboarding_submissions WHERE id=?').bind(id).first();
+  if (!s) throw notFound('Submission not found');
+  if (s.status !== 'pending') throw bad('This submission was already reviewed');
+  const reason = String((await readBody(req)).reason || '').trim().slice(0, 500);
+  await env.DB.prepare("UPDATE onboarding_submissions SET status='rejected', rejection_reason=?, reviewed_at=? WHERE id=?").bind(reason || null, nowIso(), id).run();
+  return { ok: true };
+}
+const tempPassword = () => { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'; return Array.from(crypto.getRandomValues(new Uint8Array(12)), n => a[n % a.length]).join(''); };
+/** pro-rata for the joining month — mirrors the admin app's proInfo() */
+function proRata(start, salary) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(start || ''); if (!m) return null;
+  const day = +m[3], total = new Date(Date.UTC(+m[1], +m[2], 0)).getUTCDate();
+  if (day <= 1) return null;
+  const days = total - day + 1;
+  return { month: `${m[1]}-${m[2]}`, days, total, amount: Math.round((+salary || 0) / total * days) };
+}
+async function onbApprove(env, id) {
+  const s = await env.DB.prepare('SELECT * FROM onboarding_submissions WHERE id=?').bind(id).first();
+  if (!s) throw notFound('Submission not found');
+  if (s.status !== 'pending') throw bad('This submission was already reviewed');
+  const tok = await env.DB.prepare('SELECT employee_id FROM onboarding_tokens WHERE id=?').bind(s.token_id).first();
+  const empId = tok.employee_id, email = String(s.email).toLowerCase();
+  const taken = await env.DB.prepare('SELECT 1 AS x FROM users WHERE email=?').bind(email).first();
+  const existing = await env.DB.prepare('SELECT data FROM employees WHERE id=?').bind(empId).first();
+  const hasPortal = await env.DB.prepare('SELECT 1 AS x FROM employee_user WHERE employee_id=?').bind(empId).first();
+  if (!hasPortal && taken) throw new HttpError(409, 'That email address already belongs to another account — edit the email before approving');
+  const prev = existing ? safeJson(existing.data, {}) : {};
+  const rec = { status: 'Active', type: 'Full Time', salaryType: 'Fixed', payDay: 1, ...prev, id: empId,
+    name: s.full_name, designation: s.designation, salary: s.salary, joinDate: s.start_date, dob: s.dob, gender: s.gender, phone: s.phone, email: s.email, address: s.address, cnic: s.cnic,
+    emergencyName: s.emergency_name, emergencyPhone: s.emergency_phone, emergencyRelation: s.emergency_relation,
+    bankName: s.bank_name, accountTitle: s.account_title, accountNumber: s.account_number, iban: s.iban || '', payMethod: s.payment_method, archived: false };
+  if (s.photo) rec.photo = s.photo;
+  if (rec.status !== 'Active' && rec.status !== 'On Leave') rec.status = 'Active';
+  await syncCollection(env, 'employees', [rec], []);
+  let password = null;
+  if (!hasPortal) {
+    password = tempPassword();
+    const uidv = uid();
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO users (id,email,password_hash,role,name,active) VALUES (?,?,?,?,?,1)').bind(uidv, email, await hashPassword(password), 'employee', s.full_name),
+      env.DB.prepare('INSERT INTO employee_user (employee_id,user_id) VALUES (?,?)').bind(empId, uidv),
+      env.DB.prepare("UPDATE dm_messages SET from_id=? WHERE from_id=?").bind(uidv, 'emp:' + empId),
+      env.DB.prepare("UPDATE dm_messages SET to_id=? WHERE to_id=?").bind(uidv, 'emp:' + empId),
+    ]);
+  }
+  await env.DB.prepare("UPDATE onboarding_submissions SET status='approved', reviewed_at=?, employee_id=?, rejection_reason=NULL WHERE id=?").bind(nowIso(), empId, id).run();
+  return { ok: true, employee: rec, login_email: email, temp_password: password, pro_rata: proRata(s.start_date, s.salary), portal_existing: !!hasPortal };
+}
+
 /* ------------------------------------------------------------------ router */
 async function route(req, env, url) {
   const path = url.pathname.replace(/\/+$/, '') || '/', method = req.method, seg = path.split('/').filter(Boolean);
@@ -895,6 +1115,9 @@ async function route(req, env, url) {
     await env.DB.prepare('UPDATE users SET password_hash=? WHERE id=?').bind(await hashPassword(String(new_password)), u.id).run();
     return { ok: true };
   }
+
+  if (seg[0] === 'api' && seg[1] === 'onboarding' && seg[2] && method === 'GET' && seg.length === 3) return onbPublicInfo(req, env, seg[2]);
+  if (seg[0] === 'api' && seg[1] === 'onboarding' && seg[2] && seg[3] === 'submit' && method === 'POST') return onbSubmit(req, env, seg[2]);
 
   if (seg[0] === 'api' && seg[1] === 'ws' && seg.length === 4 && method === 'GET') return wsUpgrade(req, env, seg);
   if (seg[0] === 'api' && seg[1] === 'chat') {
@@ -941,6 +1164,17 @@ async function route(req, env, url) {
     if (r === 'attendance/overview' && method === 'GET') return adminAttendanceOverview(env);
     if (r === 'attendance' && method === 'PUT') return adminSetDay(req, env);
     if (seg[2] === 'attendance' && seg[3] && seg.length === 4 && method === 'DELETE') return adminDeleteDay(env, seg[3]);
+    if (r === 'onboarding/link' && method === 'POST') return onbGenerateLink(req, env);
+    if (r === 'onboarding/tokens' && method === 'GET') return onbTokens(env);
+    if (r === 'onboarding/template' && method === 'GET') return { template: await getTemplate(env) };
+    if (r === 'onboarding/template' && method === 'PUT') return putTemplate(req, env);
+    if (r === 'onboarding/submissions' && method === 'GET') return onbSubmissions(env);
+    if (seg[2] === 'onboarding' && seg[3] === 'submissions' && seg[4]) {
+      if (seg.length === 5 && method === 'GET') return onbSubmission(env, seg[4]);
+      if (seg.length === 5 && method === 'PATCH') return onbEdit(req, env, seg[4]);
+      if (seg[5] === 'approve' && method === 'POST') return onbApprove(env, seg[4]);
+      if (seg[5] === 'reject' && method === 'POST') return onbReject(req, env, seg[4]);
+    }
     if (r === 'work-settings' && method === 'GET') return { settings: await getWorkSettings(env) };
     if (r === 'work-settings' && method === 'PUT') return putWorkSettings(req, env);
     throw notFound();

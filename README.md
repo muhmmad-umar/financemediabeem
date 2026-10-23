@@ -96,3 +96,20 @@ npm run dev:web                           # frontend on :8080 (clean URLs: /admi
 * Credit = (a) the excess of a voluntary payment over the remaining obligation, plus (b) any obligated payments above what is owed, plus (c) a manual adjustment: if `app_settings.allah_share_credit` is edited directly in D1 the app notices that it no longer matches what it last wrote (`allah_share_credit_last`) and adds the difference as a manual credit.
 * Dashboard and Allah's Share page show the credit row whenever the balance is above ₨0 (and the "You're ahead!" banner when it covers the whole obligation). `npm run test:allah` verifies this end to end, including the ₨5,000 database test.
 * Needs migrations `0005` + `0006` and a Worker deploy so the extra settings keys sync.
+
+## Employee onboarding
+
+A new hire fills in their own details, bank information and signs the employment agreement on a public page — no login needed. The admin reviews, then approves to create the profile and portal account.
+
+**Flow**
+
+1. **Admin → Employees → profile → "Generate Onboarding Link".** Designation, Salary and Start Date must be filled in first. The link is `employee.mediabeem.com/onboarding?token=…`, valid for **7 days**. The profile shows its status (Pending / Completed / Expired), a *Copy link* button and *Regenerate* (the old link stops working immediately).
+2. **Employee** opens the link: 5 steps (Personal → Emergency → Bank → Agreement → Review). Each step validates before continuing (CNIC `12345-1234567-1`, required fields, etc.). The agreement must be scrolled to the end before the signature pad unlocks; the signature (mouse or touch) and the "I agree" tick are required to submit. A link can be submitted only once.
+3. **Admin → Team → Onboarding Requests** lists submissions (Pending / Approved / Rejected). *Review* shows every field (editable), the photo, the signature and the agreement exactly as signed.
+   - **Approve** updates the employee profile with the submitted details (it appears in Employees immediately), creates the employee-portal login with the submitted email and shows a **temporary password once**, and the joining-month pro-rata is calculated from the start date (same helper as the Salary tab).
+   - **Reject** marks it rejected with an optional reason.
+4. **Admin → System → Settings → Employment Agreement Template.** Rich-text editor with placeholders `{{employee_name}}`, `{{designation}}`, `{{salary}}`, `{{start_date}}`, `{{probation_period}}`, a probation length (default 3 months) and a Preview. Edits apply to **future links only**: each link snapshots the template when generated, and each submission stores the rendered text the employee signed (`agreement_version` = template version).
+
+**Data** (`worker/migrations/0007_onboarding.sql`): `onboarding_tokens`, `onboarding_submissions`, `agreement_template`. Apply with `npm run db:migrate`, then redeploy the Worker (`npm run deploy:api`) and the Pages site.
+
+**Security notes**: tokens are 256-bit random values; the two public endpoints (`GET /api/onboarding/:token`, `POST /api/onboarding/:token/submit`) are the only unauthenticated routes, are origin-restricted by `ALLOWED_ORIGINS` and rate-limited per IP on bad tokens; all input is re-validated server-side, the agreement HTML is sanitised on save and placeholder values are escaped. The page sends no referrer and is `noindex`.

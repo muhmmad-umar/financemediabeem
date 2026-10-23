@@ -127,6 +127,7 @@ html[data-theme="light"] .lnk{color:#3f2786}
 html[data-theme="light"] .psec{color:#6b7280}
 html[data-theme="light"] .loglist div{border-bottom:1px dashed #e5e7eb}
 html[data-theme="light"] .loglist a{color:#972020}
+html[data-theme="light"] .onb-agree{border:1px solid #e5e7eb;background:#ffffff}
 html[data-theme="light"] .rtbar button{background:#ffffff;border:1px solid #e5e7eb;color:#1f2937}
 html[data-theme="light"] .rte{border:1px solid #e5e7eb;background:#ffffff;color:#111827}
 html[data-theme="light"] .rte:empty:before{color:#6b7280}

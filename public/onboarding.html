@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Employee Onboarding · Media Beem</title>
+<script src="config.js?v=20261024a"></script>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#0f172a;--sub:#475569;--mut:#94a3b8;--line:#e2e8f0;--brand:#0d9488;--brand2:#0f766e;--tint:#f0fdfa;--err:#dc2626;--ok:#16a34a;--r:14px}
+*{box-sizing:border-box}
+html{color-scheme:light}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+header{background:#fff;border-bottom:1px solid var(--line)}
+.top{max-width:760px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--brand),#14b8a6);color:#fff;font-weight:800;display:grid;place-items:center;letter-spacing:.02em}
+.top b{display:block;font-size:17px;line-height:1.2}.top small{color:var(--sub);font-size:12px}
+main{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:18px;margin:0 0 4px}.lead{color:var(--sub);margin:0 0 18px}
+.prog{margin:0 0 18px}
+.prog-top{display:flex;justify-content:space-between;font-size:13px;color:var(--sub);margin-bottom:8px;font-weight:600}
+.bar{height:8px;background:#e5e9f2;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),#14b8a6);border-radius:99px;transition:width .3s}
+.dots{display:flex;gap:6px;margin-top:10px}
+.dots span{flex:1;text-align:center;font-size:11px;color:var(--mut);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dots span.on{color:var(--brand2)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.full{grid-column:1/-1}.grid>*{min-width:0}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.card{padding:18px 16px}.dots span{font-size:10px}}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:#1e293b}
+label em{color:var(--err);font-style:normal}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:11px 12px;min-height:44px;outline:none;transition:border-color .15s,box-shadow .15s}
+textarea{min-height:84px;resize:vertical}input,select,textarea{max-width:100%;min-width:0}input[type=date]{-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(13,148,136,.15)}
+input[readonly]{background:#f1f5f9;color:var(--sub);cursor:not-allowed}
+.f.bad input,.f.bad select,.f.bad textarea{border-color:var(--err)}
+.msg{color:var(--err);font-size:12px;margin-top:4px;min-height:0;display:none}.f.bad .msg{display:block}
+.hint{color:var(--mut);font-size:12px;margin-top:4px}
+.seg{display:flex;gap:8px}.seg label{flex:1;margin:0;font-weight:500}
+.seg label{position:relative}.seg input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;min-height:0;padding:0}
+.seg span{display:flex;align-items:center;justify-content:center;border:1px solid #cbd5e1;border-radius:10px;min-height:44px;cursor:pointer;background:#fff}
+.seg input:checked+span{border-color:var(--brand);background:var(--tint);color:var(--brand2);font-weight:700}
+.seg input:focus-visible+span{box-shadow:0 0 0 3px rgba(13,148,136,.25)}
+.f.bad .seg span{border-color:var(--err)}
+.nav{display:flex;justify-content:space-between;gap:10px;margin-top:22px}
+.btn{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 22px;min-height:46px;cursor:pointer;background:var(--brand);color:#fff}
+.btn:hover{background:var(--brand2)}.btn.ghost{background:#fff;color:var(--ink);border:1px solid #cbd5e1}.btn.ghost:hover{background:#f8fafc}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.sm{padding:6px 12px;min-height:34px;font-size:13px}
+.photo{display:flex;align-items:center;gap:14px}
+.photo>div:last-child{min-width:0;flex:1}.photo .pv{width:76px;height:76px;border-radius:50%;background:#e2e8f0 center/cover;border:1px solid var(--line);display:grid;place-items:center;color:var(--mut);font-size:26px;flex:none}
+.agree{border:1px solid var(--line);border-radius:12px;background:#fafbfd;padding:16px 18px;max-height:340px;overflow:auto;-webkit-overflow-scrolling:touch}
+.agree h2{font-size:17px}.agree h3{font-size:14px;margin:16px 0 4px}.agree p{margin:0 0 8px;font-size:14px}
+.scrollnote{font-size:13px;margin:8px 0 14px;color:var(--sub)}.scrollnote.ok{color:var(--ok);font-weight:600}
+.locked{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:560px){.locked{grid-template-columns:1fr}}
+.locked div{background:#f1f5f9;border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.locked small{display:block;color:var(--sub);font-size:11px;text-transform:uppercase;letter-spacing:.05em}.locked b{font-size:14px}
+.sig{opacity:.5;pointer-events:none;transition:opacity .2s}.sig.on{opacity:1;pointer-events:auto}
+.sigbox{position:relative;border:1.5px dashed #94a3b8;border-radius:10px;background:#fff;width:100%;max-width:360px;aspect-ratio:2.6/1;touch-action:none}
+.sigbox canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair;border-radius:10px}
+.sigbox .ph{position:absolute;inset:0;display:grid;place-items:center;color:#cbd5e1;font-size:14px;pointer-events:none}
+.sigrow{display:flex;gap:10px;align-items:center;margin-top:8px}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-weight:500;cursor:pointer}
+.chk input{width:20px;height:20px;min-height:0;margin-top:2px;flex:none;accent-color:var(--brand)}
+.rev{border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.rev-h{display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:9px 14px;border-bottom:1px solid var(--line);font-weight:700;font-size:14px}
+.rev dl{margin:0;padding:6px 14px 10px;display:grid;grid-template-columns:150px 1fr;gap:6px 12px;font-size:14px}
+.rev dt{color:var(--sub)}.rev dd{margin:0;word-break:break-word}
+@media(max-width:560px){.rev dl{grid-template-columns:1fr;gap:0}.rev dt{margin-top:8px;font-size:12px}}
+.err-banner{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:10px 14px;margin-top:14px;font-size:14px;display:none}
+.state{text-align:center;padding:36px 12px}.state .ic{font-size:44px;margin-bottom:8px}
+.sigimg{border:1px solid var(--line);border-radius:8px;background:#fff;max-width:240px;display:block}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="top"><div class="logo">MB</div><div><b>Media Beem</b><small>Employee Onboarding</small></div></div></header>
+<main id="app"><div class="card state"><div class="ic">⏳</div>Loading your onboarding form…</div></main>
+
+<script>
+(function(){
+'use strict';
+var API = (window.MB_CONFIG && MB_CONFIG.API_BASE) || '';
+var token = new URLSearchParams(location.search).get('token') || '';
+var app = document.getElementById('app');
+var STEPS = ['Personal','Emergency','Bank','Agreement','Review'];
+var BANKS = ['HBL','MCB','UBL','Meezan','Allied','Habib Metro','Standard Chartered','Other'];
+var REL = ['Father','Mother','Spouse','Sibling','Other'];
+var METHODS = ['Bank Transfer','EasyPaisa','JazzCash'];
+var info = null, step = 1, F = {gender:'',payment_method:''}, photo = '', sig = '', agreed = false, scrolled = false, submitting = false;
+
+function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function stateCard(icon, title, text){ app.innerHTML = '<div class="card state"><div class="ic">'+icon+'</div><h1>'+esc(title)+'</h1><p class="lead" style="margin:6px 0 0">'+esc(text)+'</p></div>'; }
+function api(path, opt){
+  return fetch(API + path, opt).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if (!r.ok) { var e = new Error(j.error || 'Something went wrong'); e.status = r.status; throw e; } return j; }); });
+}
+if (!token) stateCard('🔗','Link missing','Open the onboarding link your manager sent you. It looks like …/onboarding?token=…');
+else api('/api/onboarding/' + encodeURIComponent(token)).then(function(j){
+  if (j.status === 'expired') return stateCard('⌛','This link has expired','Onboarding links are valid for 7 days. Please ask your manager to send you a new one.');
+  if (j.status === 'completed') return stateCard('✅','Already submitted','Your onboarding form has been received. Nothing more to do here.');
+  if (j.status !== 'pending') return stateCard('🚫','Link no longer active','A newer link was issued for you, or this one was cancelled. Please use the latest link or ask your manager.');
+  info = j; if (info.employee.name_hint) F.full_name = info.employee.name_hint; draw();
+}).catch(function(e){
+  if (e.status === 404) stateCard('🚫','Invalid link','This onboarding link is not valid. Please check you opened the full link.');
+  else if (e.status === 429) stateCard('⏳','Too many attempts','Please wait a few minutes and try again.');
+  else stateCard('⚠️','Could not load the form', e.message + ' — check your connection and refresh.');
+});
+
+/* ---------- helpers ---------- */
+function money(n){ return 'PKR ' + Math.round(+n||0).toLocaleString('en-US'); }
+var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function pdate(d){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d||''); return m ? (+m[3]) + ' ' + MONTHS[+m[2]-1] + ' ' + m[1] : (d||''); }
+function probation(days){ days = Math.max(1, Math.round(+days||90)); if (days % 30 === 0) { var m = days/30; return m + ' month' + (m>1?'s':''); } return days + ' day' + (days>1?'s':''); }
+function agreementHtml(){
+  var e = info.employee, map = {employee_name:F.full_name||'', designation:e.designation, salary:money(e.salary), start_date:pdate(e.start_date), probation_period:probation(info.agreement.probation_days)};
+  return String(info.agreement.content||'').replace(/\{\{\s*([a-z_]+)\s*\}\}/g, function(m,k){ return k in map ? esc(map[k]) : m; });
+}
+function val(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function inp(id, label, o){
+  o = o || {}; var v = F[id] || '';
+  return '<div class="f '+(o.full?'full':'')+'" data-f="'+id+'"><label for="'+id+'">'+label+(o.opt?'':' <em>*</em>')+'</label>'
+    + '<input id="'+id+'" type="'+(o.type||'text')+'" value="'+esc(v)+'"'+(o.ph?' placeholder="'+esc(o.ph)+'"':'')+(o.mode?' inputmode="'+o.mode+'"':'')+(o.ac?' autocomplete="'+o.ac+'"':'')+(o.max?' max="'+o.max+'"':'')+(o.len?' maxlength="'+o.len+'"':'')+'>'
+    + (o.hint?'<div class="hint">'+o.hint+'</div>':'')+'<div class="msg"></div></div>';
+}
+function sel(id, label, opts){
+  return '<div class="f" data-f="'+id+'"><label for="'+id+'">'+label+' <em>*</em></label><select id="'+id+'"><option value="">Select…</option>'
+    + opts.map(function(o){ return '<option'+(F[id]===o?' selected':'')+'>'+esc(o)+'</option>'; }).join('')+'</select><div class="msg"></div></div>';
+}
+function radios(id, label, opts){
+  return '<div class="f" data-f="'+id+'" role="radiogroup" aria-label="'+label+'"><label>'+label+' <em>*</em></label><div class="seg">'
+    + opts.map(function(o){ return '<label><input type="radio" name="'+id+'" value="'+esc(o)+'"'+(F[id]===o?' checked':'')+'><span>'+esc(o)+'</span></label>'; }).join('')+'</div><div class="msg"></div></div>';
+}
+function fail(id, text){
+  var f = document.querySelector('[data-f="'+id+'"]'); if (!f) return;
+  f.classList.add('bad'); f.querySelector('.msg').textContent = text;
+}
+function collect(){   // pull the current step's inputs into F
+  document.querySelectorAll('#stepBody input[id], #stepBody select[id], #stepBody textarea[id]').forEach(function(el){ if (el.type !== 'checkbox' && !el.readOnly) F[el.id] = el.value.trim(); });
+  document.querySelectorAll('#stepBody input[type=radio]:checked').forEach(function(el){ F[el.name] = el.value; });
+}
+
+/* ---------- validation (the server re-checks everything) ---------- */
+var PHONE = /^[0-9+\-\s()]{7,20}$/, EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/, CNIC = /^\d{5}-\d{7}-\d$/;
+function validate(n){
+  var bad = [];
+  function need(k, t){ if (!F[k]) bad.push([k, t || 'This field is required']); }
+  if (n === 1) {
+    need('full_name');
+    if (!F.dob) bad.push(['dob','Select your date of birth']); else if (F.dob > new Date().toISOString().slice(0,10)) bad.push(['dob','Date of birth cannot be in the future']);
+    need('gender','Select a gender');
+    if (!PHONE.test(F.phone||'')) bad.push(['phone','Enter a valid phone number']);
+    if (!EMAIL.test(F.email||'')) bad.push(['email','Enter a valid email address']);
+    need('address');
+    if (!CNIC.test(F.cnic||'')) bad.push(['cnic','Use the format 12345-1234567-1']);
+  } else if (n === 2) {
+    need('emergency_name');
+    if (!PHONE.test(F.emergency_phone||'')) bad.push(['emergency_phone','Enter a valid phone number']);
+    need('emergency_relation','Select a relationship');
+  } else if (n === 3) {
+    need('bank_name','Select a bank'); need('account_title'); need('account_number');
+    if (F.iban && !/^[A-Za-z0-9 ]{15,40}$/.test(F.iban)) bad.push(['iban','IBAN looks too short or has invalid characters']);
+    need('payment_method','Select a payment method');
+  } else if (n === 4) {
+    if (!scrolled) bad.push(['agree','Scroll to the end of the agreement first']);
+    else if (!sig) bad.push(['sig','Please sign in the box above']);
+    else if (!agreed) bad.push(['agreed','Tick the box to confirm you agree']);
+  }
+  return bad;
+}
+function showErrors(bad){
+  document.querySelectorAll('.f.bad').forEach(function(f){ f.classList.remove('bad'); });
+  bad.forEach(function(b){ fail(b[0], b[1]); });
+  if (bad.length) { var first = document.querySelector('.f.bad'); if (first) { first.scrollIntoView({behavior:'smooth',block:'center'}); var i = first.querySelector('input,select,textarea'); if (i) i.focus({preventScroll:true}); } }
+}
+
+/* ---------- rendering ---------- */
+function draw(){
+  var pct = Math.round((step-1)/(STEPS.length-1)*100);
+  var html = '<div class="prog"><div class="prog-top"><span>Step '+step+' of '+STEPS.length+' — '+STEPS[step-1]+'</span><span>'+pct+'%</span></div><div class="bar"><i style="width:'+Math.max(pct,6)+'%"></i></div>'
+    + '<div class="dots">'+STEPS.map(function(s,i){ return '<span class="'+(i<step?'on':'')+'">'+(i+1)+'. '+s+'</span>'; }).join('')+'</div></div>'
+    + '<div class="card"><div id="stepBody">'+body()+'</div><div class="err-banner" id="banner"></div>'
+    + '<div class="nav">'+(step>1?'<button class="btn ghost" id="back" type="button">← Back</button>':'<span></span>')
+    + (step<5?'<button class="btn" id="next" type="button">Continue →</button>':'<button class="btn" id="submit" type="button">Submit onboarding</button>')+'</div></div>';
+  app.innerHTML = html; window.scrollTo(0,0);
+  wire();
+}
+function body(){
+  if (step === 1) return '<h2>Personal details</h2><p class="lead">Tell us about yourself. Fields marked <em style="color:#dc2626;font-style:normal">*</em> are required.</p><div class="grid">'
+    + inp('full_name','Full name',{full:true,ac:'name',len:120})
+    + inp('dob','Date of birth',{type:'date',max:new Date().toISOString().slice(0,10),ac:'bday'})
+    + radios('gender','Gender',['Male','Female'])
+    + inp('phone','Phone number',{type:'tel',mode:'tel',ac:'tel',ph:'03xx-xxxxxxx'})
+    + inp('email','Email',{type:'email',ac:'email',ph:'you@example.com',hint:'This will be your login email for the employee portal.'})
+    + '<div class="f full" data-f="address"><label for="address">Address <em>*</em></label><textarea id="address" maxlength="400" autocomplete="street-address">'+esc(F.address||'')+'</textarea><div class="msg"></div></div>'
+    + inp('cnic','CNIC number',{mode:'numeric',ph:'12345-1234567-1',len:15,hint:'Format: 12345-1234567-1'})
+    + '<div class="f full"><label>Profile photo <span style="color:var(--mut);font-weight:500">(optional)</span></label><div class="photo"><div class="pv" id="pv"'+(photo?' style="background-image:url('+photo+')"':'')+'>'+(photo?'':'👤')+'</div>'
+    + '<div><input id="photoIn" type="file" accept="image/jpeg,image/png,image/webp" style="min-height:0;padding:8px"><div class="hint">JPG or PNG. It is resized automatically.</div>'+(photo?'<button type="button" class="btn ghost sm" id="rmPhoto" style="margin-top:6px">Remove photo</button>':'')+'</div></div></div></div>';
+  if (step === 2) return '<h2>Emergency contact</h2><p class="lead">Someone we can reach if something happens.</p><div class="grid">'
+    + inp('emergency_name','Contact name',{full:true,len:120}) + inp('emergency_phone','Contact phone',{type:'tel',mode:'tel'}) + sel('emergency_relation','Relationship',REL) + '</div>';
+  if (step === 3) return '<h2>Bank details</h2><p class="lead">Where your salary will be paid.</p><div class="grid">'
+    + sel('bank_name','Bank name',BANKS) + inp('account_title','Account title',{len:120}) + inp('account_number','Account number',{mode:'numeric',len:40})
+    + inp('iban','IBAN',{opt:true,ph:'PK00 XXXX 0000 0000 0000 0000',len:40}) + radios('payment_method','Payment method',METHODS).replace('class="f"','class="f full"') + '</div>';
+  if (step === 4) {
+    var e = info.employee;
+    return '<h2>Employment agreement</h2><p class="lead">Read the whole agreement, then sign at the bottom.</p>'
+      + '<div class="locked"><div><small>Designation</small><b>'+esc(e.designation)+'</b></div><div><small>Monthly salary</small><b>'+esc(money(e.salary))+'</b></div><div><small>Start date</small><b>'+esc(pdate(e.start_date))+'</b></div></div>'
+      + '<div class="f" data-f="agree"><div class="agree" id="agree" tabindex="0" aria-label="Employment agreement">'+agreementHtml()+'</div><div class="msg"></div></div>'
+      + '<div class="scrollnote '+(scrolled?'ok':'')+'" id="scrollnote">'+(scrolled?'✓ You have read the full agreement.':'↓ Scroll to the end of the agreement to unlock signing.')+'</div>'
+      + '<div class="sig '+(scrolled?'on':'')+'" id="sigWrap"><div class="f" data-f="sig"><label>Your signature <em>*</em></label><div class="sigbox"><canvas id="pad"></canvas><div class="ph" id="sigph">Sign here</div></div>'
+      + '<div class="sigrow"><button type="button" class="btn ghost sm" id="clearSig">Clear</button><span class="hint" style="margin:0">Use your finger or mouse.</span></div><div class="msg"></div></div>'
+      + '<div class="f" data-f="agreed"><label class="chk"><input type="checkbox" id="agreed"'+(agreed?' checked':'')+'><span>I confirm I have read and agree to all terms above.</span></label><div class="msg"></div></div></div>';
+  }
+  return reviewHtml();
+}
+function reviewHtml(){
+  function sec(title, n, rows){ return '<div class="rev"><div class="rev-h"><span>'+title+'</span><button type="button" class="btn ghost sm" data-edit="'+n+'">Edit</button></div><dl>'+rows.map(function(r){ return '<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>'; }).join('')+'</dl></div>'; }
+  var e = info.employee;
+  return '<h2>Review & submit</h2><p class="lead">Check everything below. Use Edit to change a section.</p>'
+    + sec('Personal',1,[['Full name',esc(F.full_name)],['Date of birth',esc(pdate(F.dob))],['Gender',esc(F.gender)],['Phone',esc(F.phone)],['Email',esc(F.email)],['Address',esc(F.address)],['CNIC',esc(F.cnic)],['Photo',photo?'<img src="'+photo+'" alt="" style="width:56px;height:56px;border-radius:50%;object-fit:cover">':'Not provided']])
+    + sec('Emergency contact',2,[['Name',esc(F.emergency_name)],['Phone',esc(F.emergency_phone)],['Relationship',esc(F.emergency_relation)]])
+    + sec('Bank details',3,[['Bank',esc(F.bank_name)],['Account title',esc(F.account_title)],['Account number',esc(F.account_number)],['IBAN',esc(F.iban||'—')],['Payment method',esc(F.payment_method)]])
+    + sec('Agreement',4,[['Designation',esc(e.designation)],['Monthly salary',esc(money(e.salary))],['Start date',esc(pdate(e.start_date))],['Signature','<img class="sigimg" src="'+sig+'" alt="Your signature">'],['Agreed','✓ Agreed to all terms']]);
+}
+
+/* ---------- wiring ---------- */
+function wire(){
+  var b = document.getElementById('back'), n = document.getElementById('next'), s = document.getElementById('submit');
+  if (b) b.onclick = function(){ collect(); step--; draw(); };
+  if (n) n.onclick = function(){ collect(); var bad = validate(step); showErrors(bad); if (!bad.length) { step++; draw(); } };
+  if (s) s.onclick = submit;
+  document.querySelectorAll('[data-edit]').forEach(function(el){ el.onclick = function(){ step = +el.dataset.edit; draw(); }; });
+  document.querySelectorAll('.f input, .f select, .f textarea').forEach(function(el){ el.addEventListener('input', function(){ var f = el.closest('.f'); if (f) f.classList.remove('bad'); }); });
+  if (step === 1) {
+    var c = document.getElementById('cnic');
+    c.addEventListener('input', function(){   // auto-format 12345-1234567-1
+      var d = c.value.replace(/\D/g,'').slice(0,13), o = d.slice(0,5); if (d.length > 5) o += '-' + d.slice(5,12); if (d.length > 12) o += '-' + d.slice(12); c.value = o;
+    });
+    var fi = document.getElementById('photoIn'); fi.onchange = function(){ if (fi.files[0]) readPhoto(fi.files[0]); };
+    var rm = document.getElementById('rmPhoto'); if (rm) rm.onclick = function(){ collect(); photo = ''; draw(); };
+    document.getElementById('full_name').addEventListener('input', function(){ if (sig && this.value.trim() !== F.full_name) { sig = ''; agreed = false; } });
+  }
+  if (step === 4) initAgreement();
+}
+function readPhoto(file){
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return showErrors([]), alert('Please choose a JPG, PNG or WebP image.');
+  var rd = new FileReader();
+  rd.onload = function(){
+    var img = new Image();
+    img.onload = function(){
+      var max = 480, k = Math.min(1, max/Math.max(img.width, img.height)), cv = document.createElement('canvas');
+      cv.width = Math.round(img.width*k); cv.height = Math.round(img.height*k);
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      photo = cv.toDataURL('image/jpeg', .82); collect(); draw();
+    };
+    img.onerror = function(){ alert('That image could not be read.'); };
+    img.src = rd.result;
+  };
+  rd.readAsDataURL(file);
+}
+function initAgreement(){
+  var box = document.getElementById('agree'), note = document.getElementById('scrollnote'), wrap = document.getElementById('sigWrap');
+  function check(){
+    if (scrolled) return;
+    if (box.scrollTop + box.clientHeight >= box.scrollHeight - 6) { scrolled = true; note.className = 'scrollnote ok'; note.textContent = '✓ You have read the full agreement.'; wrap.classList.add('on'); }
+  }
+  box.addEventListener('scroll', check); setTimeout(check, 50);
+  var cv = document.getElementById('pad'), ph = document.getElementById('sigph'), ctx, drawing = false, last = null, dirty = false;
+  function size(){
+    var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, old = sig && !dirty ? sig : null;
+    cv.width = Math.round(r.width*dpr); cv.height = Math.round(r.height*dpr);
+    ctx = cv.getContext('2d'); ctx.scale(dpr,dpr); ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0f172a';
+    if (old) { var im = new Image(); im.onload = function(){ ctx.drawImage(im,0,0,r.width,r.height); }; im.src = old; ph.style.display = 'none'; }
+  }
+  size();
+  function pt(e){ var r = cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+  cv.addEventListener('pointerdown', function(e){ e.preventDefault(); cv.setPointerCapture(e.pointerId); drawing = true; last = pt(e); ctx.beginPath(); ctx.arc(last.x,last.y,1.2,0,6.3); ctx.fillStyle = '#0f172a'; ctx.fill(); ph.style.display = 'none'; dirty = true; });
+  cv.addEventListener('pointermove', function(e){ if (!drawing) return; e.preventDefault(); var p = pt(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last = p; });
+  function end(){ if (!drawing) return; drawing = false; sig = exportSig(); var f = document.querySelector('[data-f="sig"]'); if (f) f.classList.remove('bad'); }
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  function exportSig(){   // white background so the signature reads on any screen
+    var o = document.createElement('canvas'); o.width = cv.width; o.height = cv.height; var c = o.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0,0,o.width,o.height); c.drawImage(cv,0,0); return o.toDataURL('image/png');
+  }
+  document.getElementById('clearSig').onclick = function(){ ctx.clearRect(0,0,cv.width,cv.height); sig = ''; dirty = false; ph.style.display = ''; };
+  var ag = document.getElementById('agreed'); ag.onchange = function(){ agreed = ag.checked; if (agreed) document.querySelector('[data-f="agreed"]').classList.remove('bad'); };
+}
+function submit(){
+  if (submitting) return;
+  for (var n = 1; n <= 4; n++) { var bad = validate(n); if (bad.length) { step = n; draw(); showErrors(validate(n)); return; } }
+  submitting = true; var btn = document.getElementById('submit'), ban = document.getElementById('banner'); btn.disabled = true; btn.textContent = 'Submitting…'; ban.style.display = 'none';
+  var body = Object.assign({}, F, {photo: photo || undefined, signature_data: sig, agreed: true});
+  api('/api/onboarding/' + encodeURIComponent(token) + '/submit', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)})
+    .then(function(){ stateCard('🎉','Thank you, ' + (F.full_name||'').split(' ')[0] + '!','Your onboarding form has been submitted. Our team will review it and you will receive your portal login details once it is approved.'); window.scrollTo(0,0); })
+    .catch(function(e){ submitting = false; btn.disabled = false; btn.textContent = 'Submit onboarding'; ban.textContent = e.message; ban.style.display = 'block';
+      if (e.status === 409 || e.status === 410) stateCard(e.status===409?'✅':'⌛', e.status===409?'Already submitted':'Link expired', e.message); });
+}
+})();
+</script>
+</body>
+</html>
