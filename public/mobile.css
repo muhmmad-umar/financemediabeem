@@ -97,6 +97,7 @@
   /* ----- dashboard & grids ----- */
   .g4,.grid{grid-template-columns:repeat(2,1fr)!important;gap:10px}
   .g3,.g2,.g-main,.row2{grid-template-columns:1fr!important}
+  .fin-snap{grid-template-columns:repeat(2,1fr)!important}   /* the six money cards read as a 2 × 3 grid */
   .stat,.snap{padding:14px!important}
   .stat .value,.stat .v{font-size:19px!important;word-break:break-word}
   .stat .label,.stat .l{font-size:10.5px}

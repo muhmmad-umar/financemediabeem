@@ -59,8 +59,8 @@ main{margin-left:240px;flex:1;padding:26px 30px 50px;min-width:0}
 .stat .sub{color:var(--muted);font-size:12px;margin-top:4px}
 .mflow .mf{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line)}.mflow .mf:last-of-type{border-bottom:0}
 .mflow .mf-l i{display:inline-block;width:22px;font-style:normal;font-weight:700;color:var(--muted)}.mflow .mf b{font-variant-numeric:tabular-nums;white-space:nowrap}
-.mflow .mf.ind{padding-left:22px}.mflow .mf.ind2{padding-left:44px}.mflow .mf.tot{border-top:1px solid var(--line2,var(--line))}.mflow .mf.tot .mf-l{font-weight:700}
-.stat.blue{border-top:4px solid var(--blue)}.stat.teal{border-top:4px solid var(--teal)}.stat.navy{border-top:4px solid var(--navy)}.stat.amber{border-top:4px solid var(--amber)}
+.mflow .mf.ind{padding-left:22px}.mflow .mf-rule{border-top:2px solid var(--line2,var(--line));margin:4px 0}.mflow .mf.tot{border-top:1px solid var(--line2,var(--line))}.mflow .mf.tot .mf-l{font-weight:700}
+.stat.gold{border-top:4px solid var(--gold)}.stat.green{border-top:4px solid var(--green)}.stat.red{border-top:4px solid var(--red)}.stat.blue{border-top:4px solid var(--blue)}.stat.teal{border-top:4px solid var(--teal)}.stat.navy{border-top:4px solid var(--navy)}.stat.amber{border-top:4px solid var(--amber)}
 .allah-card{background:linear-gradient(135deg,#14532d,#166534 55%,#a37507);color:#fff;border:0;position:relative;overflow:hidden}
 .allah-card::after{content:"☪";position:absolute;right:-8px;top:-24px;font-size:110px;opacity:.1}
 .allah-card .label,.allah-card .sub{color:#e6e9c0}
@@ -638,7 +638,7 @@ tfoot td{border-top:1px solid #2a2a2a}
 @media(max-width:600px){.inv-bar{grid-template-columns:1fr 1fr}.inv-sheet{padding:22px}.inv-brand{font-size:28px}.inv-doc b{font-size:26px}}
 </style>
 <link rel="stylesheet" href="admin-light.css?v=20261024a">
-<link rel="stylesheet" href="mobile.css?v=20261025b">
+<link rel="stylesheet" href="mobile.css?v=20261025c">
 </head>
 <body>
 
@@ -1244,16 +1244,19 @@ function render(){
 /* My Withdrawals — display only: what moved from the agency to personal finance in the selected period. Never feeds Net Profit, Allah's Share or any other figure. */
 const wdTotal = () => sum(personalWd.filter(e => inRange(e.date)), x => x.amount);
 function moneyFlowCard(t){
-  const wd = wdTotal(), left = t.mine - wd, row = (cls, sign, label, val, color) => `<div class="mf ${cls}"><span class="mf-l"><i>${sign}</i>${label}</span><b${color ? ` style="color:${color}"` : ''}>${fmt(val)}</b></div>`;
+  const wd = wdTotal(), cash = t.mine - wd, row = (cls, sign, label, val, color) => `<div class="mf ${cls}"><span class="mf-l"><i>${sign}</i>${label}</span><b${color ? ` style="color:${color}"` : ''}>${fmt(val)}</b></div>`;
   return `<div class="card mflow" style="margin-bottom:16px"><h3>Complete money flow · ${periodLabel()}</h3>
     ${row('', '', 'Received Income', t.totalIn)}
     ${row('', '−', 'Business Expenses', t.totalExp)}
+    <div class="mf-rule"></div>
     ${row('tot', '=', 'Net Profit', t.net)}
-    ${row('ind', '×', "10% Allah's Share", t.allahTotal, 'var(--gold)')}
-    ${row('ind', '×', '90% My Share', t.mine)}
-    ${row('ind2', '−', 'Withdrawn', wd, 'var(--blue)')}
-    ${row('ind2 tot', '=', 'Remaining', left, left < 0 ? 'var(--red)' : 'var(--green)')}
-    <div class="hint" style="margin-top:10px">Withdrawals are shown for reference only — they don't change Net Profit or Allah's Share.</div></div>`;
+    ${row('ind', '×', "10% = Allah's Share", t.allahTotal, 'var(--gold)')}
+    ${row('ind', '×', '90% = My Share', t.mine)}
+    ${row('ind', '−', 'My Withdrawals', wd, 'var(--blue)')}
+    <div class="mf-rule"></div>
+    ${row('tot', '=', 'Cash in Hand', cash, cash < 0 ? 'var(--red)' : 'var(--green)')}
+    ${cash < 0 ? `<div class="login-err" style="margin:10px 0 0;color:var(--red)">⚠️ You have withdrawn ${fmt(-cash)} more than your share for this period.</div>` : ''}
+    <div class="hint" style="margin-top:10px">Cash in Hand = My Share − Withdrawals. Withdrawals are for reference only — they never change Net Profit or Allah's Share.</div></div>`;
 }
 function formulaCard(t){
   const neg = t.net <= 0;
@@ -1297,19 +1300,20 @@ function taskAlertsPanel(){
 function vDashboard(t){
   const recent = [...incomeRows()].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
   const ws = workStats(), es = empStats(), due = salaryDueRows(), m = curMonth();
-  const act = clients.filter(c => c.status === 'Active'), per = periodLabel();
+  const act = clients.filter(c => c.status === 'Active'), per = periodLabel(), wd = wdTotal(), cash = t.mine - wd;   // display only: nothing here feeds back into Net Profit or Allah's Share
   return `
   <div class="qa"><button class="btn" onclick="taskForm()">+ New Task</button><button class="btn" onclick="incomeForm()">+ New Invoice</button><button class="btn" onclick="clientForm()">+ New Client</button><button class="btn" onclick="recordPaymentPicker()">+ Record Payment</button></div>
   ${attendanceCard()}
   ${formulaCard(t)}
   ${moneyFlowCard(t)}
   <div class="dsec">Finance snapshot · ${per}</div>
-  <div class="grid g4" style="margin-bottom:16px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">
-    ${snap('Total Invoiced', fmt(t.invoiced), 'Outstanding ' + fmt(t.outstanding), 'navy', "view='invoices';render()")}
-    ${snap('Total Received', fmt(t.totalIn), 'In hand · ' + per, 'teal', "view='income';render()")}
-    ${snap('Net Profit', fmt(t.net), 'My share ' + fmt(t.mine), 'teal')}
-    ${snap('My Withdrawals', `<span style="color:var(--blue)">${fmt(wdTotal())}</span>`, 'To personal finance · ' + per, 'blue', "view='personal';render()")}
-    ${snap("Allah's Share", fmt(t.allahTotal), 'Remaining ' + fmt(Math.max(0, t.remaining)), 'amber', "view='allah';render()")}
+  <div class="grid g3 fin-snap" style="margin-bottom:16px">
+    ${snap('Received Income', fmt(t.totalIn), 'In hand · ' + per, 'teal', "view='income';render()")}
+    ${snap('Total Expenses', fmt(t.totalExp), 'Business costs · ' + per, 'amber', "view='expenses';render()")}
+    ${snap('Net Profit', fmt(t.net), 'Received − Expenses', 'navy')}
+    ${snap("Allah's Share", fmt(t.allahTotal), '× 10% = ' + fmt(t.allahTotal), 'gold', "view='allah';render()")}
+    ${snap('My Share', fmt(t.mine), '× 90% = ' + fmt(t.mine), 'teal')}
+    ${snap('Cash in Hand', `<span style="color:${cash < 0 ? 'var(--red)' : 'var(--green)'}">${fmt(cash)}</span>`, cash < 0 ? `⚠️ Withdrawn ${fmt(Math.abs(cash))} more than your share` : fmt(t.mine) + ' − ' + fmt(wd) + ' = ' + fmt(cash), cash < 0 ? 'red' : 'green', "view='personal';render()")}
   </div>
   <div class="dsec">Work snapshot</div>
   <div class="grid g4" style="margin-bottom:16px">
