@@ -10,6 +10,7 @@
 
 import { loadMessages, persistMessage, roomKey, touchPresence, ChatError, EMOJIS } from './chat.js';
 export { ChatRoom } from './chat.js';   // the Durable Object class must be exported from the Worker entry
+import { handleAi } from './ai.js';
 
 const PBKDF2_ITERATIONS = 100000; // Workers' WebCrypto maximum
 const TOKEN_TTL_SECONDS = 7 * 24 * 3600;
@@ -1146,6 +1147,11 @@ async function route(req, env, url) {
     if (seg[2] === 'dm' && method === 'POST' && seg.length === 3) return postDm(req, env, user);
     if (seg[2] === 'dm' && method === 'GET' && seg[3]) return getDm(env, user, decodeURIComponent(seg[3]), url);
     throw notFound();
+  }
+
+  if (seg[0] === 'api' && seg[1] === 'ai') {   // Ad Copy Studio — admin + employee only, never clients
+    const user = await authenticate(req, env, ['admin', 'employee']);
+    return handleAi(req, env, user, seg, url, { HttpError, bad, notFound, forbidden, readBody, uid, nowIso });
   }
 
   if (seg[0] === 'api' && seg[1] === 'admin') {

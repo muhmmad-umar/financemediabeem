@@ -661,6 +661,7 @@ tfoot td{border-top:1px solid #2a2a2a}
     <div class="nav-sep">Work</div>
     <button data-view="clients">🤝 Clients</button>
     <button data-view="tasks">✅ Tasks</button>
+    <button data-view="adcopy">✍️ Ad Copy Studio</button>
     <div class="nav-sep">Finance</div>
     <button data-view="income">💰 Income / Cash Flow</button>
     <button data-view="expenses">💸 Expenses</button>
@@ -1214,6 +1215,7 @@ const meta = {
   tasks:['Tasks','Space › List › Task › Subtask'],
   attendance:['Attendance','Daily check-ins, work hours and attendance history'],
   employees:['Employees','Profiles, salaries and leave — salaries paid flow into agency expenses'],
+  adcopy:['Ad Copy Studio','Facebook & Instagram ad copy for the Pakistani market — headlines, primary text and descriptions'],
   onboarding:['Onboarding Requests','Review forms new hires submitted, then approve to create their profile and portal login'],
   settings:['Settings','Agreement template and other admin options'],
   reports:['Reports',"Monthly breakdown, cumulative Allah's Share and top clients"],
@@ -1226,7 +1228,7 @@ function render(){
   const nb = document.querySelector('#nav button[data-view="dashboard"]'), nDue = recDue().length;
   if (nb) nb.innerHTML = '📊 Dashboard' + (nDue ? `<span class="nbadge" title="${nDue} reminder${nDue > 1 ? 's' : ''} due">${nDue}</span>` : '');
   attBadge();
-  $('filterBar').innerHTML = (view === 'tasks' || view === 'attendance' || view === 'onboarding' || view === 'settings') ? '' : filterBar();   // Tasks has its own top bar
+  $('filterBar').innerHTML = (view === 'tasks' || view === 'attendance' || view === 'onboarding' || view === 'settings' || view === 'adcopy') ? '' : filterBar();   // Tasks has its own top bar
   document.querySelector('main').classList.toggle('cu', view === 'tasks');
   if (view !== 'tasks') cuPanelId = null;
   document.body.classList.toggle('cu-mode', view === 'tasks');
@@ -1244,10 +1246,11 @@ function render(){
     employees: empSel ? '' : '<button class="btn" onclick="empForm()">+ Add Employee</button>',
     attendance: '',
     onboarding: '',
-    settings: ''
+    settings: '',
+    adcopy: ''
   }[view];
-  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees, attendance:vAttendance, onboarding:vOnboarding, settings:vSettings, clients:vClients, tasks:vTasks}[view](t);
-  ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah, personal:afterPersonal}[view] || (()=>{}))(t);
+  $('view').innerHTML = {dashboard:vDashboard, income:vIncome, expenses:vExpenses, invoices:vInvoices, allah:vAllah, reports:vReports, personal:vPersonal, employees:vEmployees, attendance:vAttendance, onboarding:vOnboarding, settings:vSettings, adcopy:vAdcopy, clients:vClients, tasks:vTasks}[view](t);
+  ({dashboard:afterDashboard, reports:afterReports, allah:afterAllah, personal:afterPersonal, adcopy:afterAdcopy, settings:afterSettings}[view] || (()=>{}))(t);
   rtSync();
   if (view === 'tasks') { const ed = document.querySelector('[data-edit], #cuAddIn'); if (ed) ed.focus(); const cf2 = document.querySelector('.chat-feed'); if (cf2) { cf2.scrollTop = cf2.scrollHeight; const ci = document.getElementById('chatInput'); if (ci) chatGrow(ci); } }
 }
@@ -3303,10 +3306,14 @@ async function onbApprove(id){
 
 /* ----- Settings: employment agreement template ----- */
 async function onbTplLoad(){ try { onbTpl = (await MB.api('/api/admin/onboarding/template')).template; if (view === 'settings') render(); } catch (e) { toast(e.message); } }
+const aiSettingsCard = () => `<div class="card"><h3 style="margin:0 0 4px">🤖 AI Settings</h3><div class="muted" style="margin-bottom:12px">Powers ✍️ Ad Copy Studio for you and your employees. The Claude API key is never shown to employees.</div><div id="aiBox"></div></div>`;
+function afterSettings(){ const b = $('aiBox'); if (b && window.MB && MB.adStudio) MB.adStudio.settingsCard(b); }
+function vAdcopy(){ return '<div id="adMount"></div>'; }
+function afterAdcopy(){ MB.adStudio.mount($('adMount'), {isAdmin:true, onSettings:() => { view = 'settings'; render(); }}); }
 function vSettings(){
-  if (!onbTpl) { onbTplLoad(); return '<div class="card empty">Loading…</div>'; }
+  if (!onbTpl) { onbTplLoad(); return aiSettingsCard() + '<div class="card empty">Loading…</div>'; }
   const chips = [['employee_name', 'Employee name'], ['designation', 'Designation'], ['salary', 'Salary'], ['start_date', 'Start date'], ['probation_period', 'Probation']];
-  return `<div class="card"><h3 style="margin:0 0 4px">📄 Employment Agreement Template</h3>
+  return aiSettingsCard() + `<div class="card"><h3 style="margin:0 0 4px">📄 Employment Agreement Template</h3>
     <div class="muted" style="margin-bottom:12px">This text is shown to new hires on their onboarding page. Changes apply to <b>future links only</b> — links already sent and forms already signed keep the version they were issued with (currently v${onbTpl.version}${onbTpl.updated_at ? ', saved ' + fdate(String(onbTpl.updated_at).slice(0, 10)) : ''}).</div>
     <div class="rtbar">${[['bold', '<b>B</b>'], ['italic', '<i>I</i>'], ['underline', '<u>U</u>'], ['insertUnorderedList', '• List'], ['insertOrderedList', '1. List']].map(([c, n]) => `<button type="button" onmousedown="event.preventDefault();document.execCommand('${c}')">${n}</button>`).join('')}
       <button type="button" onmousedown="event.preventDefault();document.execCommand('formatBlock',false,'h3')">Heading</button><button type="button" onmousedown="event.preventDefault();document.execCommand('formatBlock',false,'p')">Paragraph</button></div>
@@ -3565,6 +3572,7 @@ function rtOnTick(what){
 })();
 
 </script>
+<script src="adstudio.js?v=20261026b"></script>
 <script src="mobile.js?v=20261025b" defer></script>
 </body>
 </html>
