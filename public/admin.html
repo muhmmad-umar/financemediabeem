@@ -57,6 +57,17 @@ main{margin-left:240px;flex:1;padding:26px 30px 50px;min-width:0}
 .stat .label{color:var(--muted);font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
 .stat .value{font-size:24px;font-weight:700;margin-top:6px}
 .stat .sub{color:var(--muted);font-size:12px;margin-top:4px}
+.fin-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 10px}
+.mode-tog{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.mode-tog button{border:0;background:none;color:var(--muted);padding:7px 18px;border-radius:7px;font-weight:600;font-size:13px}
+.mode-tog button.on{background:var(--teal);color:#fff}
+.pbadge{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:99px;background:rgba(245,158,11,.18);color:var(--amber);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;vertical-align:middle}
+.est-v{opacity:.78}.mflow.est .mf b{opacity:.85}
+.sal-alert{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.5);color:var(--amber);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-weight:600;cursor:pointer}.sal-alert u{margin-left:8px;font-weight:500;opacity:.85}
+.projpanel summary{display:flex;justify-content:space-between;gap:10px;align-items:center;cursor:pointer;padding:2px 0 10px;list-style:none}.projpanel summary::-webkit-details-marker{display:none}
+.projpanel summary::before{content:"▸";margin-right:8px;color:var(--muted)}.projpanel[open] summary::before{content:"▾"}.projpanel summary b{flex:1}
+.projpanel .prow{cursor:pointer;border-radius:8px}.projpanel .prow:hover{background:rgba(124,58,237,.08)}
+.projpanel .pr-r{display:flex;gap:14px;align-items:center}.pst{font-size:12px;font-weight:700;min-width:80px;text-align:right}.pst.ok{color:var(--green)}.pst.wait{color:var(--amber)}
 .mflow .mf{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line)}.mflow .mf:last-of-type{border-bottom:0}
 .mflow .mf-l i{display:inline-block;width:22px;font-style:normal;font-weight:700;color:var(--muted)}.mflow .mf b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .mflow .mf.ind{padding-left:22px}.mflow .mf-rule{border-top:2px solid var(--line2,var(--line));margin:4px 0}.mflow .mf.tot{border-top:1px solid var(--line2,var(--line))}.mflow .mf.tot .mf-l{font-weight:700}
@@ -1244,19 +1255,88 @@ function render(){
 /* My Withdrawals — display only: what moved from the agency to personal finance in the selected period. Never feeds Net Profit, Allah's Share or any other figure. */
 const wdTotal = () => sum(personalWd.filter(e => inRange(e.date)), x => x.amount);
 function moneyFlowCard(t){
-  const wd = wdTotal(), cash = t.mine - wd, row = (cls, sign, label, val, color) => `<div class="mf ${cls}"><span class="mf-l"><i>${sign}</i>${label}</span><b${color ? ` style="color:${color}"` : ''}>${fmt(val)}</b></div>`;
-  return `<div class="card mflow" style="margin-bottom:16px"><h3>Complete money flow · ${periodLabel()}</h3>
+  const proj = dashMode === 'proj', P = proj ? projTotals(t) : null, wd = wdTotal(), net = proj ? P.net : t.net, allah = proj ? P.allah : t.allahTotal, mine = proj ? P.mine : t.mine, cash = mine - wd;
+  const row = (cls, sign, label, val, color) => `<div class="mf ${cls}"><span class="mf-l"><i>${sign}</i>${label}</span><b${color ? ` style="color:${color}"` : ''}>${fmt(val)}</b></div>`;
+  return `<div class="card mflow ${proj ? 'est' : ''}" style="margin-bottom:16px"><h3>Complete money flow · ${periodLabel()}${proj ? '<span class="pbadge">Projected</span>' : ''}</h3>
     ${row('', '', 'Received Income', t.totalIn)}
-    ${row('', '−', 'Business Expenses', t.totalExp)}
+    ${row('', '−', proj ? 'Actual Business Expenses' : 'Business Expenses', t.totalExp)}
+    ${proj ? row('', '−', 'Projected Unpaid Salaries ⏳', P.unpaid, 'var(--amber)') : ''}
     <div class="mf-rule"></div>
-    ${row('tot', '=', 'Net Profit', t.net)}
-    ${row('ind', '×', "10% = Allah's Share", t.allahTotal, 'var(--gold)')}
-    ${row('ind', '×', '90% = My Share', t.mine)}
+    ${row('tot', '=', proj ? 'Projected Net Profit' : 'Net Profit', net)}
+    ${row('ind', '×', "10% = Allah's Share", allah, 'var(--gold)')}
+    ${row('ind', '×', '90% = My Share', mine)}
     ${row('ind', '−', 'My Withdrawals', wd, 'var(--blue)')}
     <div class="mf-rule"></div>
-    ${row('tot', '=', 'Cash in Hand', cash, cash < 0 ? 'var(--red)' : 'var(--green)')}
+    ${row('tot', '=', proj ? 'Projected Cash in Hand' : 'Cash in Hand', cash, cash < 0 ? 'var(--red)' : 'var(--green)')}
     ${cash < 0 ? `<div class="login-err" style="margin:10px 0 0;color:var(--red)">⚠️ You have withdrawn ${fmt(-cash)} more than your share for this period.</div>` : ''}
-    <div class="hint" style="margin-top:10px">Cash in Hand = My Share − Withdrawals. Withdrawals are for reference only — they never change Net Profit or Allah's Share.</div></div>`;
+    <div class="hint" style="margin-top:10px">Cash in Hand = My Share − Withdrawals. ${proj ? 'Projected figures are estimates for display only — no expense records are created. ' : ''}Withdrawals are for reference only — they never change Net Profit or Allah's Share.</div></div>`;
+}
+/* ----- Projected vs Actual (display only: nothing below ever writes an expense or changes a real figure) ----- */
+let dashMode = (() => { try { return localStorage.getItem('mb_dash_mode') === 'proj' ? 'proj' : 'act'; } catch (e) { return 'act'; } })(), projOpen = true;
+function setDashMode(m){ dashMode = m; try { localStorage.setItem('mb_dash_mode', m); } catch (e) {} render(); }
+/** projected salaries only make sense when the period covers the whole current month */
+function projApplies(){ const r = rangeOf(), m = curMonth(); return !r || (r.from <= m + '-01' && r.to >= m + '-' + String(monthDays(m)).padStart(2, '0')); }
+function projRows(){
+  const m = curMonth();
+  return employees.filter(e => onPayroll(e) && !(e.joinDate && e.joinDate.slice(0, 7) > m)).sort((a, b) => a.name.localeCompare(b.name)).map(e => {
+    const pays = empPayments(e.id, m), due = dueAmount(e, m), p = proInfo(e), pro = p && p.month === m ? p : null, paid = pays.length > 0;
+    return {e, due, pro, paid, paidAmt: sum(pays, x => x.amount), owed: paid ? 0 : due};
+  });
+}
+function projTotals(t){
+  const rows = projRows(), unpaid = projApplies() ? sum(rows, r => r.owed) : 0, exp = t.totalExp + unpaid, net = t.totalIn - exp, wd = wdTotal(), mine = mineOf(net);
+  return {rows, unpaid, exp, net, allah: allahOf(net), mine, wd, cash: mine - wd};
+}
+function finSnap(t, per){
+  const proj = dashMode === 'proj', P = proj ? projTotals(t) : null, wd = wdTotal(), badge = '<span class="pbadge">Projected</span>', est = v => proj ? `<span class="est-v">${v}</span>` : v;
+  const mine = proj ? P.mine : t.mine, allah = proj ? P.allah : t.allahTotal, cash = mine - wd;
+  const cashCard = snap('Cash in Hand' + (proj ? badge : ''), est(`<span style="color:${cash < 0 ? 'var(--red)' : 'var(--green)'}">${fmt(cash)}</span>`), cash < 0 ? `⚠️ Withdrawn ${fmt(Math.abs(cash))} more than your share` : fmt(mine) + ' − ' + fmt(wd) + ' = ' + fmt(cash), cash < 0 ? 'red' : 'green', "view='personal';render()");
+  const lower = snap("Allah's Share" + (proj ? badge : ''), est(fmt(allah)), '× 10% = ' + fmt(allah), 'gold', "view='allah';render()") + snap('My Share' + (proj ? badge : ''), est(fmt(mine)), '× 90% = ' + fmt(mine), 'teal') + cashCard;
+  if (!proj) return `<div class="grid g3 fin-snap" style="margin-bottom:16px">
+    ${snap('Received Income', fmt(t.totalIn), 'In hand · ' + per, 'teal', "view='income';render()")}
+    ${snap('Total Expenses', fmt(t.totalExp), 'Business costs · ' + per, 'amber', "view='expenses';render()")}
+    ${snap('Net Profit', fmt(t.net), 'Received − Expenses', 'navy')}${lower}</div>`;
+  return `<div class="grid g3 fin-snap" style="margin-bottom:16px">
+    ${snap('Received Income', fmt(t.totalIn), 'In hand · ' + per, 'teal', "view='income';render()")}
+    ${snap('Actual Expenses', fmt(t.totalExp), 'Recorded & paid · ' + per, 'amber', "view='expenses';render()")}
+    ${snap('Projected Expenses' + badge, est(fmt(P.exp)), P.unpaid ? 'Includes ' + fmt(P.unpaid) + ' unpaid salaries' : 'No unpaid salaries', 'amber', "projJump()")}${lower}</div>`;
+}
+function projPanel(){
+  const t = totals(), P = projTotals(t), m = curMonth(), rows = P.rows, bill = sum(rows, r => r.due), paid = sum(rows, r => r.paidAmt), left = sum(rows, r => r.owed);
+  return `<details class="card projpanel" id="projPanel" ${projOpen ? 'open' : ''} ontoggle="projOpen=this.open" style="margin-bottom:16px">
+    <summary><b>PROJECTED SALARY BILL — ${monthName(m)}</b><span class="muted">${left ? fmt(left) + ' to pay' : 'all paid'}</span></summary>
+    ${rows.map(r => `<div class="trk-row prow" onclick="goSalary('${r.e.id}')" title="Open ${esc(r.e.name)}'s salary page"><span><b>${esc(r.e.name)}</b> <span class="muted">(${r.pro ? 'Pro-rata ' + r.pro.days + ' day' + (r.pro.days > 1 ? 's' : '') : 'Full Month'})</span></span>
+      <span class="pr-r"><b>${fmt(r.due)}</b><span class="pst ${r.paid ? 'ok' : 'wait'}">${r.paid ? '✅ Paid' : '⏳ Unpaid'}</span></span></div>`).join('') || '<div class="muted" style="padding:10px 0">No employees on payroll this month.</div>'}
+    <div class="mf-rule"></div>
+    <div class="trk-row"><span>Total Bill</span><b>${fmt(bill)}</b></div>
+    <div class="trk-row"><span>Already Paid</span><b style="color:var(--green)">${fmt(paid)}</b></div>
+    <div class="trk-row last total"><span>Remaining to Pay</span><b style="color:${left ? 'var(--amber)' : 'var(--green)'}">${fmt(left)}</b></div>
+    ${left ? `<div style="margin-top:12px"><button class="btn" onclick="bulkPayForm()">Pay All (${rows.filter(r => !r.paid).length})</button></div>` : ''}
+  </details>`;
+}
+const goSalary = id => { view = 'employees'; empSel = id; empTab = 'salary'; bankShown = false; render(); };
+function projJump(){ dashMode = 'proj'; try { localStorage.setItem('mb_dash_mode', 'proj'); } catch (e) {} projOpen = true; if (view !== 'dashboard') view = 'dashboard'; render(); setTimeout(() => { const el = $('projPanel'); if (el) el.scrollIntoView({behavior:'smooth', block:'start'}); }, 60); }
+function salaryAlert(){
+  const rows = salaryDueRows(); if (!rows.length) return '';
+  const m = curMonth(), amt = sum(rows, e => dueAmount(e, m));
+  return `<div class="sal-alert" onclick="projJump()" role="button" tabindex="0">⚠️ ${fmt(amt)} in salaries due — ${rows.length} employee${rows.length === 1 ? '' : 's'} unpaid this month <u>View breakdown ›</u></div>`;
+}
+function bulkPayForm(){
+  const rows = projRows().filter(r => !r.paid), m = curMonth();
+  if (!rows.length) return toast('Everyone is already paid for ' + monthName(m));
+  openModal(`<h2>Pay All · ${monthName(m)}</h2><form onsubmit="bulkPaySave(event)">
+    <div class="hint">Records a salary payment for each ticked employee and adds each amount to Agency Expenses under “Salaries”, exactly like Mark Paid.</div>
+    ${rows.map(r => `<label class="tx" style="cursor:pointer;gap:10px;display:flex;align-items:center"><input type="checkbox" name="e" value="${r.e.id}" checked style="width:auto"><span style="flex:1">${esc(r.e.name)} <span class="muted">${r.pro ? '(Pro-rata ' + r.pro.days + ' days)' : '(Full Month)'}</span></span><b>${fmt(r.due)}</b></label>`).join('')}
+    <div class="row2" style="margin-top:12px"><div class="field"><label>Date paid</label><input name="date" type="date" value="${today()}" required></div>
+    <div class="field"><label>Payment method</label><select name="method">${PAY_METHODS.map(x => `<option>${x}</option>`).join('')}</select><div class="muted" style="font-size:11px;margin-top:4px">Each employee's own method is used when set.</div></div></div>
+    <div class="modal-actions"><button type="button" class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn">Record payments</button></div></form>`);
+}
+function bulkPaySave(ev){
+  ev.preventDefault(); const f = new FormData(ev.target), ids = f.getAll('e'), m = curMonth(); let n = 0;
+  ids.forEach(id => { const e = empById(id); if (!e || empPayments(id, m).length) return; const p = proInfo(e), pro = p && p.month === m;
+    addSalaryPayment(e, m, dueAmount(e, m), f.get('date'), e.payMethod || f.get('method'), pro ? 'Pro-rata: ' + p.days + ' of ' + p.total + ' days' : ''); n++; });
+  if (!n) { toast('Nothing selected'); return; }
+  save(); closeModal(); render(); toast(n + ' salary payment' + (n > 1 ? 's' : '') + ' recorded · added to Agency Expenses');
 }
 function formulaCard(t){
   const neg = t.net <= 0;
@@ -1300,21 +1380,18 @@ function taskAlertsPanel(){
 function vDashboard(t){
   const recent = [...incomeRows()].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
   const ws = workStats(), es = empStats(), due = salaryDueRows(), m = curMonth();
-  const act = clients.filter(c => c.status === 'Active'), per = periodLabel(), wd = wdTotal(), cash = t.mine - wd;   // display only: nothing here feeds back into Net Profit or Allah's Share
+  const act = clients.filter(c => c.status === 'Active'), per = periodLabel();
   return `
   <div class="qa"><button class="btn" onclick="taskForm()">+ New Task</button><button class="btn" onclick="incomeForm()">+ New Invoice</button><button class="btn" onclick="clientForm()">+ New Client</button><button class="btn" onclick="recordPaymentPicker()">+ Record Payment</button></div>
   ${attendanceCard()}
+  ${salaryAlert()}
   ${formulaCard(t)}
   ${moneyFlowCard(t)}
-  <div class="dsec">Finance snapshot · ${per}</div>
-  <div class="grid g3 fin-snap" style="margin-bottom:16px">
-    ${snap('Received Income', fmt(t.totalIn), 'In hand · ' + per, 'teal', "view='income';render()")}
-    ${snap('Total Expenses', fmt(t.totalExp), 'Business costs · ' + per, 'amber', "view='expenses';render()")}
-    ${snap('Net Profit', fmt(t.net), 'Received − Expenses', 'navy')}
-    ${snap("Allah's Share", fmt(t.allahTotal), '× 10% = ' + fmt(t.allahTotal), 'gold', "view='allah';render()")}
-    ${snap('My Share', fmt(t.mine), '× 90% = ' + fmt(t.mine), 'teal')}
-    ${snap('Cash in Hand', `<span style="color:${cash < 0 ? 'var(--red)' : 'var(--green)'}">${fmt(cash)}</span>`, cash < 0 ? `⚠️ Withdrawn ${fmt(Math.abs(cash))} more than your share` : fmt(t.mine) + ' − ' + fmt(wd) + ' = ' + fmt(cash), cash < 0 ? 'red' : 'green', "view='personal';render()")}
-  </div>
+  <div class="fin-head"><div class="dsec" style="margin:0">Finance snapshot · ${per}</div>
+    <div class="mode-tog" role="group" aria-label="Actual or projected"><button type="button" class="${dashMode === 'act' ? 'on' : ''}" onclick="setDashMode('act')">Actual</button><button type="button" class="${dashMode === 'proj' ? 'on' : ''}" onclick="setDashMode('proj')">Projected</button></div></div>
+  ${dashMode === 'proj' && !projApplies() ? '<div class="hint" style="margin:0 0 10px">Projected salaries are added when the period covers the whole current month — pick This Month or All Time. Showing actual figures for now.</div>' : ''}
+  ${finSnap(t, per)}
+  ${dashMode === 'proj' ? projPanel() : ''}
   <div class="dsec">Work snapshot</div>
   <div class="grid g4" style="margin-bottom:16px">
     ${snap('Open Tasks', ws.open, cuLists.length + ' lists', 'navy', "goTasks({status:'open'})")}
