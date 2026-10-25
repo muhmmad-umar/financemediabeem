@@ -18,6 +18,7 @@
 <script src="tasks.js?v=20261024a"></script>
 <script src="punch.js?v=20261024a"></script>
 <script src="adstudio.js?v=20261026b"></script>
+<script src="campaigns.js?v=20261027b"></script>
 <script>
 (async () => {
   const user = await MB.guard('employee');
@@ -31,9 +32,9 @@
   const A = MB.att;
   const shell = MB.shell({
     user, role: 'employee',
-    items: [{ key: 'tasks', label: 'Tasks', icon: '✅' }, { key: 'adcopy', label: 'Ad Copy Studio', icon: '✍️' }, { key: 'attendance', label: 'Attendance', icon: '🕘' }, { key: 'channels', label: 'Channels', icon: '#' }, { key: 'dms', label: 'Direct Messages', icon: '💬' }, { key: 'profile', label: 'Profile', icon: '👤' }],
-    titles: { tasks: ['Tasks', 'Spaces, lists and everything your team is working on'], adcopy: ['Ad Copy Studio', 'Facebook & Instagram ad copy for the Pakistani market'], attendance: ['Attendance', 'Check in, log your day and see your history'], channels: ['Channels', 'Team channels you have been added to'], dms: ['Direct Messages', 'Chat with the admin and your teammates'], profile: ['Profile', 'Your details and salary history'] },
-    onView: key => { stopPane(); curKey = key; viewSeq++; ({ tasks: viewTasks, adcopy: viewAdcopy, attendance: viewAttendance, channels: viewChannels, dms: viewDms, profile: viewProfile })[key](); },
+    items: [{ key: 'tasks', label: 'Tasks', icon: '✅' }, { key: 'ads', label: 'Ads Manager', icon: '📢' }, { key: 'attendance', label: 'Attendance', icon: '🕘' }, { key: 'channels', label: 'Channels', icon: '#' }, { key: 'dms', label: 'Direct Messages', icon: '💬' }, { key: 'profile', label: 'Profile', icon: '👤' }],
+    titles: { tasks: ['Tasks', 'Spaces, lists and everything your team is working on'], ads: ['Ads Manager', 'Ad copy and Meta campaigns — built with Claude, reviewed by you'], attendance: ['Attendance', 'Check in, log your day and see your history'], channels: ['Channels', 'Team channels you have been added to'], dms: ['Direct Messages', 'Chat with the admin and your teammates'], profile: ['Profile', 'Your details and salary history'] },
+    onView: key => { stopPane(); curKey = key; viewSeq++; ({ tasks: viewTasks, ads: viewAds, attendance: viewAttendance, channels: viewChannels, dms: viewDms, profile: viewProfile })[key](); },
   });
 
   MB.punch.mount($('topRight'));
@@ -46,8 +47,8 @@
     if (seq !== viewSeq) p.stop(); else { pane = p; MB.punch.openActive = id => { if (curKey === 'tasks' && pane && pane.openTask) pane.openTask(id); else { MB.openTaskId = id; shell.go('tasks'); } }; if (MB.openTaskId && p.openTask) { const id = MB.openTaskId; MB.openTaskId = null; p.openTask(id); } }
   }
 
-  /* ---------------- Ad Copy Studio ---------------- */
-  function viewAdcopy() { $('view').innerHTML = '<div id="adMount"></div>'; MB.adStudio.mount($('adMount'), { isAdmin: false }); }
+  /* ---------------- Ads Manager (ad copy + campaign builder) ---------------- */
+  function viewAds() { $('view').innerHTML = '<div id="adMount"></div>'; MB.ads.mount($('adMount'), { isAdmin: false }); }
 
   /* ---------------- Attendance ---------------- */
   let attMonth = null;

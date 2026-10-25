@@ -186,6 +186,18 @@ function parseResults(text) {
   for (const t of TYPES) { const arr = (j[RESULT_KEYS[t]] || []).map(x => String(x ?? '').trim()).filter(Boolean).slice(0, 3); if (!arr.length) return null; out[RESULT_KEYS[t]] = arr; }
   return out;
 }
+/** one place that talks to Claude: friendly errors, no secrets in logs */
+async function callClaude(env, key, model, system, content, h) {
+  try {
+    return await new Anthropic({ apiKey: key, maxRetries: 1, timeout: 120000, ...(env.CLAUDE_API_BASE ? { baseURL: env.CLAUDE_API_BASE } : {}) }).messages.create({ model, max_tokens: 16000, system, messages: [{ role: 'user', content }] });
+  } catch (e) {
+    if (e && e.status === 401) throw new h.HttpError(502, 'Claude rejected the API key — check it in Settings → AI Settings.');
+    if (e && e.status === 429) throw new h.HttpError(503, 'Claude is busy or the API key is out of quota — try again in a minute.');
+    if (e && e.status === 400 && /credit|billing/i.test(String(e.message))) throw new h.HttpError(502, 'The Claude account has no credit left — add credit in the Anthropic console.');
+    console.error('claude error', e && (e.status || e.message));
+    throw new h.HttpError(502, 'Claude could not answer right now — please try again.');
+  }
+}
 async function generate(req, env, user, h) {
   const b = await h.readBody(req), s = await getSettings(env), { key } = keyOf(env, s);
   if (!key) throw new h.HttpError(412, 'No Claude API key yet — an admin needs to add it in Settings → AI Settings.');
@@ -210,16 +222,7 @@ async function generate(req, env, user, h) {
   ].filter(Boolean).join('\n\n');
 
   const model = MODELS.includes(s.model) ? s.model : DEFAULT_MODEL;
-  let msg;
-  try {
-    msg = await new Anthropic({ apiKey: key, maxRetries: 1, timeout: 120000, ...(env.CLAUDE_API_BASE ? { baseURL: env.CLAUDE_API_BASE } : {}) }).messages.create({ model, max_tokens: 16000, system, messages: [{ role: 'user', content }] });
-  } catch (e) {
-    if (e && e.status === 401) throw new h.HttpError(502, 'Claude rejected the API key — check it in Settings → AI Settings.');
-    if (e && e.status === 429) throw new h.HttpError(503, 'Claude is busy or the API key is out of quota — try again in a minute.');
-    if (e && e.status === 400 && /credit|billing/i.test(String(e.message))) throw new h.HttpError(502, 'The Claude account has no credit left — add credit in the Anthropic console.');
-    console.error('claude error', e && (e.status || e.message));
-    throw new h.HttpError(502, 'Claude could not generate copy right now — please try again.');
-  }
+  const msg = await callClaude(env, key, model, system, content, h);
   if (msg.stop_reason === 'refusal') throw new h.HttpError(422, 'Claude declined this request. Try rewording the brief.');
   const text = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n');
   const results = parseResults(text);
@@ -242,6 +245,138 @@ async function generationView(env, user, id, h) {
   if (!g || (g.user_id !== user.id && user.role !== 'admin')) throw h.notFound('Generation not found');
   const copies = (await copyRows(env, 'c.generation_id=? ORDER BY c.type, c.position', [id])).map(c => ({ ...c, user_id: undefined }));
   return { generation: { ...g, user_id: undefined }, copies };
+}
+
+/* ------------------------------------------------------------ Campaign Builder */
+export const CAMPAIGN_PROMPT = `You are an expert Meta Ads campaign strategist for a Pakistani digital marketing agency.
+
+The user will give you campaign instructions via voice or text (in English, Urdu or Hinglish).
+
+Extract and build a complete Meta Ads campaign with these fields:
+- campaign_name: descriptive name
+- objective: CONVERSIONS | TRAFFIC | ENGAGEMENT | LEAD_GENERATION | AWARENESS
+- budget_daily: number in PKR
+- duration_days: number
+- start_date: today or specified date
+- audience_age_min: number
+- audience_age_max: number  
+- audience_gender: ALL | MALE | FEMALE
+- audience_locations: array of cities/regions in Pakistan
+- audience_interests: array of relevant interests
+- audience_behaviors: array of relevant behaviors
+- ad_headline: max 6 words, USP-focused, friction-reducing
+- ad_primary_text: 4-8 lines, hook → benefits → CTA, Pakistani market style
+- ad_description: 1 line, max 10 words
+- ad_format: SINGLE_IMAGE | VIDEO | CAROUSEL | REELS
+- placements: array from [Facebook Feed, Instagram Feed, Instagram Reels, Facebook Reels, Stories]
+- language: ENGLISH | URDU | HINGLISH
+
+If any field is unclear from the instruction, use smart defaults based on the product type and Pakistani market best practices.
+
+For ad copy, follow these rules:
+- Headlines reduce friction and communicate USP
+- Primary text: hook first, benefits not features, clear CTA
+- Description: who it's for or social proof
+
+Return ONLY valid JSON with all fields above.
+
+Also return a "summary" field: a 2-line human-readable summary of the campaign.
+Also return a "suggestions" array: 3 quick improvements the user could make.`;
+const FOLLOWUP_NOTE = `
+
+FOLLOW-UP MODE: the user message also contains the CURRENT CAMPAIGN as JSON. The instruction is a follow-up edit to it. Change only the fields the instruction affects and keep every other field exactly as it is (copy it through unchanged). Still return the complete JSON with all fields, plus an updated "summary" and "suggestions". If the instruction asks to change the ad copy (e.g. "make it more emotional"), rewrite ad_headline, ad_primary_text and ad_description together so they stay consistent.`;
+const OBJECTIVES = ['CONVERSIONS', 'TRAFFIC', 'ENGAGEMENT', 'LEAD_GENERATION', 'AWARENESS'], GENDERS = ['ALL', 'MALE', 'FEMALE'], FORMATS = ['SINGLE_IMAGE', 'VIDEO', 'CAROUSEL', 'REELS'], CLANG = ['ENGLISH', 'URDU', 'HINGLISH'];
+const PLACEMENTS = ['Facebook Feed', 'Instagram Feed', 'Instagram Reels', 'Facebook Reels', 'Stories'];
+const CAMP_FIELDS = ['campaign_name', 'objective', 'budget_daily', 'duration_days', 'start_date', 'audience_age_min', 'audience_age_max', 'audience_gender', 'audience_locations', 'audience_interests', 'audience_behaviors', 'ad_headline', 'ad_primary_text', 'ad_description', 'ad_format', 'placements', 'language'];
+const CAMP_LABEL = { campaign_name: 'Name', objective: 'Objective', budget_daily: 'Daily budget', duration_days: 'Duration', start_date: 'Start date', audience_age_min: 'Min age', audience_age_max: 'Max age', audience_gender: 'Gender', audience_locations: 'Locations', audience_interests: 'Interests', audience_behaviors: 'Behaviors', ad_headline: 'Headline', ad_primary_text: 'Primary text', ad_description: 'Description', ad_format: 'Format', placements: 'Placements', language: 'Language' };
+const todayPk = () => new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);   // Pakistan time
+const strList = (v, max = 12) => (Array.isArray(v) ? v : typeof v === 'string' ? v.split(/[,;\n]/) : []).map(x => String(x ?? '').trim().slice(0, 80)).filter(Boolean).filter((x, i, a) => a.indexOf(x) === i).slice(0, max);
+const pickEnum = (v, list, d) => { const k = String(v ?? '').trim().toUpperCase().replace(/[\s-]+/g, '_'); return list.includes(k) ? k : d; };
+/** whatever Claude (or the edit form) sends, store only clean, bounded values */
+export function normalizeCampaign(c, base = {}) {
+  const num = (v, d, lo, hi) => { const n = Math.round(+String(v ?? '').replace(/[, ]/g, '')); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
+  const o = {
+    campaign_name: String(c.campaign_name ?? base.campaign_name ?? 'New campaign').trim().slice(0, 120) || 'New campaign',
+    objective: pickEnum(c.objective ?? base.objective, OBJECTIVES, 'CONVERSIONS'),
+    budget_daily: num(c.budget_daily ?? base.budget_daily, 1000, 1, 100000000),
+    duration_days: num(c.duration_days ?? base.duration_days, 7, 1, 365),
+    audience_age_min: num(c.audience_age_min ?? base.audience_age_min, 18, 13, 65),
+    audience_age_max: num(c.audience_age_max ?? base.audience_age_max, 45, 13, 65),
+    audience_gender: pickEnum(c.audience_gender ?? base.audience_gender, GENDERS, 'ALL'),
+    audience_locations: strList(c.audience_locations ?? base.audience_locations), audience_interests: strList(c.audience_interests ?? base.audience_interests, 20), audience_behaviors: strList(c.audience_behaviors ?? base.audience_behaviors),
+    ad_headline: String(c.ad_headline ?? base.ad_headline ?? '').trim().slice(0, 120), ad_primary_text: String(c.ad_primary_text ?? base.ad_primary_text ?? '').trim().slice(0, 2500), ad_description: String(c.ad_description ?? base.ad_description ?? '').trim().slice(0, 150),
+    ad_format: pickEnum(c.ad_format ?? base.ad_format, FORMATS, 'SINGLE_IMAGE'), language: pickEnum(c.language ?? base.language, CLANG, 'ENGLISH'),
+  };
+  if (o.audience_age_min > o.audience_age_max) [o.audience_age_min, o.audience_age_max] = [o.audience_age_max, o.audience_age_min];
+  const pl = strList(c.placements ?? base.placements, 8).map(p => PLACEMENTS.find(x => x.toLowerCase() === p.toLowerCase().replace(/^fb /i, 'facebook ').replace(/^ig /i, 'instagram '))).filter(Boolean);
+  o.placements = pl.length ? [...new Set(pl)] : ['Facebook Feed', 'Instagram Feed'];
+  const sd = String(c.start_date ?? base.start_date ?? '').trim(), t = todayPk();
+  o.start_date = /^\d{4}-\d{2}-\d{2}$/.test(sd) && !Number.isNaN(Date.parse(sd)) && sd >= t ? sd : t;
+  if (!o.audience_locations.length) o.audience_locations = ['Karachi', 'Lahore', 'Islamabad'];
+  return o;
+}
+const campJson = r => ({ ...r, audience_locations: safeArr(r.audience_locations), audience_interests: safeArr(r.audience_interests), audience_behaviors: safeArr(r.audience_behaviors), placements: safeArr(r.placements), suggestions: safeArr(r.suggestions), instructions: safeArr(r.instructions_json), instructions_json: undefined });
+const safeArr = s => { try { const v = JSON.parse(s || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
+const showVal = (f, v) => Array.isArray(v) ? v.join(', ') : f === 'budget_daily' ? '₨ ' + Math.round(v).toLocaleString('en-US') : f === 'duration_days' ? v + ' days' : String(v ?? '');
+/** human diff for "Updated: Budget ₨500 → ₨1,000" */
+export function diffCampaign(a, b) {
+  const out = [];
+  for (const f of CAMP_FIELDS) { const x = JSON.stringify(a[f] ?? ''), y = JSON.stringify(b[f] ?? ''); if (x !== y) out.push({ field: f, label: CAMP_LABEL[f], from: showVal(f, a[f]), to: showVal(f, b[f]) }); }
+  return out;
+}
+function parseCampaign(text) {
+  const s = String(text || '').replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, ''), a = s.indexOf('{'), b = s.lastIndexOf('}');
+  if (a < 0 || b <= a) return null;
+  try { const j = JSON.parse(s.slice(a, b + 1)); return j && typeof j === 'object' ? j : null; } catch { return null; }
+}
+async function buildCampaign(req, env, user, h) {
+  const b = await h.readBody(req), s = await getSettings(env), { key } = keyOf(env, s);
+  if (!key) throw new h.HttpError(412, 'No Claude API key yet — an admin needs to add it in Settings → AI Settings.');
+  const instruction = String(b.instruction || '').trim().slice(0, 2000);
+  if (instruction.length < 3) throw h.bad('Tell me about the campaign — product, audience, budget, duration…');
+  const since = new Date(Date.now() - 3600e3).toISOString().replace('T', ' ').slice(0, 19);
+  const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM ai_usage WHERE user_id=? AND kind='campaign' AND created_at>?").bind(user.id, since).first();
+  if (n && n.n >= 60) throw new h.HttpError(429, 'You have reached the hourly limit for campaign requests — try again later.');
+  await env.DB.prepare("INSERT INTO ai_usage (user_id,kind) VALUES (?,'campaign')").bind(user.id).run();
+  const current = b.campaign && typeof b.campaign === 'object' ? normalizeCampaign(b.campaign) : null;
+  const content = [`Today's date (Pakistan): ${todayPk()}`, current ? `CURRENT CAMPAIGN (JSON):\n${JSON.stringify({ ...current, summary: String(b.campaign.summary || '').slice(0, 400) })}` : '', `${current ? 'FOLLOW-UP INSTRUCTION' : 'INSTRUCTION'} (${b.mode === 'voice' ? 'spoken, so the transcript may contain recognition mistakes' : 'typed'}):\n${instruction}`, 'Return only the JSON.'].filter(Boolean).join('\n\n');
+  const model = MODELS.includes(s.model) ? s.model : DEFAULT_MODEL;
+  const msg = await callClaude(env, key, model, CAMPAIGN_PROMPT + (current ? FOLLOWUP_NOTE : ''), content, h);
+  if (msg.stop_reason === 'refusal') throw new h.HttpError(422, 'Claude declined this request. Try rewording it.');
+  const raw = parseCampaign((msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n'));
+  if (!raw) throw new h.HttpError(502, msg.stop_reason === 'max_tokens' ? 'The answer was cut off — please try again.' : 'Claude returned an unexpected answer — please try again.');
+  const campaign = normalizeCampaign(raw, current || {});
+  return { campaign, summary: String(raw.summary || '').slice(0, 500), suggestions: strList(raw.suggestions, 5).map(x => x.slice(0, 200)), changes: current ? diffCampaign(current, campaign) : [], model };
+}
+async function ownCampaign(env, user, id, h) {
+  const r = await env.DB.prepare('SELECT * FROM campaigns WHERE id=?').bind(String(id || '')).first();
+  if (!r || (r.user_id !== user.id && user.role !== 'admin')) throw h.notFound('Campaign not found');
+  return r;
+}
+async function saveCampaign(req, env, user, h) {
+  const b = await h.readBody(req), c = normalizeCampaign(b.campaign || {}), now = h.nowIso();
+  let clientId = String(b.client_id || '').trim() || null;
+  if (clientId && !(await env.DB.prepare('SELECT 1 AS x FROM clients WHERE id=?').bind(clientId).first())) clientId = null;
+  const summary = String(b.summary || '').slice(0, 500), sugg = JSON.stringify(strList(b.suggestions, 5)), instr = JSON.stringify((Array.isArray(b.instructions) ? b.instructions : []).map(x => String(x).slice(0, 2000)).slice(0, 30));
+  const vals = [clientId, c.campaign_name, c.objective, c.budget_daily, c.duration_days, c.start_date, c.audience_age_min, c.audience_age_max, c.audience_gender, JSON.stringify(c.audience_locations), JSON.stringify(c.audience_interests), JSON.stringify(c.audience_behaviors), c.ad_headline, c.ad_primary_text, c.ad_description, c.ad_format, JSON.stringify(c.placements), c.language, summary, sugg, instr];
+  const cols = 'client_id=?,campaign_name=?,objective=?,budget_daily=?,duration_days=?,start_date=?,audience_age_min=?,audience_age_max=?,audience_gender=?,audience_locations=?,audience_interests=?,audience_behaviors=?,ad_headline=?,ad_primary_text=?,ad_description=?,ad_format=?,placements=?,language=?,summary=?,suggestions=?,instructions_json=?';
+  if (b.id) {
+    const cur = await ownCampaign(env, user, b.id, h);
+    await env.DB.prepare(`UPDATE campaigns SET ${cols},updated_at=? WHERE id=?`).bind(...vals, now, cur.id).run();
+    return { id: cur.id, campaign: campJson(await env.DB.prepare('SELECT * FROM campaigns WHERE id=?').bind(cur.id).first()) };
+  }
+  const id = h.uid(), first = (Array.isArray(b.instructions) && b.instructions[0]) ? String(b.instructions[0]).slice(0, 2000) : '', voice = b.mode === 'voice';
+  await env.DB.prepare(`INSERT INTO campaigns (id,user_id,client_id,campaign_name,objective,budget_daily,duration_days,start_date,audience_age_min,audience_age_max,audience_gender,audience_locations,audience_interests,audience_behaviors,ad_headline,ad_primary_text,ad_description,ad_format,placements,language,summary,suggestions,instructions_json,status,voice_input,text_input,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'draft',?,?,?,?)`)
+    .bind(id, user.id, ...vals, voice ? first : null, voice ? null : first, now, now).run();
+  return { id, campaign: campJson(await env.DB.prepare('SELECT * FROM campaigns WHERE id=?').bind(id).first()) };
+}
+async function listCampaigns(env, user, url) {
+  const q = url.searchParams, where = [], binds = [];
+  if (!(user.role === 'admin' && (q.get('scope') === 'all' || q.get('client_id')))) { where.push('c.user_id=?'); binds.push(user.id); }
+  if (q.get('client_id')) { where.push('c.client_id=?'); binds.push(q.get('client_id')); }
+  if (['draft', 'launched'].includes(q.get('status'))) { where.push('c.status=?'); binds.push(q.get('status')); }
+  const rs = await env.DB.prepare(`SELECT c.id,c.user_id,c.client_id,c.campaign_name,c.objective,c.budget_daily,c.duration_days,c.start_date,c.status,c.created_at,c.updated_at,c.launched_at,(SELECT name FROM clients WHERE id=c.client_id) AS client_name,(SELECT name FROM users WHERE id=c.user_id) AS user_name FROM campaigns c ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY c.updated_at DESC LIMIT 200`).bind(...binds).all();
+  return { campaigns: rs.results };
 }
 
 /* ------------------------------------------------------------ router */
@@ -311,6 +446,22 @@ export async function handleAi(req, env, user, seg, url, h) {
     const all = user.role === 'admin' && url.searchParams.get('scope') === 'all';
     const rs = await env.DB.prepare(`SELECT id,client_id,product_url,page_title,brief,language,style,created_at FROM ad_generations ${all ? '' : 'WHERE user_id=?'} ORDER BY created_at DESC LIMIT 20`).bind(...(all ? [] : [user.id])).all();
     return { history: rs.results };
+  }
+  if (r === 'campaign/build' && m === 'POST') return buildCampaign(req, env, user, h);
+  if (r === 'campaign' && m === 'POST') return saveCampaign(req, env, user, h);
+  if (r === 'campaigns' && m === 'GET') return listCampaigns(env, user, url);
+  if (seg[2] === 'campaign' && seg[3] && seg.length === 4 && m === 'GET') return { campaign: campJson(await ownCampaign(env, user, seg[3], h)) };
+  if (seg[2] === 'campaign' && seg[3] && seg.length === 4 && m === 'DELETE') { const c = await ownCampaign(env, user, seg[3], h); await env.DB.prepare('DELETE FROM campaigns WHERE id=?').bind(c.id).run(); return { ok: true }; }
+  if (seg[2] === 'campaign' && seg[3] && seg[4] === 'duplicate' && m === 'POST') {
+    const c = await ownCampaign(env, user, seg[3], h), id = h.uid(), now = h.nowIso();
+    await env.DB.prepare(`INSERT INTO campaigns (id,user_id,client_id,campaign_name,objective,budget_daily,duration_days,start_date,audience_age_min,audience_age_max,audience_gender,audience_locations,audience_interests,audience_behaviors,ad_headline,ad_primary_text,ad_description,ad_format,placements,language,summary,suggestions,instructions_json,status,voice_input,text_input,created_at,updated_at)
+      SELECT ?,?,client_id,campaign_name || ' (copy)',objective,budget_daily,duration_days,?,audience_age_min,audience_age_max,audience_gender,audience_locations,audience_interests,audience_behaviors,ad_headline,ad_primary_text,ad_description,ad_format,placements,language,summary,suggestions,instructions_json,'draft',voice_input,text_input,?,? FROM campaigns WHERE id=?`).bind(id, user.id, todayPk(), now, now, c.id).run();
+    return { id, campaign: campJson(await env.DB.prepare('SELECT * FROM campaigns WHERE id=?').bind(id).first()) };
+  }
+  if (seg[2] === 'campaign' && seg[3] && seg[4] === 'launch' && m === 'POST') {
+    const c = await ownCampaign(env, user, seg[3], h), now = h.nowIso();
+    await env.DB.prepare("UPDATE campaigns SET status='launched', launched_at=?, updated_at=? WHERE id=?").bind(now, now, c.id).run();
+    return { ok: true, status: 'launched', launched_at: now };
   }
   if (seg[2] === 'generation' && seg[3] && m === 'GET') return generationView(env, user, seg[3], h);
   throw h.notFound();

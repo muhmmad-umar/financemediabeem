@@ -128,7 +128,7 @@ All three portals (admin, employee, client), the login page and the onboarding f
 
 ## Ad Copy Studio
 
-✍️ **Ad Copy Studio** (sidebar → Work) writes Facebook / Instagram ad copy for the Pakistani market with Claude. Admins and employees only — clients never see it and `/api/ai/*` returns 403 for them.
+✍️ **Ad Copy Studio** (sidebar → Work → 📢 Ads Manager → ✍️ Ad Copy) writes Facebook / Instagram ad copy for the Pakistani market with Claude. Admins and employees only — clients never see it and `/api/ai/*` returns 403 for them.
 
 - **Generate:** paste the product link (the Worker fetches and extracts the page text), write a brief, pick English / Urdu / Hinglish and Market / Premium style, optionally link a client → 3 headlines, 3 primary texts, 3 descriptions. Every result has **✅ Use This** (copies to the clipboard and saves it as preferred), **❌ Not This** and **⭐ Save**; plus **🔄 Regenerate All** and **💾 Save All**. Tabs: *Generate · Saved Copies* (filter by client / type / language) *· History* (last 20 generations).
 - **Preference learning:** ✅/❌ choices are stored per user in `ad_preferences`. After 5+ choices the Worker extracts patterns (short vs long, emoji-heavy vs clean, Urdu script vs Roman, price mention, emotion- vs feature-led, bullets) plus recent approved/rejected examples and injects them into the system prompt's `{PREFERENCE_CONTEXT}`.
@@ -136,3 +136,15 @@ All three portals (admin, employee, client), the login page and the onboarding f
 - **API:** `POST /api/ai/generate-copy`, `POST /api/ai/preference`, `GET /api/ai/preferences`, `GET /api/ai/saved-copies`, `POST /api/ai/fetch-url`, plus `GET /api/ai/config`, `PUT /api/ai/settings`, `POST /api/ai/save-copy`, `GET /api/ai/history`, `GET /api/ai/generation/:id`.
 - **Safety:** product links must be public `http(s)` pages (localhost / private / link-local addresses, credentials in the URL and non-standard ports are refused, redirects are re-checked, fetch is capped at ~1.5 MB / 9 s). Fetched page text is passed to Claude as reference data only. Generation is limited to 40 per user per hour. If a page can't be read (bot-blocking, JavaScript-only), the copy is generated from the brief and the user is told.
 - **Testing without a key:** set `CLAUDE_API_BASE` (e.g. in `worker/.dev.vars`) to point the Worker at a mock server.
+
+## Ads Manager → Campaign Builder
+
+📢 **Ads Manager** (sidebar → Work; admin + employee only) has two tabs: **✍️ Ad Copy** (the Ad Copy Studio above) and **🚀 Campaign Builder**.
+
+- **Input:** hold the big 🎤 to speak (release to send; or tap once to start and tap again to send) or type a chat command. Voice uses the browser's Web Speech API (Chrome / Edge, free). Browsers can't auto-detect the spoken language, so pick English / اردو / Hinglish before speaking — Claude understands all three, and the live transcript is shown as you speak.
+- **Claude builds the whole campaign** (objective, budget, dates, audience, interests, behaviours, headline / primary text / description, format, placements, language) with the Campaign Builder system prompt in `worker/src/ai.js` (`CAMPAIGN_PROMPT`), plus a summary and 3 suggestions. Values are validated server-side (enums, ranges, start date ≥ today in Pakistan time).
+- **Edit:** ✏️ Edit makes every field editable inline, or keep talking/typing follow-ups ("Change budget to 1000", "Add Lahore", "Make copy more emotional"). Only the affected fields change and the card shows what changed ("Updated: Daily budget ₨ 500 → ₨ 1,000").
+- **Save / history / reuse:** 💾 Save Draft stores it in `campaigns` (`0010_campaigns.sql`) with the original instruction (`voice_input` or `text_input`); History lists date, client, name, budget and status with Open / Duplicate / Delete. Pick a client at the top to link it — linked campaigns also appear on that client's profile in Clients.
+- **🚀 Launch in Meta:** opens https://adsmanager.facebook.com/ in a new tab, copies complete step-by-step setup instructions to the clipboard and marks the campaign *Launched*. A web page cannot drive your browser, so the auto-fill step is done by **Claude in Chrome**: paste the instructions into it on the Ads Manager tab. The instructions tell it to fill objective, name, budget, dates, audience, copy and placements, stop at the final Review screen, and never click Publish. Nothing is created in Meta until you publish it yourself.
+- **API:** `POST /api/ai/campaign/build`, `POST /api/ai/campaign` (create/update), `GET /api/ai/campaigns`, `GET|DELETE /api/ai/campaign/:id`, `POST /api/ai/campaign/:id/duplicate`, `POST /api/ai/campaign/:id/launch`. Employees see their own campaigns; admins see everyone's. Requires the Claude API key from *Settings → AI Settings*.
+- **Deploy:** `npm run db:migrate` (0010) → `npm run deploy:api` → deploy `public/`.
