@@ -1,234 +1,320 @@
-/* Ads Manager UI: tabs (✍️ Ad Copy · 🚀 Campaign Builder) + the Campaign Builder.
-   Shared by the admin app and the employee portal.  MB.ads.mount(el, { isAdmin, onSettings }) */
+/* Ads Manager — one unified flow: Brief → Build (campaign + 3 ad copies in one Claude call) → Review & select → Launch in Meta.
+   Tabs: 🚀 Campaign Builder · 📁 Saved Campaigns · ✍️ Ad Library.   MB.ads.mount(el, { isAdmin, onSettings }) */
 (function () {
   'use strict';
   var MB = window.MB, esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var GOALS = { CONVERSIONS: 'Conversions', TRAFFIC: 'Traffic', ENGAGEMENT: 'Engagement', LEAD_GENERATION: 'Leads', AWARENESS: 'Awareness' };
   var OBJ = { CONVERSIONS: 'Conversions', TRAFFIC: 'Traffic', ENGAGEMENT: 'Engagement', LEAD_GENERATION: 'Lead generation', AWARENESS: 'Awareness' };
   var META_OBJ = { CONVERSIONS: 'Sales', TRAFFIC: 'Traffic', ENGAGEMENT: 'Engagement', LEAD_GENERATION: 'Leads', AWARENESS: 'Awareness' };
   var FMT = { SINGLE_IMAGE: 'Single image', VIDEO: 'Video', CAROUSEL: 'Carousel', REELS: 'Reels' };
-  var GEN = { ALL: 'All genders', MALE: 'Male', FEMALE: 'Female' };
+  var GEN = { ALL: 'All genders', MALE: 'Men', FEMALE: 'Women' };
   var PLACES = ['Facebook Feed', 'Instagram Feed', 'Instagram Reels', 'Facebook Reels', 'Stories'];
   var LANGS = { ENGLISH: 'English', URDU: 'Urdu', HINGLISH: 'Hinglish' };
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  var VLANG = { en: 'en-US', ur: 'ur-PK', hi: 'en-IN' };
+  var STY = { market: 'Market Style', premium: 'Premium Style' };
+  var MQ = window.matchMedia('(max-width:767px)');
   var ls = { get: function (k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  var $q = function (s, r) { return (r || root).querySelector(s); };
 
-  var C = { view: 'build', client_id: '', instructions: [], mode: 'text', campaign: null, summary: '', suggestions: [], changes: [], id: null, status: 'draft', dirty: false, edit: null, busy: false, err: '', launched: false,
-    text: '', rec: { on: false, text: '', lang: ls.get('mb_voice_lang', 'en') }, hist: { list: null, all: false } };
-  var cfg = null, el = null, opts = {}, root = null, outer = ls.get('mb_ads_tab', 'copy');
+  var S = { setOpen: null, tab: ls.get('mb_ads_tab', 'build'), step: 1, form: { url: '', description: '', budget: '500', goal: 'CONVERSIONS', language: '', style: '', client_id: '' }, urlNote: '', err: '', busy: false,
+    run: null, id: null, status: 'draft', dirty: false, editSet: null, editCopy: null, launched: false, learning: null, loadMsg: 0,
+    saved: { list: null, client_id: '', status: '', from: '', to: '', all: false }, lib: { list: null, angles: [], client_id: '', language: '', style: '', angle: '', from: '', to: '', q: '', all: false } };
+  if (['build', 'saved', 'library'].indexOf(S.tab) < 0) S.tab = 'build';
+  var cfg = null, el = null, root = null, opts = {}, pendingOpen = null, loadTimer = null;
 
-  var css = '.cb{--cbbg:var(--panel,var(--card,#1a1a1a));--cbline:var(--line,#2a2a2a);--cbmut:var(--muted,#888);--cbacc:var(--accent,var(--teal,#7c3aed));--cbtx:var(--text,var(--strong,#fff))}' +
-    '.cb *{box-sizing:border-box}.cb .card{background:var(--cbbg);border:1px solid var(--cbline);border-radius:14px;padding:18px;margin-bottom:14px}' +
-    '.ads-tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line,#2a2a2a)}.ads-tabs button{background:none;border:0;border-bottom:3px solid transparent;color:var(--muted,#888);padding:12px 18px;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:-1px}.ads-tabs button.on{color:var(--text,var(--strong,#fff));border-color:var(--accent,var(--teal,#7c3aed))}' +
-    '.cb-top{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.cb-top select{flex:1 1 220px;max-width:340px}.cb .sub{display:flex;gap:6px;margin-left:auto}.cb .sub button{border:1px solid var(--cbline);background:none;color:var(--cbmut);border-radius:99px;padding:8px 16px;font-weight:600;cursor:pointer}.cb .sub button.on{background:var(--cbacc);border-color:transparent;color:#fff}' +
-    '.cb select,.cb input[type=text],.cb input[type=number],.cb input[type=date],.cb textarea{width:100%;background:var(--input,#141414);color:var(--cbtx);border:1px solid var(--cbline);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;outline:none}.cb textarea{resize:vertical;line-height:1.5}.cb select:focus,.cb input:focus,.cb textarea:focus{border-color:var(--cbacc)}' +
-    '.cb-in{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}.cb-in .card{margin:0;display:flex;flex-direction:column}.cb-in h3{margin:0 0 12px;font-size:15px}' +
-    '.cb-mic{display:flex;flex-direction:column;align-items:center;gap:10px;flex:1;justify-content:center;text-align:center}.cb-micbtn{width:104px;height:104px;border-radius:50%;border:0;background:var(--cbacc);color:#fff;font-size:44px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 8px 24px rgba(124,58,237,.4);transition:transform .15s}.cb-micbtn:active{transform:scale(.96)}' +
-    '.cb-micbtn.on{background:#ef4444;animation:cb-pulse 1.2s infinite}.cb-micbtn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}@keyframes cb-pulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}100%{box-shadow:0 0 0 26px rgba(239,68,68,0)}}' +
-    '.cb-live{min-height:48px;width:100%;border:1px dashed var(--cbline);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.5;color:var(--cbtx);text-align:left;word-break:break-word}.cb-live:empty:before{content:"Your words appear here as you speak…";color:var(--cbmut)}.cb-live i{color:var(--cbmut);font-style:normal}' +
-    '.cb-vl{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.cb-vl button{border:1px solid var(--cbline);background:none;color:var(--cbmut);border-radius:99px;padding:7px 14px;font-weight:600;font-size:13px;cursor:pointer}.cb-vl button.on{border-color:var(--cbacc);color:var(--cbtx);background:rgba(124,58,237,.14)}' +
-    '.cb-hint{font-size:12.5px;color:var(--cbmut)}.cb-chat textarea{flex:1;min-height:150px}.cb-send{margin-top:10px;border:0;background:var(--cbacc);color:#fff;font-weight:700;border-radius:10px;padding:13px;font-size:15px;cursor:pointer;min-height:48px}.cb-send:disabled{opacity:.6}' +
-    '.cb-err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.5);color:var(--red,#ef4444);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:14px}.cb-banner{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.5);color:var(--amber,#f59e0b);border-radius:12px;padding:12px 16px;margin-bottom:14px;font-weight:600}.cb-banner button{margin-left:10px;border:1px solid currentColor;background:none;color:inherit;border-radius:8px;padding:6px 12px;font-weight:600;cursor:pointer}' +
-    '.cb-spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:cb-sp .8s linear infinite;vertical-align:-2px;margin-right:8px}@keyframes cb-sp{to{transform:rotate(360deg)}}' +
-    '.cb-card{border:2px solid var(--cbline);border-radius:16px;padding:0;overflow:hidden;background:var(--cbbg);margin-bottom:14px}.cb-ch{padding:14px 18px;border-bottom:1px solid var(--cbline);background:rgba(124,58,237,.1);font-weight:800;letter-spacing:.05em;font-size:13px}.cb-cb{padding:16px 18px}' +
-    '.cb-name{font-size:19px;font-weight:800;margin:0 0 4px}.cb-sum{color:var(--cbmut);font-size:14px;line-height:1.5;margin-bottom:6px;white-space:pre-line}' +
-    '.cb-sec{font-size:11.5px;font-weight:800;letter-spacing:.08em;color:var(--cbacc);margin:18px 0 8px;text-transform:uppercase}.cb-row{display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--cbline);font-size:14px;align-items:flex-start}.cb-row:last-child{border:0}.cb-row>span:first-child{flex:0 0 120px;color:var(--cbmut)}.cb-row>span:last-child,.cb-row>div:last-child{flex:1;min-width:0;word-break:break-word}.cb-row b{font-weight:700}' +
-    '.cb-copy{white-space:pre-wrap;line-height:1.55}.cb-sug{border-top:1px solid var(--cbline);padding:14px 18px;background:rgba(245,158,11,.06)}.cb-sug h4{margin:0 0 8px;font-size:13px;letter-spacing:.06em}.cb-sug li{margin:4px 0 4px 18px;font-size:14px}' +
-    '.cb-acts{display:flex;gap:10px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid var(--cbline)}.cb-acts button{flex:1 1 140px;min-height:48px;border-radius:10px;border:1px solid var(--cbline);background:none;color:var(--cbtx);font-weight:700;font-size:14px;cursor:pointer}.cb-acts .go{background:#1877f2;border-color:transparent;color:#fff}.cb-acts .pri{background:var(--cbacc);border-color:transparent;color:#fff}' +
-    '.cb-chg{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.45);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:14px}.cb-chg div{margin:3px 0}.cb-chg b{color:var(--green,#22c55e)}' +
-    '.cb-launch{background:rgba(24,119,242,.1);border:1px solid rgba(24,119,242,.5);border-radius:12px;padding:14px 16px;margin-bottom:14px;font-size:14px;line-height:1.55}.cb-launch h4{margin:0 0 6px;font-size:15px}' +
-    '.cb-edit .cb-row{align-items:center}.cb-edit .pl{display:flex;gap:8px;flex-wrap:wrap}.cb-edit .pl label{display:flex;gap:6px;align-items:center;border:1px solid var(--cbline);border-radius:99px;padding:6px 12px;font-size:13px;cursor:pointer}.cb-edit .pl input{width:auto}' +
-    '.cb-badge{display:inline-block;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700}.cb-badge.draft{background:rgba(148,163,184,.2);color:var(--cbmut)}.cb-badge.launched{background:rgba(24,119,242,.2);color:#60a5fa}' +
-    '.cb-h{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--cbline);border-radius:12px;margin-bottom:8px;background:var(--cbbg);cursor:pointer}.cb-h:hover{border-color:var(--cbacc)}.cb-h .t{flex:1 1 220px;min-width:0}.cb-h .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cb-h .m{font-size:12.5px;color:var(--cbmut)}.cb-h button{border:1px solid var(--cbline);background:none;color:var(--cbtx);border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer}' +
-    '@media(max-width:767px){.cb-row>div:last-child{width:100%}.cb-edit .cb-row{align-items:stretch}.cb-edit .cb-row input[type=text],.cb-edit .cb-row input[type=number],.cb-edit .cb-row input[type=date],.cb-edit .cb-row select,.cb-edit .cb-row textarea{width:100%}.cb-in{grid-template-columns:1fr}.cb-micbtn{width:128px;height:128px;font-size:54px}.cb-row{flex-direction:column;gap:2px}.cb-row>span:first-child{flex:none;font-size:12px}.cb select,.cb input,.cb textarea{font-size:16px!important;min-height:46px}.cb-acts button{flex:1 1 100%;min-height:52px}.cb .sub{margin-left:0;width:100%}.cb .sub button{flex:1}.cb-top select{max-width:none}.cb .card{padding:16px 14px}.ads-tabs button{flex:1;padding:12px 6px;font-size:14px}}';
+  var css = '.cb{--cbbg:var(--panel,var(--card,#1a1a1a));--cbline:var(--line,#2a2a2a);--cbmut:var(--muted,#888);--cbacc:var(--accent,var(--teal,#7c3aed));--cbtx:var(--text,var(--strong,#fff))}.cb *{box-sizing:border-box}' +
+    '.cb .card{background:var(--cbbg);border:1px solid var(--cbline);border-radius:14px;padding:18px;margin-bottom:14px}' +
+    '.ads-tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--cbline);overflow-x:auto;scrollbar-width:none}.ads-tabs button{flex:none;background:none;border:0;border-bottom:3px solid transparent;color:var(--cbmut);padding:12px 18px;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:-1px;white-space:nowrap}.ads-tabs button.on{color:var(--cbtx);border-color:var(--cbacc)}' +
+    '.cb select,.cb input[type=text],.cb input[type=url],.cb input[type=number],.cb input[type=date],.cb input[type=search],.cb textarea{width:100%;background:var(--input,#141414);color:var(--cbtx);border:1px solid var(--cbline);border-radius:10px;padding:11px 12px;font:inherit;font-size:14px;outline:none}.cb textarea{resize:vertical;line-height:1.5}.cb select:focus,.cb input:focus,.cb textarea:focus{border-color:var(--cbacc)}' +
+    '.cb-steps{display:flex;gap:6px;margin-bottom:16px;font-size:12.5px;font-weight:700;color:var(--cbmut)}.cb-steps span{flex:1;text-align:center;padding:8px 4px;border-bottom:3px solid var(--cbline);white-space:nowrap}.cb-steps span.on{color:var(--cbtx);border-color:var(--cbacc)}.cb-steps span.done{color:var(--green,#22c55e);border-color:var(--green,#22c55e)}' +
+    '.cb-lbl{display:block;font-size:11.5px;font-weight:700;letter-spacing:.07em;color:var(--cbmut);text-transform:uppercase;margin:18px 0 6px}.cb-lbl:first-child{margin-top:0}.cb-lbl em{color:var(--red,#ef4444);font-style:normal}.cb-hint{font-size:12.5px;color:var(--cbmut);margin-top:6px}.cb-hint.ok{color:var(--green,#22c55e)}.cb-hint.bad{color:var(--amber,#f59e0b)}' +
+    '.cb-seg{display:flex;gap:8px;flex-wrap:wrap}.cb .cb-seg label{flex:1 1 130px;display:flex!important;gap:10px;align-items:center;text-align:left;border:1px solid var(--cbline);border-radius:10px;padding:12px;cursor:pointer;font-size:14px;font-weight:500;color:var(--cbtx);margin:0}.cb .cb-seg label small{display:block;color:var(--cbmut);font-size:12px;font-weight:400}.cb .cb-seg input{width:18px!important;height:18px!important;min-height:0!important;padding:0!important;margin:0!important;accent-color:var(--cbacc);flex:none}.cb .cb-seg label.on{border-color:var(--cbacc);background:rgba(124,58,237,.12)}' +
+    '.cb-go{width:100%;margin-top:20px;border:0;background:var(--cbacc);color:#fff;font-weight:800;font-size:16px;border-radius:12px;padding:16px;cursor:pointer;min-height:54px}.cb-go:disabled{opacity:.55;cursor:not-allowed}' +
+    '.cb-err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.5);color:var(--red,#ef4444);border-radius:10px;padding:10px 14px;margin:12px 0;font-size:14px}.cb-note{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);color:var(--amber,#f59e0b);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px}.cb-banner{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.5);color:var(--amber,#f59e0b);border-radius:12px;padding:12px 16px;margin-bottom:14px;font-weight:600}.cb-banner button{margin-left:10px;border:1px solid currentColor;background:none;color:inherit;border-radius:8px;padding:6px 12px;font-weight:600;cursor:pointer}' +
+    '.cb-load{text-align:center;padding:56px 16px}.cb-load .sp{width:46px;height:46px;border:4px solid var(--cbline);border-top-color:var(--cbacc);border-radius:50%;margin:0 auto 18px;animation:cb-sp .9s linear infinite}@keyframes cb-sp{to{transform:rotate(360deg)}}.cb-load b{display:block;font-size:17px;margin-bottom:6px}.cb-load span{color:var(--cbmut);font-size:14px}' +
+    '.cb-box{border:2px solid var(--cbline);border-radius:16px;background:var(--cbbg);margin-bottom:16px;overflow:hidden}.cb-bh{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(124,58,237,.1);font-weight:800;letter-spacing:.05em;font-size:13px;cursor:pointer;list-style:none}.cb-bh::-webkit-details-marker{display:none}.cb-bh::after{content:"▾";color:var(--cbmut)}details:not([open])>.cb-bh::after{content:"▸"}.cb-bb{padding:6px 18px 16px}' +
+    '.cb-name{font-size:19px;font-weight:800;margin:12px 0 2px}.cb-row{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--cbline);font-size:14px;align-items:flex-start}.cb-row:last-child{border:0}.cb-row>span:first-child{flex:0 0 110px;color:var(--cbmut)}.cb-row>div,.cb-row>span:last-child{flex:1;min-width:0;word-break:break-word}.cb-edit .cb-row{align-items:center}.cb-edit .pl{display:flex;gap:8px;flex-wrap:wrap}.cb-edit .pl label{display:flex;gap:6px;align-items:center;border:1px solid var(--cbline);border-radius:99px;padding:6px 12px;font-size:13px;cursor:pointer}.cb-edit .pl input{width:auto}' +
+    '.cb-var{border:2px solid var(--cbline);border-radius:14px;padding:16px;margin-bottom:12px;background:var(--cbbg);cursor:pointer;transition:border-color .15s,box-shadow .15s}.cb-var:hover{border-color:rgba(124,58,237,.6)}.cb-var.sel{border-color:var(--cbacc);background:rgba(124,58,237,.1);box-shadow:0 0 0 3px rgba(124,58,237,.25)}.cb-vh{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}.cb-vh b{flex:1;font-size:15px}.cb-pick{width:26px;height:26px;border-radius:50%;border:2px solid var(--cbmut);display:grid;place-items:center;flex:none;font-size:14px;color:transparent}.cb-var.sel .cb-pick{background:var(--cbacc);border-color:var(--cbacc);color:#fff}' +
+    '.cb-f{margin:8px 0}.cb-f small{display:block;font-size:11px;font-weight:700;letter-spacing:.07em;color:var(--cbmut);text-transform:uppercase;margin-bottom:2px}.cb-f .hl{font-size:18px;font-weight:800}.cb-f .tx{white-space:pre-wrap;line-height:1.55}' +
+    '.cb-vb{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.cb-vb button{flex:1 1 110px;min-height:46px;border-radius:10px;border:1px solid var(--cbline);background:none;color:var(--cbtx);font-weight:700;font-size:14px;cursor:pointer}.cb-vb .use{background:var(--cbacc);border-color:transparent;color:#fff}.cb-var.sel .cb-vb .use{background:transparent;border-color:var(--cbacc);color:var(--cbacc)}' +
+    '.cb-ins{border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.06);border-radius:14px;padding:14px 18px;margin-bottom:14px}.cb-ins h4{margin:0 0 8px;font-size:13px;letter-spacing:.06em}.cb-ins li{margin:5px 0 5px 18px;font-size:14px}.cb-learn{font-size:12.5px;color:var(--cbmut);margin:0 0 12px}' +
+    '.cb-act{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.cb-act button{flex:1 1 150px;min-height:52px;border-radius:12px;border:1px solid var(--cbline);background:none;color:var(--cbtx);font-weight:800;font-size:15px;cursor:pointer}.cb-act .go{background:#1877f2;border-color:transparent;color:#fff}.cb-act .go:disabled{opacity:.45;cursor:not-allowed}.cb-act .pri{background:var(--cbacc);border-color:transparent;color:#fff}' +
+    '.cb-launch{background:rgba(24,119,242,.1);border:1px solid rgba(24,119,242,.5);border-radius:14px;padding:18px;font-size:15px;line-height:1.6}.cb-launch h3{margin:0 0 8px;font-size:18px}.cb-launch .b{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}.cb-launch .b button{border:1px solid currentColor;background:none;color:inherit;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer;min-height:46px}' +
+    '.cb-fil{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}.cb-fil select,.cb-fil input{flex:1 1 140px;width:auto}.cb-fil label{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--cbmut)}.cb-fil label input{width:auto;flex:none}' +
+    '.cb-badge{display:inline-block;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700}.cb-badge.draft{background:rgba(148,163,184,.2);color:var(--cbmut)}.cb-badge.launched{background:rgba(24,119,242,.2);color:#60a5fa}.cb-badge.ang{background:rgba(124,58,237,.18);color:#c4b5fd}' +
+    '.cb-h{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--cbline);border-radius:12px;margin-bottom:8px;background:var(--cbbg);cursor:pointer}.cb-h:hover{border-color:var(--cbacc)}.cb-h .t{flex:1 1 240px;min-width:0}.cb-h .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cb-h .m{font-size:12.5px;color:var(--cbmut)}.cb-h button,.cb-lib button{border:1px solid var(--cbline);background:none;color:var(--cbtx);border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer;min-height:40px}' +
+    '.cb-lib{border:1px solid var(--cbline);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--cbbg)}.cb-lib .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.cb-lib .m{font-size:12px;color:var(--cbmut);margin-top:8px}.cb-lib .b{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.cb-lib .b button{flex:1 1 100px}' +
+    '@media(max-width:767px){.cb .card{padding:16px 14px}.cb-steps{font-size:11px}.cb-row{flex-direction:column;gap:2px}.cb-row>span:first-child{flex:none;font-size:12px}.cb select,.cb input,.cb textarea{font-size:16px!important;min-height:48px}.cb textarea{min-height:110px}.cb-seg label{flex:1 1 100%!important}.cb-act{position:sticky;bottom:calc(var(--mtab-h,0px) + var(--safe-b,0px) + 6px);z-index:6;background:var(--bg,#0d0d0d);padding:10px 0;margin:8px 0 0}.cb-act button{flex:1 1 100%}.cb-vb button{flex:1 1 100%;min-height:52px}.cb-pick{width:30px;height:30px}.ads-tabs button{padding:12px 12px;font-size:14px}.cb-page{min-height:calc(100dvh - 190px)}.cb-fil select,.cb-fil input{flex:1 1 100%}.cb-f .hl{font-size:19px}}';
   function injectCss() { if (document.getElementById('cb-css')) return; var s = document.createElement('style'); s.id = 'cb-css'; s.textContent = css; document.head.appendChild(s); }
   var toast = function (m) { if (MB && MB.toast) MB.toast(m); else if (window.toast) window.toast(m); };
-  var money = function (n) { return '₨ ' + Math.round(+n || 0).toLocaleString('en-US'); };
+  var money = function (n) { return '₨' + Math.round(+n || 0).toLocaleString('en-US'); };
   var today = function () { return new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10); };
   function copyText(t) { if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t).catch(fb); return fb(); function fb() { var a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (e) {} a.remove(); return Promise.resolve(); } }
+  var copyOf = function (c) { return (c.headline + '\n\n' + c.primary_text + '\n\n' + c.description).trim(); };
+  var rtl = function (s) { return /[؀-ۿ]/.test(s) ? ' dir="rtl" style="text-align:right"' : ''; };
+  var endDate = function (c) { var d = new Date(c.start_date + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + c.duration_days - 1); return d.toISOString().slice(0, 10); };
 
-  /* ============================================================ outer shell (tabs) */
+  /* ============================================================ shell */
   function mount(target, o) {
     el = target; opts = o || {}; injectCss();
-    el.innerHTML = '<div class="cb"><div class="ads-tabs"><button type="button" data-t="copy">✍️ Ad Copy</button><button type="button" data-t="camp">🚀 Campaign Builder</button></div><div id="adsBody"></div></div>';
-    el.querySelectorAll('.ads-tabs button').forEach(function (b) { b.onclick = function () { outer = b.dataset.t; ls.set('mb_ads_tab', outer); show(); }; });
-    show();
-  }
-  var pendingOpen = null;
-  function show() {
-    el.querySelectorAll('.ads-tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === outer); });
-    var body = el.querySelector('#adsBody'); stopVoice(true);
-    if (outer === 'copy') { root = null; MB.adStudio.mount(body, opts); return; }
-    root = body; (cfg ? Promise.resolve() : MB.api('/api/ai/config').then(function (c) { cfg = c; }).catch(function (e) { C.err = e.message; })).then(function () { paint(); if (pendingOpen) { var id = pendingOpen; pendingOpen = null; openSaved(id); } });
-  }
-
-  /* ============================================================ Campaign Builder */
-  function paint() {
-    if (!root) return;
-    var y = window.scrollY, h = '';
-    if (cfg && !cfg.has_key) h += '<div class="cb-banner">🔑 Add your Claude API key in Settings to use the Campaign Builder' + (opts.isAdmin && opts.onSettings ? '<button type="button" id="cbSet">Open Settings</button>' : '<span style="font-weight:400"> — ask your admin to add it.</span>') + '</div>';
-    h += '<div class="cb-top"><select id="cbClient"><option value="">Link to client (optional)</option>' + ((cfg && cfg.clients) || []).map(function (c) { return '<option value="' + esc(c.id) + '" ' + (C.client_id === c.id ? 'selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') + '</select>' +
-      '<div class="sub"><button type="button" data-v="build" class="' + (C.view === 'build' ? 'on' : '') + '">Builder</button><button type="button" data-v="hist" class="' + (C.view === 'hist' ? 'on' : '') + '">History</button></div></div>';
-    h += C.view === 'build' ? buildHtml() : histHtml();
-    root.innerHTML = h; wire(); window.scrollTo(0, y);
-  }
-  function inputHtml() {
-    var follow = !!C.campaign, rec = C.rec, hasSR = !!SR;
-    return '<div class="cb-in"><div class="card"><h3>🎤 Voice Input</h3><div class="cb-mic">' +
-      '<button type="button" class="cb-micbtn ' + (rec.on ? 'on' : '') + '" id="cbMic" ' + (hasSR && !C.busy ? '' : 'disabled') + ' aria-label="Hold to speak, or tap to start and stop">🎤</button>' +
-      '<div style="font-weight:700">' + (rec.on ? 'Listening… release to send' : 'Hold to speak') + '</div><div class="cb-hint">or tap once to start, tap again to send</div>' +
-      '<div class="cb-vl" role="group" aria-label="Speaking language">' + [['en', 'English'], ['ur', 'اردو Urdu'], ['hi', 'Hinglish']].map(function (l) { return '<button type="button" data-vl="' + l[0] + '" class="' + (rec.lang === l[0] ? 'on' : '') + '">' + l[1] + '</button>'; }).join('') + '</div>' +
-      '<div class="cb-live" id="cbLive" dir="auto">' + esc(rec.text) + '</div>' +
-      (hasSR ? '<div class="cb-hint">Browsers can’t auto-detect the spoken language, so pick the one you’ll speak — Claude understands English, Urdu and Hinglish either way.</div>' : '<div class="cb-hint" style="color:var(--amber,#f59e0b)">Voice input needs Chrome or Edge. Use the chat box instead →</div>') +
-      '</div></div>' +
-      '<div class="card cb-chat"><h3>💬 Chat Command</h3><textarea id="cbText" placeholder="' + (follow ? 'Follow-up: &quot;Change budget to 1000&quot;, &quot;Add Lahore to locations&quot;, &quot;Make copy more emotional&quot;, &quot;Change to traffic objective&quot;' : '&quot;Run an ad for Core Beauty lip oil, target women in Karachi aged 18-35, budget 500 rupees daily, 7 days, focus on conversions&quot;') + '">' + esc(C.text) + '</textarea>' +
-      '<button type="button" class="cb-send" id="cbSend" ' + (C.busy ? 'disabled' : '') + '>' + (C.busy ? '<span class="cb-spin"></span>Building…' : follow ? '➤ Send follow-up' : '➤ Build campaign') + '</button><div class="cb-hint" style="margin-top:6px">Enter to send · Shift+Enter for a new line</div></div></div>';
-  }
-  function buildHtml() {
-    var h = (C.err ? '<div class="cb-err">' + esc(C.err) + '</div>' : '') + inputHtml();
-    if (C.changes.length) h += '<div class="cb-chg">' + C.changes.map(function (c) { return '<div>✅ <b>Updated:</b> ' + esc(c.label) + ' ' + esc(c.from || '—') + ' → ' + esc(c.to || '—') + '</div>'; }).join('') + '</div>';
-    if (C.launched) h += launchPanel();
-    if (C.campaign) h += cardHtml();
-    return h;
-  }
-  function dateLabel(d) { return d === today() ? 'Today' : d; }
-  function cardHtml() {
-    var c = C.edit || C.campaign, ed = !!C.edit, row = function (l, v) { return '<div class="cb-row"><span>' + l + '</span><div>' + v + '</div></div>'; };
-    var h = '<div class="cb-card ' + (ed ? 'cb-edit' : '') + '"><div class="cb-ch">📢 ' + (ed ? 'EDITING CAMPAIGN' : 'CAMPAIGN READY') + ' <span class="cb-badge ' + C.status + '" style="margin-left:8px">' + (C.status === 'launched' ? 'Launched' : 'Draft') + '</span></div><div class="cb-cb">';
-    if (ed) {
-      var inp = function (k, type, extra) { return '<input type="' + type + '" data-k="' + k + '" value="' + esc(c[k]) + '" ' + (extra || '') + '>'; }, sel = function (k, map) { return '<select data-k="' + k + '">' + Object.keys(map).map(function (v) { return '<option value="' + v + '" ' + (c[k] === v ? 'selected' : '') + '>' + map[v] + '</option>'; }).join('') + '</select>'; }, lst = function (k, ph) { return '<input type="text" data-l="' + k + '" value="' + esc((c[k] || []).join(', ')) + '" placeholder="' + ph + '">'; };
-      h += '<div class="cb-sec" style="margin-top:0">Campaign</div>' + row('Name', inp('campaign_name', 'text')) + row('Objective', sel('objective', OBJ));
-      h += '<div class="cb-sec">Budget & timing</div>' + row('Daily budget (₨)', inp('budget_daily', 'number', 'min="1" inputmode="numeric"')) + row('Duration (days)', inp('duration_days', 'number', 'min="1" max="365" inputmode="numeric"')) + row('Start date', inp('start_date', 'date', 'min="' + today() + '"'));
-      h += '<div class="cb-sec">Target audience</div>' + row('Age', '<div style="display:flex;gap:8px;align-items:center">' + inp('audience_age_min', 'number', 'min="13" max="65" inputmode="numeric"') + '<span style="flex:none">to</span>' + inp('audience_age_max', 'number', 'min="13" max="65" inputmode="numeric"') + '</div>') + row('Gender', sel('audience_gender', GEN)) + row('Locations', lst('audience_locations', 'Karachi, Lahore…')) + row('Interests', lst('audience_interests', 'Beauty, Skincare…')) + row('Behaviors', lst('audience_behaviors', 'Online shoppers…'));
-      h += '<div class="cb-sec">Ad copy</div>' + row('Headline', inp('ad_headline', 'text', 'maxlength="120"')) + row('Primary text', '<textarea data-k="ad_primary_text" rows="7">' + esc(c.ad_primary_text) + '</textarea>') + row('Description', inp('ad_description', 'text', 'maxlength="150"')) + row('Language', sel('language', LANGS));
-      h += '<div class="cb-sec">Format & placements</div>' + row('Format', sel('ad_format', FMT)) + row('Placements', '<div class="pl">' + PLACES.map(function (p) { return '<label><input type="checkbox" data-p="' + p + '" ' + (c.placements.indexOf(p) > -1 ? 'checked' : '') + '>' + p + '</label>'; }).join('') + '</div>');
-      return h + '</div><div class="cb-acts"><button type="button" id="cbCancelEdit">Cancel</button><button type="button" class="pri" id="cbDoneEdit">✓ Apply changes</button></div></div>';
-    }
-    h += '<p class="cb-name">📋 ' + esc(c.campaign_name) + '</p>' + (C.summary ? '<div class="cb-sum">' + esc(C.summary) + '</div>' : '');
-    h += '<div class="cb-sec">Budget & timing</div>' + row('Objective', esc(OBJ[c.objective] || c.objective)) + row('Daily budget', '<b>' + money(c.budget_daily) + '</b>') + row('Duration', c.duration_days + ' day' + (c.duration_days > 1 ? 's' : '')) + row('Total spend', '<b>' + money(c.budget_daily * c.duration_days) + '</b>') + row('Start date', esc(dateLabel(c.start_date)));
-    h += '<div class="cb-sec">Target audience</div>' + row('Age', c.audience_age_min + '–' + c.audience_age_max + ' · ' + (GEN[c.audience_gender] || c.audience_gender)) + row('Locations', esc(c.audience_locations.join(', ') || '—')) + row('Interests', esc(c.audience_interests.join(', ') || '—')) + row('Behaviors', esc(c.audience_behaviors.join(', ') || '—'));
-    h += '<div class="cb-sec">Ad copy</div>' + row('Headline', '<b dir="auto">“' + esc(c.ad_headline) + '”</b>') + row('Primary text', '<div class="cb-copy" dir="auto">' + esc(c.ad_primary_text) + '</div>') + row('Description', '<span dir="auto">“' + esc(c.ad_description) + '”</span>') + row('Language', esc(LANGS[c.language] || c.language));
-    h += '<div class="cb-sec">Format & placements</div>' + row('Format', esc(FMT[c.ad_format] || c.ad_format)) + row('Placements', esc(c.placements.join(', ')));
-    h += '</div>';
-    if (C.suggestions.length) h += '<div class="cb-sug"><h4>💡 SUGGESTIONS</h4><ul>' + C.suggestions.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul></div>';
-    return h + '<div class="cb-acts"><button type="button" id="cbEdit">✏️ Edit</button><button type="button" id="cbSave">💾 ' + (C.id ? (C.dirty ? 'Save changes' : 'Saved ✓') : 'Save Draft') + '</button><button type="button" class="go" id="cbLaunch">🚀 Launch in Meta</button></div>' +
-      '<div class="cb-acts" style="border-top:0;padding-top:0"><button type="button" id="cbNew">＋ New campaign</button></div></div>';
-  }
-  function metaPrompt(c) {
-    var L = function (a) { return a.length ? a.join(', ') : '(none)'; };
-    return 'You are helping me set up a Meta (Facebook/Instagram) ad campaign in Ads Manager (https://adsmanager.facebook.com/). Fill in the campaign below, and STOP at the final Review step. Do NOT click Publish or Confirm — I will review and publish it myself.\n\n' +
-      'If the ad account currency is not PKR, or something below cannot be set exactly, stop and tell me instead of guessing.\n\n' +
-      'CAMPAIGN\n- Campaign name: ' + c.campaign_name + '\n- Objective: ' + META_OBJ[c.objective] + ' (' + (OBJ[c.objective] || c.objective) + ')\n\n' +
-      'BUDGET & SCHEDULE\n- Daily budget: PKR ' + Math.round(c.budget_daily) + '\n- Start date: ' + c.start_date + '\n- End date: ' + endDate(c) + ' (' + c.duration_days + ' days)\n\n' +
-      'AUDIENCE\n- Locations: ' + L(c.audience_locations) + ' (Pakistan)\n- Age: ' + c.audience_age_min + ' to ' + c.audience_age_max + '\n- Gender: ' + (GEN[c.audience_gender] || c.audience_gender) + '\n- Detailed targeting (interests): ' + L(c.audience_interests) + '\n- Behaviors: ' + L(c.audience_behaviors) + '\n\n' +
-      'PLACEMENTS\n- Manual placements: ' + L(c.placements) + '\n\n' +
-      'AD\n- Format: ' + (FMT[c.ad_format] || c.ad_format) + '\n- Headline: ' + c.ad_headline + '\n- Primary text:\n' + c.ad_primary_text + '\n- Description: ' + c.ad_description + '\n- Language of copy: ' + (LANGS[c.language] || c.language) + '\n\n' +
-      'When everything is filled in, leave the Review screen open and tell me it is ready.';
-  }
-  function endDate(c) { var d = new Date(c.start_date + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + c.duration_days - 1); return d.toISOString().slice(0, 10); }
-  function launchPanel() {
-    return '<div class="cb-launch"><h4>🚀 Campaign ready in Meta Ads Manager — review and click Publish</h4>Ads Manager opened in a new tab and the setup instructions are on your clipboard. To auto-fill it, open <b>Claude in Chrome</b> on that tab and paste them — it fills everything in and <b>stops at the Review screen</b>; nothing is published until you press Publish yourself.' +
-      '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" id="cbCopyAgain" style="border:1px solid currentColor;background:none;color:inherit;border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer">📋 Copy instructions again</button><button type="button" id="cbOpenMeta" style="border:1px solid currentColor;background:none;color:inherit;border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer">Open Ads Manager ↗</button></div></div>';
-  }
-  function histHtml() {
-    var l = C.hist.list;
-    var h = opts.isAdmin ? '<div style="margin-bottom:10px"><label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--cbmut)"><input type="checkbox" id="hcAll" style="width:auto;min-height:0" ' + (C.hist.all ? 'checked' : '') + '> Whole team</label></div>' : '';
-    if (!l) return h + '<div class="card">Loading…</div>';
-    if (!l.length) return h + '<div class="card" style="text-align:center;color:var(--cbmut)">No saved campaigns yet. Build one and press 💾 Save Draft.</div>';
-    return h + l.map(function (c) { return '<div class="cb-h" data-id="' + esc(c.id) + '"><div class="t"><b>' + esc(c.campaign_name) + '</b><div class="m">' + esc((c.created_at || '').slice(0, 10)) + (c.client_name ? ' · ' + esc(c.client_name) : '') + (c.user_name && opts.isAdmin ? ' · ' + esc(c.user_name) : '') + ' · ' + money(c.budget_daily) + '/day × ' + c.duration_days + 'd = ' + money(c.budget_daily * c.duration_days) + '</div></div><span class="cb-badge ' + c.status + '">' + (c.status === 'launched' ? 'Launched' : 'Draft') + '</span><button type="button" data-a="open">Open</button><button type="button" data-a="dup">Duplicate</button><button type="button" data-a="del" title="Delete">🗑</button></div>'; }).join('');
-  }
-
-  /* ---- actions ---- */
-  function loadHist() { C.hist.list = null; paint(); return MB.api('/api/ai/campaigns' + (C.hist.all ? '?scope=all' : '')).then(function (r) { C.hist.list = r.campaigns; paint(); }).catch(function (e) { C.hist.list = []; toast(e.message); paint(); }); }
-  function submit(text, mode) {
-    text = String(text || '').trim(); if (text.length < 3 || C.busy) return;
-    C.busy = true; C.err = ''; C.launched = false; if (mode === 'text') C.text = ''; C.rec.text = ''; paint();
-    MB.api('/api/ai/campaign/build', { method: 'POST', body: { instruction: text, mode: mode, campaign: C.campaign ? Object.assign({}, C.campaign, { summary: C.summary }) : null } }).then(function (r) {
-      if (!C.campaign) C.mode = mode;
-      C.instructions.push(text); C.campaign = r.campaign; C.summary = r.summary; C.suggestions = r.suggestions; C.changes = r.changes || []; C.dirty = true; C.busy = false; C.edit = null;
-      if (!C.id) C.status = 'draft'; paint(); var card = root.querySelector('.cb-card'); if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }).catch(function (e) { C.busy = false; C.err = e.message; if (mode === 'text') C.text = text; paint(); });
-  }
-  function save(quiet) {
-    return MB.api('/api/ai/campaign', { method: 'POST', body: { id: C.id, client_id: C.client_id, campaign: C.campaign, summary: C.summary, suggestions: C.suggestions, instructions: C.instructions, mode: C.mode } }).then(function (r) {
-      C.id = r.id; C.campaign = normFromServer(r.campaign); C.status = r.campaign.status; C.dirty = false; if (!quiet) toast('Draft saved'); C.hist.list = null; paint(); return r;
-    }).catch(function (e) { toast(e.message); throw e; });
-  }
-  function normFromServer(r) { var c = {}; ['campaign_name', 'objective', 'budget_daily', 'duration_days', 'start_date', 'audience_age_min', 'audience_age_max', 'audience_gender', 'audience_locations', 'audience_interests', 'audience_behaviors', 'ad_headline', 'ad_primary_text', 'ad_description', 'ad_format', 'placements', 'language'].forEach(function (k) { c[k] = r[k]; }); return c; }
-  function openSaved(id) {
-    return MB.api('/api/ai/campaign/' + encodeURIComponent(id)).then(function (r) { var c = r.campaign; C.campaign = normFromServer(c); C.id = c.id; C.status = c.status; C.client_id = c.client_id || ''; C.summary = c.summary || ''; C.suggestions = c.suggestions || []; C.instructions = c.instructions || []; C.changes = []; C.dirty = false; C.edit = null; C.launched = false; C.view = 'build'; C.err = ''; paint(); }).catch(function (e) { toast(e.message); });
-  }
-  function launch() {
-    var go = function () {
-      var w = window.open('https://adsmanager.facebook.com/', '_blank', 'noopener');
-      copyText(metaPrompt(C.campaign));
-      return MB.api('/api/ai/campaign/' + encodeURIComponent(C.id) + '/launch', { method: 'POST' }).then(function () { C.status = 'launched'; C.launched = true; C.hist.list = null; paint(); if (!w) toast('Pop-up blocked — use “Open Ads Manager” below'); else toast('✓ Instructions copied — paste them into Claude in Chrome'); var p = root.querySelector('.cb-launch'); if (p) p.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
-    };
-    (C.id && !C.dirty ? Promise.resolve() : save(true)).then(go).catch(function (e) { toast(e.message || 'Could not launch'); });
-  }
-  function readEdit() {
-    var e = C.edit, num = function (k, d, lo, hi) { var v = Math.round(+String(e[k]).replace(/[, ]/g, '')); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
-    e.budget_daily = num('budget_daily', C.campaign.budget_daily, 1, 1e8); e.duration_days = num('duration_days', C.campaign.duration_days, 1, 365); e.audience_age_min = num('audience_age_min', 18, 13, 65); e.audience_age_max = num('audience_age_max', 45, 13, 65);
-    if (e.audience_age_min > e.audience_age_max) { var t = e.audience_age_min; e.audience_age_min = e.audience_age_max; e.audience_age_max = t; }
-    if (!e.campaign_name || !String(e.campaign_name).trim()) e.campaign_name = C.campaign.campaign_name;
-    if (!e.start_date || e.start_date < today()) e.start_date = today(); if (!e.placements.length) e.placements = ['Facebook Feed'];
-    return e;
-  }
-  var FL = { campaign_name: 'Name', objective: 'Objective', budget_daily: 'Daily budget', duration_days: 'Duration', start_date: 'Start date', audience_age_min: 'Min age', audience_age_max: 'Max age', audience_gender: 'Gender', audience_locations: 'Locations', audience_interests: 'Interests', audience_behaviors: 'Behaviors', ad_headline: 'Headline', ad_primary_text: 'Primary text', ad_description: 'Description', ad_format: 'Format', placements: 'Placements', language: 'Language' };
-  function show1(k, v) { return Array.isArray(v) ? v.join(', ') : k === 'budget_daily' ? money(v) : k === 'duration_days' ? v + ' days' : String(v == null ? '' : v); }
-  function diffLocal(a, b) { var o = []; Object.keys(FL).forEach(function (k) { if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) o.push({ label: FL[k], from: show1(k, a[k]), to: show1(k, b[k]) }); }); return o; }
-
-  /* ---- voice (Web Speech API; hold-to-talk or tap-to-toggle) ---- */
-  var recog = null, finalText = '', pressAt = 0, tapMode = false, sendOnEnd = false, cancelled = false;
-  function liveUpdate(interim) { C.rec.text = (finalText + ' ' + (interim || '')).trim(); var n = root && root.querySelector('#cbLive'); if (n) n.innerHTML = esc(finalText) + (interim ? ' <i>' + esc(interim) + '</i>' : ''); }
-  function startVoice() {
-    if (!SR || C.rec.on || C.busy) return;
-    finalText = ''; C.rec.text = ''; cancelled = false; sendOnEnd = false;
-    try {
-      recog = new SR(); recog.lang = VLANG[C.rec.lang] || 'en-US'; recog.continuous = true; recog.interimResults = true; recog.maxAlternatives = 1;
-      recog.onresult = function (e) { var interim = ''; for (var i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) finalText += (finalText ? ' ' : '') + e.results[i][0].transcript.trim(); else interim += e.results[i][0].transcript; } liveUpdate(interim); };
-      recog.onerror = function (e) { var m = { 'not-allowed': 'Microphone access was blocked — allow it in the browser’s address bar and try again.', 'service-not-allowed': 'Microphone access was blocked — allow it in the browser’s address bar and try again.', 'no-speech': 'I didn’t hear anything — try again.', 'audio-capture': 'No microphone found.', network: 'Speech recognition needs an internet connection.' }[e.error]; if (m && e.error !== 'aborted') { C.err = m; } };
-      recog.onend = function () { var was = C.rec.on; C.rec.on = false; var t = (C.rec.text || finalText || '').trim(); recog = null; if (!was) return; if (sendOnEnd && !cancelled && t.length >= 3) { paint(); submit(t, 'voice'); } else { if (!cancelled && !C.err && t.length < 3) C.err = 'I didn’t catch that — hold the mic and speak, then release.'; paint(); } };
-      recog.start(); C.rec.on = true; C.err = ''; micUi();   // update in place — repainting would replace the button the finger is holding
-    } catch (e) { C.rec.on = false; C.err = 'Could not start the microphone.'; paint(); }
-  }
-  function micUi() { var b = root && root.querySelector('#cbMic'); if (!b) return; b.classList.toggle('on', C.rec.on); var l = b.parentNode.children[1]; if (l) l.textContent = C.rec.on ? 'Listening… release to send' : 'Hold to speak'; var e = root.querySelector('.cb-err'); if (e) e.remove(); var live = root.querySelector('#cbLive'); if (live && !C.rec.on) live.textContent = C.rec.text; }
-  function stopVoice(abort) { if (!recog) return; if (abort) { cancelled = true; sendOnEnd = false; try { recog.abort(); } catch (e) {} } else { sendOnEnd = true; try { recog.stop(); } catch (e) {} } }
-  function wireMic(btn) {
-    btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-    btn.addEventListener('pointerdown', function (e) { e.preventDefault(); try { btn.setPointerCapture(e.pointerId); } catch (x) {} if (C.rec.on && tapMode) { stopVoice(false); tapMode = false; pressAt = 0; return; } pressAt = Date.now(); tapMode = false; startVoice(); });
-    var up = function () { if (!pressAt) return; var held = Date.now() - pressAt; pressAt = 0; if (!C.rec.on && !recog) return; if (held >= 450) { stopVoice(false); } else { tapMode = true; } };
-    btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up);
-    btn.addEventListener('keydown', function (e) { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (e.repeat) return; if (C.rec.on) stopVoice(false); else { tapMode = true; startVoice(); } } });
-  }
-
-  function wire() {
-    var q = function (s) { return root.querySelector(s); };
-    var set = q('#cbSet'); if (set) set.onclick = opts.onSettings;
-    var cl = q('#cbClient'); if (cl) cl.onchange = function () { C.client_id = cl.value; if (C.id) C.dirty = true; };
-    root.querySelectorAll('.sub button').forEach(function (b) { b.onclick = function () { C.view = b.dataset.v; if (C.view === 'hist' && !C.hist.list) loadHist(); else paint(); }; });
-    var t = q('#cbText'); if (t) { t.oninput = function () { C.text = t.value; }; t.onkeydown = function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); submit(t.value, 'text'); } }; }
-    var s = q('#cbSend'); if (s) s.onclick = function () { submit(C.text, 'text'); };
-    var mic = q('#cbMic'); if (mic) wireMic(mic);
-    root.querySelectorAll('[data-vl]').forEach(function (b) { b.onclick = function () { C.rec.lang = b.dataset.vl; ls.set('mb_voice_lang', C.rec.lang); paint(); }; });
-    var ed = q('#cbEdit'); if (ed) ed.onclick = function () { C.edit = JSON.parse(JSON.stringify(C.campaign)); paint(); };
-    var sv = q('#cbSave'); if (sv) sv.onclick = function () { if (C.id && !C.dirty) return toast('Already saved'); save(false); };
-    var lg = q('#cbLaunch'); if (lg) lg.onclick = launch;
-    var nw = q('#cbNew'); if (nw) nw.onclick = function () { if ((C.dirty || !C.id) && !confirm('Start a new campaign? Unsaved changes to this one will be lost.')) return; var k = C.client_id; C = Object.assign(C, { instructions: [], campaign: null, summary: '', suggestions: [], changes: [], id: null, status: 'draft', dirty: false, edit: null, err: '', launched: false, text: '' }); C.client_id = k; paint(); };
-    var ce = q('#cbCancelEdit'); if (ce) ce.onclick = function () { C.edit = null; paint(); };
-    var de = q('#cbDoneEdit'); if (de) de.onclick = function () { var a = C.campaign, b = readEdit(); C.changes = diffLocal(a, b); C.campaign = b; C.edit = null; C.dirty = true; paint(); };
-    root.querySelectorAll('.cb-edit [data-k]').forEach(function (n) { n.oninput = n.onchange = function () { C.edit[n.dataset.k] = n.value; }; });
-    root.querySelectorAll('.cb-edit [data-l]').forEach(function (n) { n.oninput = function () { C.edit[n.dataset.l] = n.value.split(/[,;\n]/).map(function (x) { return x.trim(); }).filter(Boolean); }; });
-    root.querySelectorAll('.cb-edit [data-p]').forEach(function (n) { n.onchange = function () { var p = C.edit.placements, i = p.indexOf(n.dataset.p); if (n.checked && i < 0) p.push(n.dataset.p); if (!n.checked && i > -1) p.splice(i, 1); }; });
-    var ca = q('#cbCopyAgain'); if (ca) ca.onclick = function () { copyText(metaPrompt(C.campaign)).then(function () { toast('✓ Copied'); }); };
-    var om = q('#cbOpenMeta'); if (om) om.onclick = function () { window.open('https://adsmanager.facebook.com/', '_blank', 'noopener'); };
-    var ha = q('#hcAll'); if (ha) ha.onchange = function () { C.hist.all = ha.checked; loadHist(); };
-    root.querySelectorAll('.cb-h').forEach(function (row) {
-      var id = row.dataset.id; row.onclick = function (e) { var a = e.target.closest('[data-a]'); if (!a) return openSaved(id); e.stopPropagation();
-        if (a.dataset.a === 'open') openSaved(id);
-        else if (a.dataset.a === 'dup') MB.api('/api/ai/campaign/' + encodeURIComponent(id) + '/duplicate', { method: 'POST' }).then(function (r) { toast('Duplicated as a new draft'); C.hist.list = null; return openSaved(r.id); }).catch(function (x) { toast(x.message); });
-        else if (a.dataset.a === 'del' && confirm('Delete this campaign?')) MB.api('/api/ai/campaign/' + encodeURIComponent(id), { method: 'DELETE' }).then(function () { if (C.id === id) { C.id = null; C.campaign = null; } loadHist(); toast('Deleted'); }).catch(function (x) { toast(x.message); }); };
+    el.innerHTML = '<div class="cb"><div id="cbBanner"></div><div class="ads-tabs"><button type="button" data-t="build">🚀 Campaign Builder</button><button type="button" data-t="saved">📁 Saved Campaigns</button><button type="button" data-t="library">✍️ Ad Library</button></div><div id="adsBody"></div></div>';
+    el.querySelectorAll('.ads-tabs button').forEach(function (b) { b.onclick = function () { setTab(b.dataset.t); }; });
+    root = el.querySelector('#adsBody');
+    (cfg ? Promise.resolve() : MB.api('/api/ai/config').then(function (c) { cfg = c; if (!S.form.language) { S.form.language = c.default_language.toUpperCase(); S.form.style = c.default_style; } S.learning = c.learning; }).catch(function (e) { S.err = e.message; })).then(function () {
+      if (!S.form.language) { S.form.language = 'ENGLISH'; S.form.style = 'market'; }
+      if (pendingOpen) { var id = pendingOpen; pendingOpen = null; S.tab = 'build'; openSaved(id); } else setTab(S.tab);
     });
   }
-  MB.ads = { mount: mount, openCampaign: function (id) { outer = 'camp'; ls.set('mb_ads_tab', 'camp'); pendingOpen = id; }, reset: function () { cfg = null; } };
+  function setTab(t) { S.tab = t; ls.set('mb_ads_tab', t); if (t === 'saved' && !S.saved.list) loadSaved(); else if (t === 'library' && !S.lib.list) loadLib(); else paint(); }
+  function paint() {
+    if (!root || !el.contains(root)) return;
+    el.querySelectorAll('.ads-tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === S.tab); });
+    var ban = el.querySelector('#cbBanner'); ban.innerHTML = cfg && !cfg.has_key ? '<div class="cb-banner">🔑 Add your Claude API key in Settings to use Ads Manager' + (opts.isAdmin && opts.onSettings ? '<button type="button" id="cbSet">Open Settings</button>' : '<span style="font-weight:400"> — ask your admin to add it.</span>') + '</div>' : '';
+    var y = window.scrollY; root.innerHTML = S.tab === 'build' ? buildHtml() : S.tab === 'saved' ? savedHtml() : libHtml();
+    wire(); window.scrollTo(0, y);
+  }
+
+  /* ============================================================ step 1 — brief */
+  function stepBar() {
+    var st = S.busy ? 2 : S.launched ? 4 : S.run ? 3 : 1;
+    return '<div class="cb-steps">' + ['1 · Brief', '2 · Build', '3 · Review', '4 · Launch'].map(function (l, i) { var n = i + 1; return '<span class="' + (n === st ? 'on' : n < st ? 'done' : '') + '">' + (n < st ? '✓ ' : '') + l + '</span>'; }).join('') + '</div>';
+  }
+  function briefHtml() {
+    var f = S.form, c = cfg || { clients: [] };
+    var radio = function (name, val, label, cur, sub) { return '<label class="' + (cur === val ? 'on' : '') + '"><input type="radio" name="' + name + '" value="' + val + '" ' + (cur === val ? 'checked' : '') + '><span>' + label + (sub ? '<small>' + sub + '</small>' : '') + '</span></label>'; };
+    return '<form id="cbForm" class="card cb-page" novalidate>' +
+      '<label class="cb-lbl" for="cbUrl">Product / service link <em>*</em></label><input type="url" id="cbUrl" inputmode="url" placeholder="https://..." value="' + esc(f.url) + '" autocomplete="off"><div class="cb-hint ' + (S.urlNote.indexOf('✓') === 0 ? 'ok' : S.urlNote ? 'bad' : '') + '" id="cbUrlNote">' + esc(S.urlNote || 'We read the page automatically so the copy uses your real offer.') + '</div>' +
+      '<label class="cb-lbl" for="cbDesc">Short description <em>*</em></label><textarea id="cbDesc" rows="4" placeholder="e.g. Teeth whitening powder, removes stains in 7 days, PKR 1,200">' + esc(f.description) + '</textarea>' +
+      '<label class="cb-lbl" for="cbBud">Budget (PKR / day)</label><input type="number" id="cbBud" min="1" step="1" inputmode="numeric" value="' + esc(f.budget) + '">' +
+      '<label class="cb-lbl">Campaign goal</label><div class="cb-seg">' + Object.keys(GOALS).map(function (k) { return radio('goal', k, GOALS[k], f.goal); }).join('') + '</div>' +
+      '<label class="cb-lbl">Language</label><div class="cb-seg">' + Object.keys(LANGS).map(function (k) { return radio('language', k, LANGS[k], f.language); }).join('') + '</div>' +
+      '<label class="cb-lbl">Ad style</label><div class="cb-seg">' + radio('style', 'market', 'Market Style', f.style, 'Direct, offer-focused, emoji-driven') + radio('style', 'premium', 'Premium Style', f.style, 'Identity, emotion, psychology') + '</div>' +
+      '<label class="cb-lbl" for="cbClient">Linked client <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label><select id="cbClient"><option value="">— None —</option>' + c.clients.map(function (x) { return '<option value="' + esc(x.id) + '" ' + (f.client_id === x.id ? 'selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') + '</select>' +
+      (S.err ? '<div class="cb-err">' + esc(S.err) + '</div>' : '') +
+      '<button class="cb-go" id="cbBuild" type="submit" ' + (cfg && !cfg.has_key ? 'disabled' : '') + '>✨ Build Campaign + Ad Copies</button></form>';
+  }
+  function loadHtml() {
+    var msgs = ['Reading your product page…', 'Designing the audience and placements…', 'Writing three ad copy angles…', 'Polishing headlines…'];
+    return '<div class="card cb-load cb-page"><div class="sp"></div><b>Building your campaign…</b><span id="cbLoadMsg">' + msgs[S.loadMsg % msgs.length] + '</span><div class="cb-hint" style="margin-top:14px">One Claude call writes the settings and all 3 ad copies — usually 10–20 seconds.</div></div>';
+  }
+
+  /* ============================================================ step 3 — review */
+  function settingsHtml() {
+    var c = S.editSet || S.run.campaign, ed = !!S.editSet;
+    var row = function (l, v) { return '<div class="cb-row"><span>' + l + '</span><div>' + v + '</div></div>'; };
+    var h = '<details class="cb-box ' + (ed ? 'cb-edit' : '') + '" id="cbSettings"><summary class="cb-bh"><span>📢 CAMPAIGN SETTINGS</span></summary><div class="cb-bb">';
+    if (ed) {
+      var inp = function (k, type, extra) { return '<input type="' + type + '" data-k="' + k + '" value="' + esc(c[k]) + '" ' + (extra || '') + '>'; }, sel = function (k, map) { return '<select data-k="' + k + '">' + Object.keys(map).map(function (v) { return '<option value="' + v + '" ' + (c[k] === v ? 'selected' : '') + '>' + map[v] + '</option>'; }).join('') + '</select>'; }, lst = function (k) { return '<input type="text" data-l="' + k + '" value="' + esc((c[k] || []).join(', ')) + '">'; };
+      h += row('Name', inp('campaign_name', 'text')) + row('Objective', sel('objective', OBJ)) + row('Daily budget (₨)', inp('budget_daily', 'number', 'min="1" inputmode="numeric"')) + row('Duration (days)', inp('duration_days', 'number', 'min="1" max="365" inputmode="numeric"')) + row('Start date', inp('start_date', 'date', 'min="' + today() + '"')) +
+        row('Age', '<div style="display:flex;gap:8px;align-items:center">' + inp('audience_age_min', 'number', 'min="13" max="65" inputmode="numeric"') + '<span style="flex:none">to</span>' + inp('audience_age_max', 'number', 'min="13" max="65" inputmode="numeric"') + '</div>') + row('Gender', sel('audience_gender', GEN)) + row('Locations', lst('audience_locations')) + row('Interests', lst('audience_interests')) + row('Behaviors', lst('audience_behaviors')) +
+        row('Format', sel('ad_format', FMT)) + row('Placements', '<div class="pl">' + PLACES.map(function (p) { return '<label><input type="checkbox" data-p="' + p + '" ' + (c.placements.indexOf(p) > -1 ? 'checked' : '') + '>' + p + '</label>'; }).join('') + '</div>');
+      h += '<div class="cb-act" style="position:static;margin:12px 0 0"><button type="button" id="cbCancelSet">Cancel</button><button type="button" class="pri" id="cbDoneSet">✓ Apply changes</button></div>';
+    } else {
+      h += '<p class="cb-name">' + esc(c.campaign_name) + '</p>' + row('Objective', esc(OBJ[c.objective] || c.objective)) + row('Budget', '<b>' + money(c.budget_daily) + '/day × ' + c.duration_days + ' days = ' + money(c.budget_daily * c.duration_days) + '</b>') + row('Starts', esc(c.start_date === today() ? 'Today' : c.start_date)) +
+        row('Audience', esc(GEN[c.audience_gender] + ' ' + c.audience_age_min + '-' + c.audience_age_max + ' | ' + c.audience_locations.join(', '))) + row('Interests', esc(c.audience_interests.join(', ') || '—')) + row('Behaviors', esc(c.audience_behaviors.join(', ') || '—')) + row('Format', esc(FMT[c.ad_format] || c.ad_format)) + row('Placements', esc(c.placements.join(', '))) + row('Language', esc(LANGS[c.language] || c.language));
+      h += '<div style="margin-top:10px"><button type="button" class="btn ghost" id="cbEditSet" style="border:1px solid var(--cbline);background:none;color:var(--cbtx);border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;min-height:44px">✏️ Edit any field</button></div>';
+    }
+    return h + '</div></details>';
+  }
+  function varHtml(c, i) {
+    var sel = S.run.selected === i, ed = S.editCopy === i;
+    var h = '<div class="cb-var ' + (sel ? 'sel' : '') + '" data-i="' + i + '"><div class="cb-vh"><span class="cb-pick">✓</span><b>Variation ' + (i + 1) + ' — ' + esc(c.angle) + '</b>' + (sel ? '<span class="cb-badge ang">Selected</span>' : '') + '</div>';
+    if (ed) {
+      h += '<div class="cb-f"><small>Headline</small><input type="text" data-cf="headline" maxlength="120" value="' + esc(c.headline) + '"></div><div class="cb-f"><small>Primary text</small><textarea data-cf="primary_text" rows="7">' + esc(c.primary_text) + '</textarea></div><div class="cb-f"><small>Description</small><input type="text" data-cf="description" maxlength="150" value="' + esc(c.description) + '"></div>' +
+        '<div class="cb-vb"><button type="button" data-a="cancel-copy">Cancel</button><button type="button" class="use" data-a="done-copy">✓ Save changes</button></div></div>';
+      return h;
+    }
+    h += '<div class="cb-f"><small>Headline</small><div class="hl"' + rtl(c.headline) + '>“' + esc(c.headline) + '”</div></div><div class="cb-f"><small>Primary text</small><div class="tx"' + rtl(c.primary_text) + '>' + esc(c.primary_text) + '</div></div><div class="cb-f"><small>Description</small><div' + rtl(c.description) + '>“' + esc(c.description) + '”</div></div>' +
+      '<div class="cb-vb"><button type="button" class="use" data-a="pick">' + (sel ? '✓ Selected' : 'Select this one') + '</button><button type="button" data-a="copy">📋 Copy</button><button type="button" data-a="edit-copy">✏️ Edit</button></div></div>';
+    return h;
+  }
+  function reviewHtml() {
+    var r = S.run, h = (S.err ? '<div class="cb-err">' + esc(S.err) + '</div>' : '') + (r.page_note ? '<div class="cb-note">' + esc(r.page_note) + ' — the copy is based on your description.</div>' : '');
+    h += '<div class="cb-page">' + settingsHtml();
+    h += '<div class="cb-lbl" style="margin-top:6px">✍️ Select your ad copy</div>' + learnChip() + r.copies.map(varHtml).join('');
+    if (r.insights.length) h += '<div class="cb-ins"><h4>💡 INSIGHTS</h4><ul>' + r.insights.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>';
+    h += '<div class="cb-act"><button type="button" id="cbRegen">🔄 Regenerate</button><button type="button" id="cbSave">💾 ' + (S.id && !S.dirty ? 'Saved ✓' : 'Save Draft') + '</button><button type="button" class="go" id="cbLaunch" ' + (r.selected === null ? 'disabled title="Select one ad copy variation first"' : '') + '>🚀 Launch in Meta</button></div>';
+    if (r.selected === null) h += '<div class="cb-hint" style="text-align:center">Select one ad copy variation to enable Launch.</div>';
+    return h + '<div style="text-align:center;margin-top:10px"><button type="button" id="cbBack" style="background:none;border:0;color:var(--cbmut);text-decoration:underline;cursor:pointer;min-height:44px">← Edit the brief</button></div></div>';
+  }
+  function learnChip() { var l = S.learning; if (!l) return ''; var n = l.approved + l.rejected; return '<p class="cb-learn">🧠 ' + (l.active ? 'Personalised from your past picks (' + n + ' saved choices)' : 'Pick the copy you like — after ' + l.needed + ' choices the builder starts learning your taste (' + n + '/' + l.needed + ')') + '</p>'; }
+
+  /* ============================================================ meta brief + step 4 */
+  function metaPrompt(c, copy) {
+    var L = function (a) { return a.length ? a.join(', ') : '(none)'; };
+    return 'You are helping me set up a Meta (Facebook/Instagram) ad campaign in Ads Manager (https://adsmanager.facebook.com/). Fill in the campaign below, and STOP at the final Review step. Do NOT click Publish or Confirm — I will review and publish it myself.\n\nIf the ad account currency is not PKR, or something below cannot be set exactly, stop and tell me instead of guessing.\n\n' +
+      'CAMPAIGN\n- Campaign name: ' + c.campaign_name + '\n- Objective: ' + META_OBJ[c.objective] + ' (' + (OBJ[c.objective] || c.objective) + ')\n\nBUDGET & SCHEDULE\n- Daily budget: PKR ' + Math.round(c.budget_daily) + '\n- Start date: ' + c.start_date + '\n- End date: ' + endDate(c) + ' (' + c.duration_days + ' days)\n\n' +
+      'AUDIENCE\n- Locations: ' + L(c.audience_locations) + ' (Pakistan)\n- Age: ' + c.audience_age_min + ' to ' + c.audience_age_max + '\n- Gender: ' + (GEN[c.audience_gender] || c.audience_gender) + '\n- Detailed targeting (interests): ' + L(c.audience_interests) + '\n- Behaviors: ' + L(c.audience_behaviors) + '\n\nPLACEMENTS\n- Manual placements: ' + L(c.placements) + '\n\n' +
+      'AD (' + (copy.angle || 'selected variation') + ')\n- Format: ' + (FMT[c.ad_format] || c.ad_format) + '\n- Headline: ' + copy.headline + '\n- Primary text:\n' + copy.primary_text + '\n- Description: ' + copy.description + '\n- Language of copy: ' + (LANGS[c.language] || c.language) + '\n\nWhen everything is filled in, leave the Review screen open and tell me it is ready.';
+  }
+  function launchHtml() {
+    return '<div class="cb-page"><div class="cb-launch"><h3>🚀 Meta Ads Manager opened and brief copied to clipboard</h3>Paste it into Claude chat (Claude in Chrome on the Ads Manager tab) to auto-fill everything. It fills in the campaign and <b>stops at the Review screen</b> — nothing is published until you press Publish yourself.' +
+      '<div class="b"><button type="button" id="cbCopyAgain">📋 Copy brief again</button><button type="button" id="cbOpenMeta">Open Ads Manager ↗</button></div></div>' +
+      '<div class="cb-act"><button type="button" id="cbReview">← Back to the campaign</button><button type="button" class="pri" id="cbNew">＋ New campaign</button></div><div class="cb-hint" style="text-align:center">Saved as “Launched” in 📁 Saved Campaigns.</div></div>';
+  }
+  function buildHtml() {
+    var h = stepBar();
+    if (S.busy) return h + loadHtml();
+    if (S.launched && S.run) return h + launchHtml();
+    return h + (S.run ? reviewHtml() : briefHtml());
+  }
+
+  /* ============================================================ saved campaigns + library */
+  function savedHtml() {
+    var f = S.saved, c = cfg || { clients: [] }, l = f.list;
+    var h = '<div class="cb-fil"><select id="fsCl"><option value="">All clients</option>' + c.clients.map(function (x) { return '<option value="' + esc(x.id) + '" ' + (f.client_id === x.id ? 'selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') + '</select><select id="fsSt"><option value="">All statuses</option><option value="draft" ' + (f.status === 'draft' ? 'selected' : '') + '>Draft</option><option value="launched" ' + (f.status === 'launched' ? 'selected' : '') + '>Launched</option></select>' +
+      '<input type="date" id="fsFrom" value="' + esc(f.from) + '" title="From"><input type="date" id="fsTo" value="' + esc(f.to) + '" title="To">' + (opts.isAdmin ? '<label><input type="checkbox" id="fsAll" ' + (f.all ? 'checked' : '') + '> Whole team</label>' : '') + '</div>';
+    if (!l) return h + '<div class="card">Loading…</div>';
+    if (!l.length) return h + '<div class="card" style="text-align:center;color:var(--cbmut)">No campaigns match. Build one in 🚀 Campaign Builder and press 💾 Save Draft.</div>';
+    return h + l.map(function (x) { return '<div class="cb-h" data-id="' + esc(x.id) + '"><div class="t"><b>' + esc(x.campaign_name) + '</b><div class="m">' + esc((x.created_at || '').slice(0, 10)) + (x.client_name ? ' · ' + esc(x.client_name) : '') + (x.user_name && opts.isAdmin ? ' · ' + esc(x.user_name) : '') + ' · ' + money(x.budget_daily) + '/day × ' + x.duration_days + 'd = ' + money(x.budget_daily * x.duration_days) + '</div>' + (x.ad_headline ? '<div class="m" dir="auto">“' + esc(x.ad_headline) + '”</div>' : '') + '</div><span class="cb-badge ' + x.status + '">' + (x.status === 'launched' ? 'Launched' : 'Draft') + '</span>' +
+      '<button type="button" data-a="open">Open</button><button type="button" data-a="edit">Edit</button><button type="button" data-a="dup">Duplicate</button><button type="button" data-a="del" title="Delete">🗑</button></div>'; }).join('');
+  }
+  function libHtml() {
+    var f = S.lib, c = cfg || { clients: [] }, l = f.list;
+    var h = '<div class="cb-fil"><input type="search" id="flQ" placeholder="🔍 Search headlines and copy…" value="' + esc(f.q) + '"><select id="flCl"><option value="">All clients</option>' + c.clients.map(function (x) { return '<option value="' + esc(x.id) + '" ' + (f.client_id === x.id ? 'selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') + '</select>' +
+      '<select id="flLa"><option value="">All languages</option>' + Object.keys(LANGS).map(function (k) { return '<option value="' + k + '" ' + (f.language === k ? 'selected' : '') + '>' + LANGS[k] + '</option>'; }).join('') + '</select><select id="flSt"><option value="">All styles</option><option value="market" ' + (f.style === 'market' ? 'selected' : '') + '>Market</option><option value="premium" ' + (f.style === 'premium' ? 'selected' : '') + '>Premium</option></select>' +
+      '<select id="flAn"><option value="">All angles</option>' + f.angles.map(function (a) { return '<option ' + (f.angle === a ? 'selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select><input type="date" id="flFrom" value="' + esc(f.from) + '" title="From"><input type="date" id="flTo" value="' + esc(f.to) + '" title="To">' + (opts.isAdmin ? '<label><input type="checkbox" id="flAll" ' + (f.all ? 'checked' : '') + '> Whole team</label>' : '') + '</div>';
+    return h + '<div id="flList">' + libList() + '</div>';
+  }
+  function libList() {
+    var l = S.lib.list;
+    if (!l) return '<div class="card">Loading…</div>';
+    if (!l.length) return '<div class="card" style="text-align:center;color:var(--cbmut)">No ad copies match. Copies appear here when you 💾 Save a campaign.</div>';
+    return l.map(function (x) { return '<div class="cb-lib" data-id="' + esc(x.id) + '"><div class="top"><span class="cb-badge ang">' + esc(x.angle || 'Copy') + '</span>' + (x.selected ? '<span class="cb-badge launched">✅ Used</span>' : '') + (x.source === 'legacy' ? '<span class="cb-badge draft">Old studio</span>' : '') + '</div>' +
+      (x.headline ? '<div class="cb-f"><small>Headline</small><div class="hl"' + rtl(x.headline) + '>“' + esc(x.headline) + '”</div></div>' : '') + (x.primary_text ? '<div class="cb-f"><small>Primary text</small><div class="tx"' + rtl(x.primary_text) + '>' + esc(x.primary_text) + '</div></div>' : '') + (x.description ? '<div class="cb-f"><small>Description</small><div' + rtl(x.description) + '>“' + esc(x.description) + '”</div></div>' : '') +
+      '<div class="m">' + esc((x.created_at || '').slice(0, 10)) + ' · ' + esc(LANGS[x.language] || x.language || '') + ' · ' + esc(STY[x.style] || '') + (x.client_name ? ' · ' + esc(x.client_name) : '') + (x.campaign_name ? ' · ' + esc(x.campaign_name) : '') + '</div>' +
+      '<div class="b"><button type="button" data-a="copy">📋 Copy</button>' + (x.campaign_id ? '<button type="button" data-a="campaign">Open campaign</button>' : '') + '<button type="button" data-a="del">🗑 Delete</button></div></div>'; }).join('');
+  }
+
+  /* ============================================================ actions */
+  function qs(o) { return '?' + Object.keys(o).filter(function (k) { return o[k]; }).map(function (k) { return k + '=' + encodeURIComponent(o[k] === true ? 'all' : o[k]); }).join('&'); }
+  function loadSaved() { var f = S.saved; f.list = null; paint(); return MB.api('/api/ai/campaigns/list' + qs({ client_id: f.client_id, status: f.status, from: f.from, to: f.to, scope: f.all })).then(function (r) { f.list = r.campaigns; paint(); }).catch(function (e) { f.list = []; toast(e.message); paint(); }); }
+  var libTimer = null;
+  function loadLib(keepFocus) {
+    var f = S.lib; if (!keepFocus) { f.list = null; paint(); }
+    return MB.api('/api/ai/library' + qs({ client_id: f.client_id, language: f.language, style: f.style, angle: f.angle, from: f.from, to: f.to, q: f.q, scope: f.all })).then(function (r) {
+      f.list = r.copies; f.angles = r.angles;
+      if (keepFocus) { var box = $q('#flList'); if (box) { box.innerHTML = libList(); wireLib(); } } else paint();
+    }).catch(function (e) { f.list = []; toast(e.message); paint(); });
+  }
+  function build(regen) {
+    readForm(); var f = S.form; S.err = '';
+    if (!f.url || !/^https?:\/\//i.test(f.url)) { S.err = 'Paste the full product or service link (https://…).'; return paint(); }
+    if (f.description.trim().length < 10) { S.err = 'Add a short description: product, offer and key benefit.'; return paint(); }
+    if (!(+f.budget >= 1)) { S.err = 'Enter the daily budget in PKR.'; return paint(); }
+    var avoid = regen && S.run ? S.run.copies.map(function (c) { return '- ' + c.headline; }).join('\n') : '';
+    S.busy = true; S.launched = false; S.loadMsg = 0; paint(); clearInterval(loadTimer); loadTimer = setInterval(function () { S.loadMsg++; var m = $q('#cbLoadMsg'); if (m) m.textContent = ['Reading your product page…', 'Designing the audience and placements…', 'Writing three ad copy angles…', 'Polishing headlines…'][S.loadMsg % 4]; }, 3500);
+    MB.api('/api/ai/campaign/generate', { method: 'POST', body: { url: f.url, description: f.description, budget_daily: f.budget, goal: f.goal, language: f.language, style: f.style, client_id: f.client_id, avoid: avoid } }).then(function (r) {
+      clearInterval(loadTimer); S.busy = false; S.run = { generation_id: r.generation_id, campaign: r.campaign, copies: r.ad_copies, insights: r.insights, selected: null, page_note: r.page_note, product_url: r.product_url, brief: f.description, style: f.style }; S.learning = r.learning || S.learning; S.dirty = true; S.editSet = null; S.editCopy = null; paint(); window.scrollTo(0, 0);
+    }).catch(function (e) { clearInterval(loadTimer); S.busy = false; S.err = e.message; paint(); });
+  }
+  function pick(i) {
+    var r = S.run; if (r.selected === i) return; r.selected = i; S.dirty = true; paint();
+    if (r.generation_id) MB.api('/api/ai/campaign/select', { method: 'POST', body: { generation_id: r.generation_id, index: i } }).then(function (x) { if (x.learning) { S.learning = x.learning; var n = $q('.cb-learn'); if (n) { n.outerHTML = learnChip(); } } }).catch(function () {});
+  }
+  function save(quiet) {
+    var r = S.run;
+    return MB.api('/api/ai/campaign/save', { method: 'POST', body: { id: S.id, client_id: S.form.client_id, campaign: r.campaign, ad_copies: r.copies, selected_copy_index: r.selected, insights: r.insights, product_url: r.product_url || S.form.url, brief: r.brief || S.form.description, ad_style: r.style || S.form.style, generation_id: r.generation_id } }).then(function (x) {
+      S.id = x.id; S.status = x.campaign.status; S.dirty = false; if (!quiet) toast('Draft saved'); S.saved.list = null; S.lib.list = null; paint(); return x;
+    }).catch(function (e) { toast(e.message); throw e; });
+  }
+  function launch() {
+    var r = S.run; if (r.selected === null) return toast('Select one ad copy variation first');
+    var copy = r.copies[r.selected];
+    var w = window.open('https://adsmanager.facebook.com/', '_blank', 'noopener');
+    copyText(metaPrompt(r.campaign, copy));
+    (S.id && !S.dirty ? Promise.resolve() : save(true)).then(function () { return MB.api('/api/ai/campaign/' + encodeURIComponent(S.id) + '/launch', { method: 'POST' }); }).then(function () {
+      S.status = 'launched'; S.launched = true; S.saved.list = null; paint(); window.scrollTo(0, 0); toast(w ? '✓ Brief copied — paste it into Claude' : 'Pop-up blocked — use “Open Ads Manager”');
+    }).catch(function (e) { toast(e.message || 'Could not launch'); });
+  }
+  function openSaved(id, edit) {
+    return MB.api('/api/ai/campaign/' + encodeURIComponent(id) + '?full=1').then(function (x) {
+      var c = x.campaign, copies = c.ad_copies && c.ad_copies.length ? c.ad_copies : [{ angle: 'Saved copy', headline: c.ad_headline, primary_text: c.ad_primary_text, description: c.ad_description }];
+      var camp = {}; ['campaign_name', 'objective', 'budget_daily', 'duration_days', 'start_date', 'audience_age_min', 'audience_age_max', 'audience_gender', 'audience_locations', 'audience_interests', 'audience_behaviors', 'ad_format', 'placements', 'language'].forEach(function (k) { camp[k] = c[k]; });
+      var sel = c.selected_copy_index; if (sel === null || sel === undefined) sel = null; else if (!copies[sel]) sel = null;
+      S.run = { generation_id: c.generation_id, campaign: camp, copies: copies, insights: c.insights || [], selected: sel, page_note: '', product_url: c.product_url || '', brief: c.brief || '', style: c.ad_style || 'market' };
+      S.id = c.id; S.status = c.status; S.dirty = false; S.launched = false; S.err = ''; S.editCopy = null; S.editSet = edit ? JSON.parse(JSON.stringify(camp)) : null;
+      S.form = { url: c.product_url || '', description: c.brief || '', budget: String(c.budget_daily), goal: c.objective, language: c.language, style: c.ad_style || 'market', client_id: c.client_id || '' };
+      S.tab = 'build'; ls.set('mb_ads_tab', 'build'); paint(); window.scrollTo(0, 0);
+    }).catch(function (e) { toast(e.message); });
+  }
+  function readForm() {
+    var u = $q('#cbUrl'); if (!u) return; var f = S.form; f.url = u.value.trim(); f.description = $q('#cbDesc').value; f.budget = $q('#cbBud').value;
+    ['goal', 'language', 'style'].forEach(function (k) { var c = root.querySelector('input[name=' + k + ']:checked'); if (c) f[k] = c.value; }); f.client_id = $q('#cbClient').value;
+  }
+  function checkUrl() {
+    readForm(); var u = S.form.url; if (!/^https?:\/\//i.test(u)) { S.urlNote = ''; return; }
+    var n = $q('#cbUrlNote'); if (n) { n.className = 'cb-hint'; n.textContent = 'Reading the page…'; }
+    MB.api('/api/ai/fetch-url', { method: 'POST', body: { url: u } }).then(function (r) { S.urlNote = '✓ Read ' + r.chars.toLocaleString() + ' characters' + (r.title ? ' from “' + r.title + '”' : ''); }).catch(function (e) { S.urlNote = '⚠ ' + e.message; }).then(function () { var m = root && $q('#cbUrlNote'); if (m) { m.className = 'cb-hint ' + (S.urlNote.indexOf('✓') === 0 ? 'ok' : 'bad'); m.textContent = S.urlNote; } });
+  }
+  function readSet() {
+    var e = S.editSet, base = S.run.campaign, num = function (k, d, lo, hi) { var v = Math.round(+String(e[k]).replace(/[, ]/g, '')); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
+    e.budget_daily = num('budget_daily', base.budget_daily, 1, 1e8); e.duration_days = num('duration_days', base.duration_days, 1, 365); e.audience_age_min = num('audience_age_min', 18, 13, 65); e.audience_age_max = num('audience_age_max', 45, 13, 65);
+    if (e.audience_age_min > e.audience_age_max) { var t = e.audience_age_min; e.audience_age_min = e.audience_age_max; e.audience_age_max = t; }
+    if (!String(e.campaign_name || '').trim()) e.campaign_name = base.campaign_name; if (!e.start_date || e.start_date < today()) e.start_date = today(); if (!e.placements.length) e.placements = ['Facebook Feed'];
+    return e;
+  }
+
+  /* ============================================================ wiring */
+  function wireLib() {
+    root.querySelectorAll('.cb-lib').forEach(function (n) {
+      var id = n.dataset.id, x = (S.lib.list || []).filter(function (c) { return c.id === id; })[0]; if (!x) return;
+      n.querySelectorAll('[data-a]').forEach(function (b) { b.onclick = function () {
+        if (b.dataset.a === 'copy') copyText(copyOf({ headline: x.headline || '', primary_text: x.primary_text || '', description: x.description || '' })).then(function () { toast('✓ Copied'); });
+        else if (b.dataset.a === 'campaign') openSaved(x.campaign_id);
+        else if (b.dataset.a === 'del' && confirm('Delete this ad copy from the library?')) MB.api('/api/ai/library/' + encodeURIComponent(id), { method: 'DELETE' }).then(function () { S.lib.list = S.lib.list.filter(function (c) { return c.id !== id; }); n.remove(); toast('Deleted'); }).catch(function (e) { toast(e.message); });
+      }; });
+    });
+  }
+  function wire() {
+    var set = $q('#cbSet', el); if (set) set.onclick = opts.onSettings;
+    if (S.tab === 'build') {
+      var form = $q('#cbForm');
+      if (form) {
+        form.onsubmit = function (e) { e.preventDefault(); build(false); };
+        $q('#cbUrl').onchange = checkUrl; $q('#cbUrl').oninput = function () { S.form.url = this.value.trim(); }; $q('#cbDesc').oninput = function () { S.form.description = this.value; }; $q('#cbBud').oninput = function () { S.form.budget = this.value; };
+        form.querySelectorAll('.cb-seg input').forEach(function (i) { i.onchange = function () { readForm(); form.querySelectorAll('.cb-seg label').forEach(function (l) { l.classList.toggle('on', l.querySelector('input').checked); }); }; });
+        $q('#cbClient').onchange = readForm;
+      }
+      var sd = $q('#cbSettings'); if (sd) { sd.open = S.editSet ? true : (S.setOpen === null ? !MQ.matches : S.setOpen); sd.ontoggle = function () { if (!S.editSet) S.setOpen = sd.open; }; }
+      var es = $q('#cbEditSet'); if (es) es.onclick = function () { S.editSet = JSON.parse(JSON.stringify(S.run.campaign)); paint(); };
+      var cs = $q('#cbCancelSet'); if (cs) cs.onclick = function () { S.editSet = null; paint(); };
+      var ds = $q('#cbDoneSet'); if (ds) ds.onclick = function () { S.run.campaign = readSet(); S.editSet = null; S.dirty = true; paint(); toast('Settings updated'); };
+      root.querySelectorAll('#cbSettings [data-k]').forEach(function (n) { n.oninput = n.onchange = function () { S.editSet[n.dataset.k] = n.value; }; });
+      root.querySelectorAll('#cbSettings [data-l]').forEach(function (n) { n.oninput = function () { S.editSet[n.dataset.l] = n.value.split(/[,;\n]/).map(function (x) { return x.trim(); }).filter(Boolean); }; });
+      root.querySelectorAll('#cbSettings [data-p]').forEach(function (n) { n.onchange = function () { var p = S.editSet.placements, i = p.indexOf(n.dataset.p); if (n.checked && i < 0) p.push(n.dataset.p); if (!n.checked && i > -1) p.splice(i, 1); }; });
+      root.querySelectorAll('.cb-var').forEach(function (card) {
+        var i = +card.dataset.i;
+        card.onclick = function (e) { if (S.editCopy === i || e.target.closest('button,input,textarea,select,a')) return; pick(i); };
+        card.querySelectorAll('[data-a]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); var a = b.dataset.a, c = S.run.copies[i];
+          if (a === 'pick') pick(i);
+          else if (a === 'copy') copyText(copyOf(c)).then(function () { toast('✓ Copied'); });
+          else if (a === 'edit-copy') { S.editCopy = i; paint(); }
+          else if (a === 'cancel-copy') { S.editCopy = null; paint(); }
+          else if (a === 'done-copy') { card.querySelectorAll('[data-cf]').forEach(function (n) { c[n.dataset.cf] = n.value.trim(); }); S.editCopy = null; S.dirty = true; paint(); toast('Copy updated'); } }; });
+      });
+      var rg = $q('#cbRegen'); if (rg) rg.onclick = function () { if (S.dirty && S.run && (S.run.selected !== null || S.editSet) && !confirm('Regenerate everything? Unsaved edits and your selection will be replaced.')) return; build(true); };
+      var sv = $q('#cbSave'); if (sv) sv.onclick = function () { if (S.id && !S.dirty) return toast('Already saved'); save(false); };
+      var lg = $q('#cbLaunch'); if (lg) lg.onclick = launch;
+      var bk = $q('#cbBack'); if (bk) bk.onclick = function () { S.run = null; S.id = null; S.status = 'draft'; S.dirty = false; S.err = ''; paint(); };
+      var ca = $q('#cbCopyAgain'); if (ca) ca.onclick = function () { copyText(metaPrompt(S.run.campaign, S.run.copies[S.run.selected])).then(function () { toast('✓ Copied'); }); };
+      var om = $q('#cbOpenMeta'); if (om) om.onclick = function () { window.open('https://adsmanager.facebook.com/', '_blank', 'noopener'); };
+      var rv = $q('#cbReview'); if (rv) rv.onclick = function () { S.launched = false; paint(); };
+      var nw = $q('#cbNew'); if (nw) nw.onclick = function () { S.run = null; S.id = null; S.status = 'draft'; S.dirty = false; S.launched = false; S.err = ''; S.form.url = ''; S.form.description = ''; S.urlNote = ''; paint(); window.scrollTo(0, 0); };
+    } else if (S.tab === 'saved') {
+      [['fsCl', 'client_id'], ['fsSt', 'status'], ['fsFrom', 'from'], ['fsTo', 'to']].forEach(function (p) { var n = $q('#' + p[0]); if (n) n.onchange = function () { S.saved[p[1]] = n.value; loadSaved(); }; });
+      var fa = $q('#fsAll'); if (fa) fa.onchange = function () { S.saved.all = fa.checked; loadSaved(); };
+      root.querySelectorAll('.cb-h').forEach(function (row) {
+        var id = row.dataset.id; row.onclick = function (e) { var a = e.target.closest('[data-a]'); if (!a) return openSaved(id); e.stopPropagation();
+          if (a.dataset.a === 'open') openSaved(id); else if (a.dataset.a === 'edit') openSaved(id, true);
+          else if (a.dataset.a === 'dup') MB.api('/api/ai/campaign/' + encodeURIComponent(id) + '/duplicate', { method: 'POST' }).then(function (r) { toast('Duplicated as a new draft'); S.saved.list = null; return openSaved(r.id, true); }).catch(function (x) { toast(x.message); });
+          else if (a.dataset.a === 'del' && confirm('Delete this campaign and its saved ad copies?')) MB.api('/api/ai/campaign/' + encodeURIComponent(id), { method: 'DELETE' }).then(function () { if (S.id === id) { S.id = null; S.run = null; } S.lib.list = null; loadSaved(); toast('Deleted'); }).catch(function (x) { toast(x.message); }); };
+      });
+    } else {
+      [['flCl', 'client_id'], ['flLa', 'language'], ['flSt', 'style'], ['flAn', 'angle'], ['flFrom', 'from'], ['flTo', 'to']].forEach(function (p) { var n = $q('#' + p[0]); if (n) n.onchange = function () { S.lib[p[1]] = n.value; loadLib(); }; });
+      var la = $q('#flAll'); if (la) la.onchange = function () { S.lib.all = la.checked; loadLib(); };
+      var q = $q('#flQ'); if (q) q.oninput = function () { S.lib.q = q.value.trim(); clearTimeout(libTimer); libTimer = setTimeout(function () { loadLib(true); }, 350); };
+      wireLib();
+    }
+  }
+  MB.ads = { mount: mount, openCampaign: function (id) { S.tab = 'build'; ls.set('mb_ads_tab', 'build'); pendingOpen = id; }, reset: function () { cfg = null; } };
 })();
