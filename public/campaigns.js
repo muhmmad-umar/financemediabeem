@@ -166,7 +166,7 @@
       if (I.note) h += '<div class="cb-note" style="margin-top:10px">' + esc(I.note) + '</div>';
       h += '<div class="cb-ideas"><div class="cb-ih">💡 BRIEF IDEAS — pick one or edit your own</div>' + I.list.map(function (x, i) {
         return '<div class="cb-idea ' + (I.sel === i ? 'sel' : '') + '" data-idea="' + i + '" role="button" tabindex="0"><div class="cb-vh"><span class="cb-pick">✓</span><b>Angle ' + (i + 1) + ' — ' + esc(x.angle) + '</b></div><div class="cb-itx" dir="auto">' + esc(x.brief) + '</div>' + (x.target ? '<div class="cb-itg">For: ' + esc(x.target) + '</div>' : '') + '</div>';
-      }).join('') + '</div>';
+      }).join('') + (I.claude ? '<div class="cb-hint" style="margin-top:8px">✓ Written live by Claude (' + esc(I.claude.model) + (I.claude.output_tokens ? ' · ' + I.claude.output_tokens + ' tokens' : '') + ')</div>' : '') + '</div>';
     }
     return h;
   }
@@ -174,7 +174,7 @@
     readForm(); var f = S.form, I = S.ideas = Object.assign({ list: null, sel: null }, S.ideas || {}); I.err = '';
     if (!f.url || !/^https?:\/\//i.test(f.url)) { I.err = 'Please enter your product link first'; return paint(); }
     I.busy = true; paint();
-    MB.api('/api/ai/campaign/brief-ideas', { method: 'POST', body: { url: f.url, description: f.description } }).then(function (r) { S.ideas = { list: r.briefs, sel: null, busy: false, err: '', note: r.page_note || '', url: f.url }; paint(); var n = $q('.cb-ideas'); if (n) n.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); })
+    MB.api('/api/ai/campaign/brief-ideas', { method: 'POST', body: { url: f.url, description: f.description } }).then(function (r) { S.ideas = { list: r.briefs, sel: null, busy: false, err: '', note: r.page_note || '', claude: r.claude || null, url: f.url }; paint(); var n = $q('.cb-ideas'); if (n) n.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); })
       .catch(function (e) { S.ideas = Object.assign(S.ideas || {}, { busy: false, err: e.message }); paint(); });
   }
   function useIdea(i) { readForm(); var I = S.ideas; if (!I || !I.list[i]) return; I.sel = i; S.form.description = I.list[i].brief; paint(); var d = $q('#cbDesc'); if (d) { d.focus({ preventScroll: true }); d.setSelectionRange(d.value.length, d.value.length); } }

@@ -809,7 +809,9 @@ async function briefIdeas(req, env, user, h) {
   const raw = parseCampaign((msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n'));
   const briefs = (raw && Array.isArray(raw.briefs) ? raw.briefs : []).slice(0, 3).map((x, i) => ({ angle: clip(x && x.angle, 40) || ['Primary Pain', 'Hidden Pain', 'Identity'][i], brief: clip(x && x.brief, 900), target: clip(x && x.target, 160) })).filter(x => x.brief);
   if (!briefs.length) throw new h.HttpError(502, msg.stop_reason === 'max_tokens' ? 'The answer was cut off — please try again.' : 'Claude returned an unexpected answer — please try again.');
-  return { briefs, page_title: page ? page.title : '', url: page ? page.url : clip(b.url, 300), page_note: pageNote, model: setup.model };
+  const claude = { model: msg.model || setup.model, request_id: msg._request_id || msg.id || null, input_tokens: msg.usage && msg.usage.input_tokens, output_tokens: msg.usage && msg.usage.output_tokens };   // proof the answer came from a real Claude call
+  console.log('brief-ideas claude', JSON.stringify(claude));
+  return { briefs, page_title: page ? page.title : '', url: page ? page.url : clip(b.url, 300), page_note: pageNote, model: setup.model, claude };
 }
 
 /* ------------------------------------------------------------ router */
