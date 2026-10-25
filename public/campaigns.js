@@ -8,6 +8,7 @@
   var META_OBJ = { CONVERSIONS: 'Sales', TRAFFIC: 'Traffic', ENGAGEMENT: 'Engagement', LEAD_GENERATION: 'Leads', AWARENESS: 'Awareness' };
   var FMT = { SINGLE_IMAGE: 'Single image', VIDEO: 'Video', CAROUSEL: 'Carousel', REELS: 'Reels' };
   var GEN = { ALL: 'All genders', MALE: 'Men', FEMALE: 'Women' };
+  var MAJOR_CITIES = ['Karachi', 'Lahore', 'Islamabad', 'Faisalabad', 'Rawalpindi', 'Peshawar', 'Quetta', 'Multan'];
   var PLACES = ['Facebook Feed', 'Instagram Feed', 'Instagram Reels', 'Facebook Reels', 'Stories'];
   var LANGS = { ENGLISH: 'English', URDU: 'Urdu', HINGLISH: 'Hinglish' };
   var STY = { market: 'Market Style', premium: 'Premium Style' };
@@ -15,7 +16,7 @@
   var ls = { get: function (k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
   var $q = function (s, r) { return (r || root).querySelector(s); };
 
-  var S = { setOpen: null, tab: ls.get('mb_ads_tab', 'build'), step: 1, form: { url: '', description: '', budget: '500', goal: 'CONVERSIONS', language: '', style: '', client_id: '' }, urlNote: '', err: '', busy: false,
+  var S = { setOpen: null, tab: ls.get('mb_ads_tab', 'build'), step: 1, form: { url: '', description: '', budget: '500', goal: 'CONVERSIONS', language: '', style: '', client_id: '', budget_type: 'CBO', ad_sets: [{ name: 'Ad Set 1', location_type: 'PAKISTAN', targeting_type: 'BROAD', interest: '', budget: 500 }], placements_type: 'ADVANTAGE', placements: ['Facebook Feed', 'Instagram Feed', 'Instagram Reels'], advantage_creative: false }, urlNote: '', err: '', busy: false,
     run: null, id: null, status: 'draft', dirty: false, editSet: null, editCopy: null, launched: false, learning: null, loadMsg: 0,
     saved: { list: null, client_id: '', status: '', from: '', to: '', all: false }, lib: { list: null, angles: [], client_id: '', language: '', style: '', angle: '', from: '', to: '', q: '', all: false } };
   if (['build', 'saved', 'library'].indexOf(S.tab) < 0) S.tab = 'build';
@@ -25,6 +26,9 @@
     '.cb .card{background:var(--cbbg);border:1px solid var(--cbline);border-radius:14px;padding:18px;margin-bottom:14px}' +
     '.ads-tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--cbline);overflow-x:auto;scrollbar-width:none}.ads-tabs button{flex:none;background:none;border:0;border-bottom:3px solid transparent;color:var(--cbmut);padding:12px 18px;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:-1px;white-space:nowrap}.ads-tabs button.on{color:var(--cbtx);border-color:var(--cbacc)}' +
     '.cb select,.cb input[type=text],.cb input[type=url],.cb input[type=number],.cb input[type=date],.cb input[type=search],.cb textarea{width:100%;background:var(--input,#141414);color:var(--cbtx);border:1px solid var(--cbline);border-radius:10px;padding:11px 12px;font:inherit;font-size:14px;outline:none}.cb textarea{resize:vertical;line-height:1.5}.cb select:focus,.cb input:focus,.cb textarea:focus{border-color:var(--cbacc)}' +
+ '.cb-as{border:1px solid var(--cbline);border-radius:14px;padding:14px;margin-bottom:12px;background:rgba(255,255,255,.02)}.cb-ash{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--cbline);padding-bottom:10px;margin-bottom:4px}.cb-ash b{letter-spacing:.06em;font-size:13px}.cb-ash button{border:1px solid var(--cbline);background:none;color:var(--red,#ef4444);border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;min-height:40px}.cb-addas{width:100%;border:2px dashed var(--cbline);background:none;color:var(--cbacc);border-radius:12px;padding:14px;font-weight:800;font-size:15px;cursor:pointer;min-height:50px}.cb-addas:hover{border-color:var(--cbacc)}' +
+    '.cb-money{display:flex;align-items:center;gap:8px}.cb-money input{flex:1}.cb-money span{color:var(--cbmut);font-weight:700;flex:none}.cb-pl{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.cb-pl label{display:flex;gap:6px;align-items:center;border:1px solid var(--cbline);border-radius:99px;padding:8px 14px;font-size:13px;cursor:pointer;min-height:40px}.cb-pl input{width:auto!important}' +
+    '.cb .cb-chk{display:flex!important;gap:12px;align-items:flex-start;border:1px solid var(--cbline);border-radius:10px;padding:12px;cursor:pointer;font-size:14px;font-weight:500;color:var(--cbtx);margin:0}.cb .cb-chk input{width:20px!important;height:20px!important;min-height:0!important;margin:1px 0 0!important;accent-color:var(--cbacc);flex:none}.cb .cb-chk small{display:block;color:var(--cbmut);font-size:12px;font-weight:400;margin-top:2px}.cb-asum{font-size:14px;line-height:1.7}.cb-tot{margin-top:8px;padding-top:8px;border-top:1px solid var(--cbline)}' +
     '.cb-steps{display:flex;gap:6px;margin-bottom:16px;font-size:12.5px;font-weight:700;color:var(--cbmut)}.cb-steps span{flex:1;text-align:center;padding:8px 4px;border-bottom:3px solid var(--cbline);white-space:nowrap}.cb-steps span.on{color:var(--cbtx);border-color:var(--cbacc)}.cb-steps span.done{color:var(--green,#22c55e);border-color:var(--green,#22c55e)}' +
     '.cb-lbl{display:block;font-size:11.5px;font-weight:700;letter-spacing:.07em;color:var(--cbmut);text-transform:uppercase;margin:18px 0 6px}.cb-lbl:first-child{margin-top:0}.cb-lbl em{color:var(--red,#ef4444);font-style:normal}.cb-hint{font-size:12.5px;color:var(--cbmut);margin-top:6px}.cb-hint.ok{color:var(--green,#22c55e)}.cb-hint.bad{color:var(--amber,#f59e0b)}' +
     '.cb-seg{display:flex;gap:8px;flex-wrap:wrap}.cb .cb-seg label{flex:1 1 130px;display:flex!important;gap:10px;align-items:center;text-align:left;border:1px solid var(--cbline);border-radius:10px;padding:12px;cursor:pointer;font-size:14px;font-weight:500;color:var(--cbtx);margin:0}.cb .cb-seg label small{display:block;color:var(--cbmut);font-size:12px;font-weight:400}.cb .cb-seg input{width:18px!important;height:18px!important;min-height:0!important;padding:0!important;margin:0!important;accent-color:var(--cbacc);flex:none}.cb .cb-seg label.on{border-color:var(--cbacc);background:rgba(124,58,237,.12)}' +
@@ -73,6 +77,56 @@
     wire(); window.scrollTo(0, y);
   }
 
+
+  /* ============================================================ ad sets · placements · Advantage+ creative (shared by the brief and the review editor) */
+  var LOC_LABEL = { PAKISTAN: '🇵🇰 Pakistan (whole country)', MAJOR_CITIES: '🏙️ Major Cities (Karachi, Lahore, Islamabad, Faisalabad, Rawalpindi, Peshawar, Quetta, Multan)' };
+  var LOC_SHORT = { PAKISTAN: '🇵🇰 Pakistan', MAJOR_CITIES: '🏙️ Major Cities' };
+  var newAdSet = function (m) { var last = m.ad_sets[m.ad_sets.length - 1] || {}; return { name: 'Ad Set ' + (m.ad_sets.length + 1), location_type: 'PAKISTAN', targeting_type: 'BROAD', interest: '', budget: m.budget_type === 'ABO' ? (+last.budget || 500) : null }; };
+  function budgetTypeHtml(m, ns) {
+    var r = function (v, label, sub) { return '<label class="' + (m.budget_type === v ? 'on' : '') + '"><input type="radio" name="bt-' + ns + '" data-bt value="' + v + '" ' + (m.budget_type === v ? 'checked' : '') + '><span>' + label + '<small>' + sub + '</small></span></label>'; };
+    return '<div class="cb-seg" data-ns="' + ns + '">' + r('CBO', 'CBO — Campaign Budget Optimization', 'Meta distributes budget') + r('ABO', 'ABO — Ad Set Budget Optimization', 'I set budget per ad set') + '</div>';
+  }
+  function adSetsHtml(m, ns) {
+    var abo = m.budget_type === 'ABO', h = '<div id="cbAS-' + ns + '" data-ns="' + ns + '">';
+    m.ad_sets.forEach(function (a, i) {
+      var rd = function (field, v, label) { return '<label class="' + (a[field] === v ? 'on' : '') + '"><input type="radio" name="' + field + '-' + ns + '-' + i + '" data-asf="' + field + '" data-i="' + i + '" value="' + v + '" ' + (a[field] === v ? 'checked' : '') + '><span>' + label + '</span></label>'; };
+      h += '<div class="cb-as"><div class="cb-ash"><b>AD SET ' + (i + 1) + '</b>' + (m.ad_sets.length > 1 ? '<button type="button" data-asrm="' + i + '" aria-label="Remove ad set ' + (i + 1) + '">🗑️ Remove</button>' : '') + '</div>' +
+        '<label class="cb-lbl">Name</label><input type="text" data-asf="name" data-i="' + i + '" maxlength="60" value="' + esc(a.name) + '">' +
+        '<label class="cb-lbl">Location</label><div class="cb-seg">' + rd('location_type', 'PAKISTAN', LOC_LABEL.PAKISTAN) + rd('location_type', 'MAJOR_CITIES', LOC_LABEL.MAJOR_CITIES) + '</div>' +
+        '<label class="cb-lbl">Targeting</label><div class="cb-seg">' + rd('targeting_type', 'BROAD', '📊 Broad Targeting') + rd('targeting_type', 'INTEREST', '🎯 Interest Targeting') + '</div>' +
+        (a.targeting_type === 'INTEREST' ? '<label class="cb-lbl">Suggested interest</label><input type="text" data-asf="interest" data-i="' + i + '" maxlength="80" value="' + esc(a.interest) + '" placeholder="AI picks the most relevant one — or type your own"><div class="cb-hint">Only 1 interest — the AI picks the most relevant one to the product. You can edit it.</div>' : '') +
+        (abo ? '<label class="cb-lbl">Daily budget</label><div class="cb-money"><span>₨</span><input type="number" data-asf="budget" data-i="' + i + '" min="1" step="1" inputmode="numeric" value="' + esc(a.budget) + '"><span>/ day</span></div>' : '') + '</div>';
+    });
+    return h + '<button type="button" class="cb-addas" data-asadd>＋ Add Ad Set</button></div>';
+  }
+  function placementsHtml(m, ns) {
+    var adv = m.placements_type !== 'MANUAL', r = function (v, label, on) { return '<label class="' + (on ? 'on' : '') + '"><input type="radio" name="pt-' + ns + '" data-pt value="' + v + '" ' + (on ? 'checked' : '') + '><span>' + label + '</span></label>'; };
+    return '<div class="cb-seg" data-ns="' + ns + '">' + r('ADVANTAGE', 'Advantage+ Placements <small>Recommended — all placements, automatic</small>', adv) + r('MANUAL', 'Manual Placements', !adv) + '</div>' +
+      (adv ? '' : '<div class="pl cb-pl" data-ns="' + ns + '">' + PLACES.map(function (p) { return '<label><input type="checkbox" data-pl="' + esc(p) + '" ' + (m.placements.indexOf(p) > -1 ? 'checked' : '') + '>' + p + '</label>'; }).join('') + '</div>');
+  }
+  function creativeHtml(m, ns) { return '<label class="cb-chk" data-ns="' + ns + '"><input type="checkbox" data-adv ' + (m.advantage_creative ? 'checked' : '') + '><span>Enable AI creative enhancements<small>Meta may modify your creative when enabled</small></span></label>'; }
+  /** one set of listeners for either the brief form (ns "f") or the review editor (ns "e"): `model()` returns the object being edited */
+  function bindAdvanced(scope, model, redraw) {
+    scope.querySelectorAll('[data-ns]').forEach(function (box) {
+      box.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-asadd],[data-asrm]'); if (!b || !box.contains(b)) return; var m = model();
+        if (b.hasAttribute('data-asadd')) m.ad_sets.push(newAdSet(m)); else if (m.ad_sets.length > 1) m.ad_sets.splice(+b.dataset.asrm, 1);
+        redraw();
+      });
+      box.addEventListener('input', function (e) { var n = e.target.closest('[data-asf]'); if (n && n.type !== 'radio') model().ad_sets[+n.dataset.i][n.dataset.asf] = n.value; });
+      box.addEventListener('change', function (e) {
+        var t = e.target, m = model();
+        if (t.matches('[data-asf][type=radio]') && t.checked) { m.ad_sets[+t.dataset.i][t.dataset.asf] = t.value; redraw(); }
+        else if (t.matches('[data-bt]') && t.checked) { m.budget_type = t.value; m.ad_sets.forEach(function (a) { a.budget = t.value === 'ABO' ? (+a.budget || +m.budget || +m.budget_daily || 500) : null; }); redraw(); }
+        else if (t.matches('[data-pt]') && t.checked) { m.placements_type = t.value; if (t.value === 'MANUAL' && !m.placements.length) m.placements = ['Facebook Feed', 'Instagram Feed']; redraw(); }
+        else if (t.matches('[data-pl]')) { var i = m.placements.indexOf(t.dataset.pl); if (t.checked && i < 0) m.placements.push(t.dataset.pl); if (!t.checked && i > -1) m.placements.splice(i, 1); }
+        else if (t.matches('[data-adv]')) m.advantage_creative = t.checked;
+      });
+    });
+  }
+  var adLine = function (a, i, bt) { return 'Ad Set ' + (i + 1) + (a.name && a.name !== 'Ad Set ' + (i + 1) ? ' “' + a.name + '”' : '') + ': ' + (a.targeting_type === 'INTEREST' ? 'Interest' + (a.interest ? ' (' + a.interest + ')' : '') : 'Broad') + ' | ' + (LOC_SHORT[a.location_type] || a.location_type) + (bt === 'ABO' ? ' | ' + money(a.budget) + '/day (ABO)' : ''); };
+  var dailyTotal = function (c) { return c.budget_type === 'ABO' ? c.ad_sets.reduce(function (t, a) { return t + (+a.budget || 0); }, 0) : +c.budget_daily || 0; };
+
   /* ============================================================ step 1 — brief */
   function stepBar() {
     var st = S.busy ? 2 : S.launched ? 4 : S.run ? 3 : 1;
@@ -82,12 +136,16 @@
     var f = S.form, c = cfg || { clients: [] };
     var radio = function (name, val, label, cur, sub) { return '<label class="' + (cur === val ? 'on' : '') + '"><input type="radio" name="' + name + '" value="' + val + '" ' + (cur === val ? 'checked' : '') + '><span>' + label + (sub ? '<small>' + sub + '</small>' : '') + '</span></label>'; };
     return '<form id="cbForm" class="card cb-page" novalidate>' +
+      '<label class="cb-lbl">Budget optimization</label>' + budgetTypeHtml(f, 'f') +
       '<label class="cb-lbl" for="cbUrl">Product / service link <em>*</em></label><input type="url" id="cbUrl" inputmode="url" placeholder="https://..." value="' + esc(f.url) + '" autocomplete="off"><div class="cb-hint ' + (S.urlNote.indexOf('✓') === 0 ? 'ok' : S.urlNote ? 'bad' : '') + '" id="cbUrlNote">' + esc(S.urlNote || 'We read the page automatically so the copy uses your real offer.') + '</div>' +
       '<label class="cb-lbl" for="cbDesc">Short description <em>*</em></label><textarea id="cbDesc" rows="4" placeholder="e.g. Teeth whitening powder, removes stains in 7 days, PKR 1,200">' + esc(f.description) + '</textarea>' +
-      '<label class="cb-lbl" for="cbBud">Budget (PKR / day)</label><input type="number" id="cbBud" min="1" step="1" inputmode="numeric" value="' + esc(f.budget) + '">' +
+      (f.budget_type === 'CBO' ? '<label class="cb-lbl" for="cbBud">Campaign budget</label><div class="cb-money"><span>₨</span><input type="number" id="cbBud" min="1" step="1" inputmode="numeric" value="' + esc(f.budget) + '"><span>/ day</span></div><div class="cb-hint">Meta distributes this across your ad sets.</div>' : '<div class="cb-hint" style="margin-top:14px">ABO: there is no campaign budget — set a daily budget on each ad set below.</div>') +
       '<label class="cb-lbl">Campaign goal</label><div class="cb-seg">' + Object.keys(GOALS).map(function (k) { return radio('goal', k, GOALS[k], f.goal); }).join('') + '</div>' +
       '<label class="cb-lbl">Language</label><div class="cb-seg">' + Object.keys(LANGS).map(function (k) { return radio('language', k, LANGS[k], f.language); }).join('') + '</div>' +
       '<label class="cb-lbl">Ad style</label><div class="cb-seg">' + radio('style', 'market', 'Market Style', f.style, 'Direct, offer-focused, emoji-driven') + radio('style', 'premium', 'Premium Style', f.style, 'Identity, emotion, psychology') + '</div>' +
+      '<label class="cb-lbl">Ad sets</label>' + adSetsHtml(f, 'f') +
+      '<label class="cb-lbl">Placements</label>' + placementsHtml(f, 'f') +
+      '<label class="cb-lbl">Advantage+ creative enhancements</label>' + creativeHtml(f, 'f') +
       '<label class="cb-lbl" for="cbClient">Linked client <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label><select id="cbClient"><option value="">— None —</option>' + c.clients.map(function (x) { return '<option value="' + esc(x.id) + '" ' + (f.client_id === x.id ? 'selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') + '</select>' +
       (S.err ? '<div class="cb-err">' + esc(S.err) + '</div>' : '') +
       '<button class="cb-go" id="cbBuild" type="submit" ' + (cfg && !cfg.has_key ? 'disabled' : '') + '>✨ Build Campaign + Ad Copies</button></form>';
@@ -103,15 +161,23 @@
     var row = function (l, v) { return '<div class="cb-row"><span>' + l + '</span><div>' + v + '</div></div>'; };
     var h = '<details class="cb-box ' + (ed ? 'cb-edit' : '') + '" id="cbSettings"><summary class="cb-bh"><span>📢 CAMPAIGN SETTINGS</span></summary><div class="cb-bb">';
     if (ed) {
-      var inp = function (k, type, extra) { return '<input type="' + type + '" data-k="' + k + '" value="' + esc(c[k]) + '" ' + (extra || '') + '>'; }, sel = function (k, map) { return '<select data-k="' + k + '">' + Object.keys(map).map(function (v) { return '<option value="' + v + '" ' + (c[k] === v ? 'selected' : '') + '>' + map[v] + '</option>'; }).join('') + '</select>'; }, lst = function (k) { return '<input type="text" data-l="' + k + '" value="' + esc((c[k] || []).join(', ')) + '">'; };
-      h += row('Name', inp('campaign_name', 'text')) + row('Objective', sel('objective', OBJ)) + row('Daily budget (₨)', inp('budget_daily', 'number', 'min="1" inputmode="numeric"')) + row('Duration (days)', inp('duration_days', 'number', 'min="1" max="365" inputmode="numeric"')) + row('Start date', inp('start_date', 'date', 'min="' + today() + '"')) +
-        row('Age', '<div style="display:flex;gap:8px;align-items:center">' + inp('audience_age_min', 'number', 'min="13" max="65" inputmode="numeric"') + '<span style="flex:none">to</span>' + inp('audience_age_max', 'number', 'min="13" max="65" inputmode="numeric"') + '</div>') + row('Gender', sel('audience_gender', GEN)) + row('Locations', lst('audience_locations')) + row('Interests', lst('audience_interests')) + row('Behaviors', lst('audience_behaviors')) +
-        row('Format', sel('ad_format', FMT)) + row('Placements', '<div class="pl">' + PLACES.map(function (p) { return '<label><input type="checkbox" data-p="' + p + '" ' + (c.placements.indexOf(p) > -1 ? 'checked' : '') + '>' + p + '</label>'; }).join('') + '</div>');
+      var inp = function (k, type, extra) { return '<input type="' + type + '" data-k="' + k + '" value="' + esc(c[k]) + '" ' + (extra || '') + '>'; }, sel = function (k, map) { return '<select data-k="' + k + '">' + Object.keys(map).map(function (v) { return '<option value="' + v + '" ' + (c[k] === v ? 'selected' : '') + '>' + map[v] + '</option>'; }).join('') + '</select>'; };
+      h += row('Name', inp('campaign_name', 'text')) + row('Objective', sel('objective', OBJ)) + row('Budget optimization', budgetTypeHtml(c, 'e')) +
+        (c.budget_type === 'CBO' ? row('Campaign budget (₨/day)', inp('budget_daily', 'number', 'min="1" inputmode="numeric"')) : '') + row('Duration (days)', inp('duration_days', 'number', 'min="1" max="365" inputmode="numeric"')) + row('Start date', inp('start_date', 'date', 'min="' + today() + '"')) +
+        row('Age', '<div style="display:flex;gap:8px;align-items:center">' + inp('audience_age_min', 'number', 'min="13" max="65" inputmode="numeric"') + '<span style="flex:none">to</span>' + inp('audience_age_max', 'number', 'min="13" max="65" inputmode="numeric"') + '</div>') + row('Gender', sel('audience_gender', GEN)) +
+        row('Behaviors', '<input type="text" data-l="audience_behaviors" value="' + esc((c.audience_behaviors || []).join(', ')) + '">') + row('Format', sel('ad_format', FMT)) +
+        '<div class="cb-lbl" style="margin-top:14px">Ad sets</div>' + adSetsHtml(c, 'e') + '<div class="cb-lbl">Placements</div>' + placementsHtml(c, 'e') + '<div class="cb-lbl">Advantage+ creative enhancements</div>' + creativeHtml(c, 'e');
       h += '<div class="cb-act" style="position:static;margin:12px 0 0"><button type="button" id="cbCancelSet">Cancel</button><button type="button" class="pri" id="cbDoneSet">✓ Apply changes</button></div>';
     } else {
-      h += '<p class="cb-name">' + esc(c.campaign_name) + '</p>' + row('Objective', esc(OBJ[c.objective] || c.objective)) + row('Budget', '<b>' + money(c.budget_daily) + '/day × ' + c.duration_days + ' days = ' + money(c.budget_daily * c.duration_days) + '</b>') + row('Starts', esc(c.start_date === today() ? 'Today' : c.start_date)) +
-        row('Audience', esc(GEN[c.audience_gender] + ' ' + c.audience_age_min + '-' + c.audience_age_max + ' | ' + c.audience_locations.join(', '))) + row('Interests', esc(c.audience_interests.join(', ') || '—')) + row('Behaviors', esc(c.audience_behaviors.join(', ') || '—')) + row('Format', esc(FMT[c.ad_format] || c.ad_format)) + row('Placements', esc(c.placements.join(', '))) + row('Language', esc(LANGS[c.language] || c.language));
-      h += '<div style="margin-top:10px"><button type="button" class="btn ghost" id="cbEditSet" style="border:1px solid var(--cbline);background:none;color:var(--cbtx);border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;min-height:44px">✏️ Edit any field</button></div>';
+      var daily = dailyTotal(c), abo = c.budget_type === 'ABO';
+      h += '<p class="cb-name">' + esc(c.campaign_name) + '</p>' + row('Objective', esc(OBJ[c.objective] || c.objective)) +
+        row('Budget', '<b>' + (abo ? 'ABO — ' + money(daily) + '/day across ' + c.ad_sets.length + ' ad set' + (c.ad_sets.length > 1 ? 's' : '') : 'CBO — ' + money(daily) + '/day') + ' × ' + c.duration_days + ' days = ' + money(daily * c.duration_days) + '</b>') + row('Starts', esc(c.start_date === today() ? 'Today' : c.start_date)) +
+        row('Audience', esc(GEN[c.audience_gender] + ' ' + c.audience_age_min + '-' + c.audience_age_max)) + row('Behaviors', esc((c.audience_behaviors || []).join(', ') || '—')) + row('Format', esc(FMT[c.ad_format] || c.ad_format)) + row('Language', esc(LANGS[c.language] || c.language));
+      h += '<div class="cb-sec">AD SETS</div><div class="cb-asum">' + c.ad_sets.map(function (a, i) { return '<div dir="auto">' + esc(adLine(a, i, c.budget_type)) + '</div>'; }).join('') +
+        '<div class="cb-tot"><div>' + (abo ? 'Total Daily Budget' : 'Campaign Budget') + ': <b>' + money(daily) + '/day</b></div><div>Total ' + c.duration_days + '-day Spend: <b>' + money(daily * c.duration_days) + '</b></div></div></div>';
+      h += '<div class="cb-sec">PLACEMENTS</div><div class="cb-asum">' + (c.placements_type === 'MANUAL' ? 'Manual: ' + esc(c.placements.join(', ')) : 'Advantage+ (all placements)') + '</div>' +
+        '<div class="cb-sec">ADVANTAGE+ CREATIVE</div><div class="cb-asum">' + (c.advantage_creative ? '<b>On</b> — Meta may modify your creative' : 'Off') + '</div>';
+      h += '<div style="margin-top:12px"><button type="button" class="btn ghost" id="cbEditSet" style="border:1px solid var(--cbline);background:none;color:var(--cbtx);border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;min-height:44px">✏️ Edit any field</button></div>';
     }
     return h + '</div></details>';
   }
@@ -140,11 +206,18 @@
 
   /* ============================================================ meta brief + step 4 */
   function metaPrompt(c, copy) {
-    var L = function (a) { return a.length ? a.join(', ') : '(none)'; };
+    var abo = c.budget_type === 'ABO', daily = dailyTotal(c);
+    var sets = c.ad_sets.map(function (a, i) {
+      return (i + 1) + '. "' + a.name + '"\n   - Locations: ' + (a.location_type === 'PAKISTAN' ? 'Pakistan (whole country)' : MAJOR_CITIES.join(', ') + ' (Pakistan)') + '\n   - Targeting: ' + (a.targeting_type === 'INTEREST' ? 'Interest targeting — exactly ONE detailed-targeting interest: ' + (a.interest || '(none given)') : 'Broad targeting (no detailed targeting)') + (abo ? '\n   - Ad set daily budget: PKR ' + Math.round(a.budget) : '');
+    }).join('\n');
     return 'You are helping me set up a Meta (Facebook/Instagram) ad campaign in Ads Manager (https://adsmanager.facebook.com/). Fill in the campaign below, and STOP at the final Review step. Do NOT click Publish or Confirm — I will review and publish it myself.\n\nIf the ad account currency is not PKR, or something below cannot be set exactly, stop and tell me instead of guessing.\n\n' +
-      'CAMPAIGN\n- Campaign name: ' + c.campaign_name + '\n- Objective: ' + META_OBJ[c.objective] + ' (' + (OBJ[c.objective] || c.objective) + ')\n\nBUDGET & SCHEDULE\n- Daily budget: PKR ' + Math.round(c.budget_daily) + '\n- Start date: ' + c.start_date + '\n- End date: ' + endDate(c) + ' (' + c.duration_days + ' days)\n\n' +
-      'AUDIENCE\n- Locations: ' + L(c.audience_locations) + ' (Pakistan)\n- Age: ' + c.audience_age_min + ' to ' + c.audience_age_max + '\n- Gender: ' + (GEN[c.audience_gender] || c.audience_gender) + '\n- Detailed targeting (interests): ' + L(c.audience_interests) + '\n- Behaviors: ' + L(c.audience_behaviors) + '\n\nPLACEMENTS\n- Manual placements: ' + L(c.placements) + '\n\n' +
-      'AD (' + (copy.angle || 'selected variation') + ')\n- Format: ' + (FMT[c.ad_format] || c.ad_format) + '\n- Headline: ' + copy.headline + '\n- Primary text:\n' + copy.primary_text + '\n- Description: ' + copy.description + '\n- Language of copy: ' + (LANGS[c.language] || c.language) + '\n\nWhen everything is filled in, leave the Review screen open and tell me it is ready.';
+      'CAMPAIGN\n- Campaign name: ' + c.campaign_name + '\n- Objective: ' + META_OBJ[c.objective] + ' (' + (OBJ[c.objective] || c.objective) + ')\n- Budget type: ' + (abo ? 'ABO — Ad Set Budget Optimization. Turn Advantage+ campaign budget OFF and set a budget on each ad set.' : 'CBO — Campaign Budget Optimization. Turn Advantage+ campaign budget ON and set it once on the campaign.') + '\n' +
+      (abo ? '- Total daily budget across ad sets: PKR ' + Math.round(daily) : '- Campaign daily budget: PKR ' + Math.round(daily) + ' (no budget on the individual ad sets)') + '\n\n' +
+      'SCHEDULE\n- Start date: ' + c.start_date + '\n- End date: ' + endDate(c) + ' (' + c.duration_days + ' days)\n\n' +
+      'AD SETS (' + c.ad_sets.length + ' — create exactly these)\n' + sets + '\n\nAUDIENCE (applies to every ad set)\n- Age: ' + c.audience_age_min + ' to ' + c.audience_age_max + '\n- Gender: ' + (GEN[c.audience_gender] || c.audience_gender) + '\n- Behaviors: ' + ((c.audience_behaviors || []).join(', ') || '(none)') + '\n\n' +
+      'PLACEMENTS\n- ' + (c.placements_type === 'MANUAL' ? 'Manual placements: ' + c.placements.join(', ') : 'Advantage+ placements (leave Meta\'s automatic placements selected — do not pick placements manually)') + '\n\n' +
+      'ADVANTAGE+ CREATIVE\n- ' + (c.advantage_creative ? 'ON — I chose to enable Meta\'s AI creative enhancements.' : 'OFF — make sure ALL Advantage+ creative enhancements are turned OFF / unticked for the ad. Do not accept Meta\'s suggested enhancements.') + '\n\n' +
+      'AD (' + (copy.angle || 'selected variation') + ') — use the same ad in every ad set\n- Format: ' + (FMT[c.ad_format] || c.ad_format) + '\n- Headline: ' + copy.headline + '\n- Primary text:\n' + copy.primary_text + '\n- Description: ' + copy.description + '\n- Language of copy: ' + (LANGS[c.language] || c.language) + '\n\nWhen everything is filled in, leave the Review screen open and tell me it is ready.';
   }
   function launchHtml() {
     return '<div class="cb-page"><div class="cb-launch"><h3>🚀 Meta Ads Manager opened and brief copied to clipboard</h3>Paste it into Claude chat (Claude in Chrome on the Ads Manager tab) to auto-fill everything. It fills in the campaign and <b>stops at the Review screen</b> — nothing is published until you press Publish yourself.' +
@@ -200,10 +273,13 @@
     readForm(); var f = S.form; S.err = '';
     if (!f.url || !/^https?:\/\//i.test(f.url)) { S.err = 'Paste the full product or service link (https://…).'; return paint(); }
     if (f.description.trim().length < 10) { S.err = 'Add a short description: product, offer and key benefit.'; return paint(); }
-    if (!(+f.budget >= 1)) { S.err = 'Enter the daily budget in PKR.'; return paint(); }
+    if (f.budget_type === 'CBO' && !(+f.budget >= 1)) { S.err = 'Enter the campaign budget in PKR per day.'; return paint(); }
+    if (!f.ad_sets.length) { S.err = 'Add at least one ad set.'; return paint(); }
+    if (f.budget_type === 'ABO' && f.ad_sets.some(function (a) { return !(+a.budget >= 1); })) { S.err = 'Enter a daily budget for every ad set.'; return paint(); }
+    if (f.placements_type === 'MANUAL' && !f.placements.length) { S.err = 'Pick at least one placement, or use Advantage+ placements.'; return paint(); }
     var avoid = regen && S.run ? S.run.copies.map(function (c) { return '- ' + c.headline; }).join('\n') : '';
     S.busy = true; S.launched = false; S.loadMsg = 0; paint(); clearInterval(loadTimer); loadTimer = setInterval(function () { S.loadMsg++; var m = $q('#cbLoadMsg'); if (m) m.textContent = ['Reading your product page…', 'Designing the audience and placements…', 'Writing three ad copy angles…', 'Polishing headlines…'][S.loadMsg % 4]; }, 3500);
-    MB.api('/api/ai/campaign/generate', { method: 'POST', body: { url: f.url, description: f.description, budget_daily: f.budget, goal: f.goal, language: f.language, style: f.style, client_id: f.client_id, avoid: avoid } }).then(function (r) {
+    MB.api('/api/ai/campaign/generate', { method: 'POST', body: { url: f.url, description: f.description, budget_type: f.budget_type, budget_daily: f.budget, ad_sets: f.ad_sets, placements_type: f.placements_type, placements: f.placements, advantage_creative: !!f.advantage_creative, goal: f.goal, language: f.language, style: f.style, client_id: f.client_id, avoid: avoid } }).then(function (r) {
       clearInterval(loadTimer); S.busy = false; S.run = { generation_id: r.generation_id, campaign: r.campaign, copies: r.ad_copies, insights: r.insights, selected: null, page_note: r.page_note, product_url: r.product_url, brief: f.description, style: f.style }; S.learning = r.learning || S.learning; S.dirty = true; S.editSet = null; S.editCopy = null; paint(); window.scrollTo(0, 0);
     }).catch(function (e) { clearInterval(loadTimer); S.busy = false; S.err = e.message; paint(); });
   }
@@ -229,16 +305,16 @@
   function openSaved(id, edit) {
     return MB.api('/api/ai/campaign/' + encodeURIComponent(id) + '?full=1').then(function (x) {
       var c = x.campaign, copies = c.ad_copies && c.ad_copies.length ? c.ad_copies : [{ angle: 'Saved copy', headline: c.ad_headline, primary_text: c.ad_primary_text, description: c.ad_description }];
-      var camp = {}; ['campaign_name', 'objective', 'budget_daily', 'duration_days', 'start_date', 'audience_age_min', 'audience_age_max', 'audience_gender', 'audience_locations', 'audience_interests', 'audience_behaviors', 'ad_format', 'placements', 'language'].forEach(function (k) { camp[k] = c[k]; });
+      var camp = {}; ['campaign_name', 'objective', 'budget_daily', 'duration_days', 'start_date', 'audience_age_min', 'audience_age_max', 'audience_gender', 'audience_locations', 'audience_interests', 'audience_behaviors', 'ad_format', 'placements', 'language', 'budget_type', 'ad_sets', 'placements_type', 'advantage_creative'].forEach(function (k) { camp[k] = c[k]; });
       var sel = c.selected_copy_index; if (sel === null || sel === undefined) sel = null; else if (!copies[sel]) sel = null;
       S.run = { generation_id: c.generation_id, campaign: camp, copies: copies, insights: c.insights || [], selected: sel, page_note: '', product_url: c.product_url || '', brief: c.brief || '', style: c.ad_style || 'market' };
       S.id = c.id; S.status = c.status; S.dirty = false; S.launched = false; S.err = ''; S.editCopy = null; S.editSet = edit ? JSON.parse(JSON.stringify(camp)) : null;
-      S.form = { url: c.product_url || '', description: c.brief || '', budget: String(c.budget_daily), goal: c.objective, language: c.language, style: c.ad_style || 'market', client_id: c.client_id || '' };
+      S.form = { url: c.product_url || '', description: c.brief || '', budget: String(c.budget_type === 'CBO' ? c.budget_daily : 500), goal: c.objective, language: c.language, style: c.ad_style || 'market', client_id: c.client_id || '', budget_type: c.budget_type || 'CBO', ad_sets: JSON.parse(JSON.stringify(c.ad_sets)), placements_type: c.placements_type || 'ADVANTAGE', placements: (c.placements && c.placements.length ? c.placements.slice() : ['Facebook Feed', 'Instagram Feed']), advantage_creative: false };   // the creative toggle always starts unticked on a new brief
       S.tab = 'build'; ls.set('mb_ads_tab', 'build'); paint(); window.scrollTo(0, 0);
     }).catch(function (e) { toast(e.message); });
   }
   function readForm() {
-    var u = $q('#cbUrl'); if (!u) return; var f = S.form; f.url = u.value.trim(); f.description = $q('#cbDesc').value; f.budget = $q('#cbBud').value;
+    var u = $q('#cbUrl'); if (!u) return; var f = S.form; f.url = u.value.trim(); f.description = $q('#cbDesc').value; var bd = $q('#cbBud'); if (bd) f.budget = bd.value;
     ['goal', 'language', 'style'].forEach(function (k) { var c = root.querySelector('input[name=' + k + ']:checked'); if (c) f[k] = c.value; }); f.client_id = $q('#cbClient').value;
   }
   function checkUrl() {
@@ -250,7 +326,12 @@
     var e = S.editSet, base = S.run.campaign, num = function (k, d, lo, hi) { var v = Math.round(+String(e[k]).replace(/[, ]/g, '')); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
     e.budget_daily = num('budget_daily', base.budget_daily, 1, 1e8); e.duration_days = num('duration_days', base.duration_days, 1, 365); e.audience_age_min = num('audience_age_min', 18, 13, 65); e.audience_age_max = num('audience_age_max', 45, 13, 65);
     if (e.audience_age_min > e.audience_age_max) { var t = e.audience_age_min; e.audience_age_min = e.audience_age_max; e.audience_age_max = t; }
-    if (!String(e.campaign_name || '').trim()) e.campaign_name = base.campaign_name; if (!e.start_date || e.start_date < today()) e.start_date = today(); if (!e.placements.length) e.placements = ['Facebook Feed'];
+    if (!String(e.campaign_name || '').trim()) e.campaign_name = base.campaign_name; if (!e.start_date || e.start_date < today()) e.start_date = today();
+    if (!e.ad_sets.length) e.ad_sets.push(newAdSet(e));
+    e.ad_sets.forEach(function (a, i) { a.name = String(a.name || '').trim() || 'Ad Set ' + (i + 1); a.interest = a.targeting_type === 'INTEREST' ? String(a.interest || '').split(/[,;\n|\/]/)[0].trim() : ''; a.budget = e.budget_type === 'ABO' ? Math.max(1, Math.round(+a.budget) || 500) : null; });
+    if (e.budget_type === 'ABO') e.budget_daily = dailyTotal(e);
+    if (e.placements_type === 'MANUAL' && !e.placements.length) e.placements = ['Facebook Feed'];
+    e.audience_locations = []; e.audience_interests = e.ad_sets.map(function (a) { return a.interest; }).filter(Boolean);
     return e;
   }
 
@@ -271,9 +352,10 @@
       var form = $q('#cbForm');
       if (form) {
         form.onsubmit = function (e) { e.preventDefault(); build(false); };
-        $q('#cbUrl').onchange = checkUrl; $q('#cbUrl').oninput = function () { S.form.url = this.value.trim(); }; $q('#cbDesc').oninput = function () { S.form.description = this.value; }; $q('#cbBud').oninput = function () { S.form.budget = this.value; };
+        $q('#cbUrl').onchange = checkUrl; $q('#cbUrl').oninput = function () { S.form.url = this.value.trim(); }; $q('#cbDesc').oninput = function () { S.form.description = this.value; }; var bud = $q('#cbBud'); if (bud) bud.oninput = function () { S.form.budget = this.value; };
         form.querySelectorAll('.cb-seg input').forEach(function (i) { i.onchange = function () { readForm(); form.querySelectorAll('.cb-seg label').forEach(function (l) { l.classList.toggle('on', l.querySelector('input').checked); }); }; });
         $q('#cbClient').onchange = readForm;
+        bindAdvanced(form, function () { return S.form; }, function () { readForm(); paint(); });
       }
       var sd = $q('#cbSettings'); if (sd) { sd.open = S.editSet ? true : (S.setOpen === null ? !MQ.matches : S.setOpen); sd.ontoggle = function () { if (!S.editSet) S.setOpen = sd.open; }; }
       var es = $q('#cbEditSet'); if (es) es.onclick = function () { S.editSet = JSON.parse(JSON.stringify(S.run.campaign)); paint(); };
@@ -281,7 +363,7 @@
       var ds = $q('#cbDoneSet'); if (ds) ds.onclick = function () { S.run.campaign = readSet(); S.editSet = null; S.dirty = true; paint(); toast('Settings updated'); };
       root.querySelectorAll('#cbSettings [data-k]').forEach(function (n) { n.oninput = n.onchange = function () { S.editSet[n.dataset.k] = n.value; }; });
       root.querySelectorAll('#cbSettings [data-l]').forEach(function (n) { n.oninput = function () { S.editSet[n.dataset.l] = n.value.split(/[,;\n]/).map(function (x) { return x.trim(); }).filter(Boolean); }; });
-      root.querySelectorAll('#cbSettings [data-p]').forEach(function (n) { n.onchange = function () { var p = S.editSet.placements, i = p.indexOf(n.dataset.p); if (n.checked && i < 0) p.push(n.dataset.p); if (!n.checked && i > -1) p.splice(i, 1); }; });
+      var ceb = $q('#cbSettings.cb-edit'); if (ceb) bindAdvanced(ceb, function () { return S.editSet; }, function () { paint(); });
       root.querySelectorAll('.cb-var').forEach(function (card) {
         var i = +card.dataset.i;
         card.onclick = function (e) { if (S.editCopy === i || e.target.closest('button,input,textarea,select,a')) return; pick(i); };
