@@ -16,7 +16,7 @@
   var ls = { get: function (k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
   var $q = function (s, r) { return (r || root).querySelector(s); };
 
-  var S = { ideas: null, setOpen: null, tab: ls.get('mb_ads_tab', 'build'), step: 1, form: { url: '', description: '', budget: '500', goal: 'CONVERSIONS', language: '', style: '', client_id: '', budget_type: 'CBO', ad_sets: [{ name: 'Ad Set 1', location_type: 'PAKISTAN', targeting_type: 'BROAD', interest: '', budget: 500 }], placements_type: 'ADVANTAGE', placements: ['Facebook Feed', 'Instagram Feed', 'Instagram Reels'], advantage_creative: false }, urlNote: '', err: '', busy: false,
+  var S = { ideas: null, setOpen: null, tab: ls.get('mb_ads_tab', 'build'), step: 1, form: { url: '', description: '', budget: '500', goal: 'CONVERSIONS', language: '', style: '', client_id: '', budget_type: 'CBO', ad_sets: [{ name: 'Ad Set 1', location_type: 'PAKISTAN', targeting_type: 'BROAD', interest: '', ads: 1, budget: 500 }], placements_type: 'ADVANTAGE', placements: ['Facebook Feed', 'Instagram Feed', 'Instagram Reels'], advantage_creative: false }, urlNote: '', err: '', busy: false,
     run: null, id: null, status: 'draft', dirty: false, editSet: null, editCopy: null, launched: false, learning: null, loadMsg: 0,
     saved: { list: null, client_id: '', status: '', from: '', to: '', all: false }, lib: { list: null, angles: [], client_id: '', language: '', style: '', angle: '', from: '', to: '', q: '', all: false } };
   if (['build', 'saved', 'library'].indexOf(S.tab) < 0) S.tab = 'build';
@@ -39,7 +39,7 @@
     '.cb-load{text-align:center;padding:56px 16px}.cb-load .sp{width:46px;height:46px;border:4px solid var(--cbline);border-top-color:var(--cbacc);border-radius:50%;margin:0 auto 18px;animation:cb-sp .9s linear infinite}@keyframes cb-sp{to{transform:rotate(360deg)}}.cb-load b{display:block;font-size:17px;margin-bottom:6px}.cb-load span{color:var(--cbmut);font-size:14px}' +
     '.cb-box{border:2px solid var(--cbline);border-radius:16px;background:var(--cbbg);margin-bottom:16px;overflow:hidden}.cb-bh{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(124,58,237,.1);font-weight:800;letter-spacing:.05em;font-size:13px;cursor:pointer;list-style:none}.cb-bh::-webkit-details-marker{display:none}.cb-bh::after{content:"▾";color:var(--cbmut)}details:not([open])>.cb-bh::after{content:"▸"}.cb-bb{padding:6px 18px 16px}' +
     '.cb-name{font-size:19px;font-weight:800;margin:12px 0 2px}.cb-row{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--cbline);font-size:14px;align-items:flex-start}.cb-row:last-child{border:0}.cb-row>span:first-child{flex:0 0 110px;color:var(--cbmut)}.cb-row>div,.cb-row>span:last-child{flex:1;min-width:0;word-break:break-word}.cb-edit .cb-row{align-items:center}.cb-edit .pl{display:flex;gap:8px;flex-wrap:wrap}.cb-edit .pl label{display:flex;gap:6px;align-items:center;border:1px solid var(--cbline);border-radius:99px;padding:6px 12px;font-size:13px;cursor:pointer}.cb-edit .pl input{width:auto}' +
-    '.cb-var{border:2px solid var(--cbline);border-radius:14px;padding:16px;margin-bottom:12px;background:var(--cbbg);cursor:pointer;transition:border-color .15s,box-shadow .15s}.cb-var:hover{border-color:rgba(124,58,237,.6)}.cb-var.sel{border-color:var(--cbacc);background:rgba(124,58,237,.1);box-shadow:0 0 0 3px rgba(124,58,237,.25)}.cb-vh{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}.cb-vh b{flex:1;font-size:15px}.cb-pick{width:26px;height:26px;border-radius:50%;border:2px solid var(--cbmut);display:grid;place-items:center;flex:none;font-size:14px;color:transparent}.cb-var.sel .cb-pick{background:var(--cbacc);border-color:var(--cbacc);color:#fff}' +
+    '.cb-ads{display:flex;gap:8px}.cb-ads button{flex:0 0 56px;min-height:44px;border-radius:10px;border:2px solid var(--cbline);background:none;color:var(--cbtx);font-weight:800;font-size:16px;cursor:pointer}.cb-ads button.on{border-color:#7c3aed;background:rgba(124,58,237,.14)}.cb-sh{font-weight:800;font-size:13px;letter-spacing:.04em;margin:22px 0 4px}.cb-sh+.cb-rule{height:1px;background:var(--cbline);margin-bottom:12px}.cb-var{border:2px solid var(--cbline);border-radius:14px;padding:16px;margin-bottom:12px;background:var(--cbbg);cursor:pointer;transition:border-color .15s,box-shadow .15s}.cb-var:hover{border-color:rgba(124,58,237,.6)}.cb-var.sel{border-color:var(--cbacc);background:rgba(124,58,237,.1);box-shadow:0 0 0 3px rgba(124,58,237,.25)}.cb-vh{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}.cb-vh b{flex:1;font-size:15px}.cb-pick{width:26px;height:26px;border-radius:50%;border:2px solid var(--cbmut);display:grid;place-items:center;flex:none;font-size:14px;color:transparent}.cb-var.sel .cb-pick{background:var(--cbacc);border-color:var(--cbacc);color:#fff}' +
     '.cb-f{margin:8px 0}.cb-f small{display:block;font-size:11px;font-weight:700;letter-spacing:.07em;color:var(--cbmut);text-transform:uppercase;margin-bottom:2px}.cb-f .hl{font-size:18px;font-weight:800}.cb-f .tx{white-space:pre-wrap;line-height:1.55}' +
     '.cb-vb{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.cb-vb button{flex:1 1 110px;min-height:46px;border-radius:10px;border:1px solid var(--cbline);background:none;color:var(--cbtx);font-weight:700;font-size:14px;cursor:pointer}.cb-vb .use{background:var(--cbacc);border-color:transparent;color:#fff}.cb-var.sel .cb-vb .use{background:transparent;border-color:var(--cbacc);color:var(--cbacc)}' +
     '.cb-ins{border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.06);border-radius:14px;padding:14px 18px;margin-bottom:14px}.cb-ins h4{margin:0 0 8px;font-size:13px;letter-spacing:.06em}.cb-ins li{margin:5px 0 5px 18px;font-size:14px}.cb-learn{font-size:12.5px;color:var(--cbmut);margin:0 0 12px}' +
@@ -83,7 +83,7 @@
   /* ============================================================ ad sets · placements · Advantage+ creative (shared by the brief and the review editor) */
   var LOC_LABEL = { PAKISTAN: '🇵🇰 Pakistan (whole country)', MAJOR_CITIES: '🏙️ Major Cities (Karachi, Lahore, Islamabad, Faisalabad, Rawalpindi, Peshawar, Quetta, Multan)' };
   var LOC_SHORT = { PAKISTAN: '🇵🇰 Pakistan', MAJOR_CITIES: '🏙️ Major Cities' };
-  var newAdSet = function (m) { var last = m.ad_sets[m.ad_sets.length - 1] || {}; return { name: 'Ad Set ' + (m.ad_sets.length + 1), location_type: 'PAKISTAN', targeting_type: 'BROAD', interest: '', budget: m.budget_type === 'ABO' ? (+last.budget || 500) : null }; };
+  var newAdSet = function (m) { var last = m.ad_sets[m.ad_sets.length - 1] || {}; return { name: 'Ad Set ' + (m.ad_sets.length + 1), location_type: 'PAKISTAN', targeting_type: 'BROAD', interest: '', ads: 1, budget: m.budget_type === 'ABO' ? (+last.budget || 500) : null }; };
   function budgetTypeHtml(m, ns) {
     var r = function (v, label, sub) { return '<label class="' + (m.budget_type === v ? 'on' : '') + '"><input type="radio" name="bt-' + ns + '" data-bt value="' + v + '" ' + (m.budget_type === v ? 'checked' : '') + '><span>' + label + '<small>' + sub + '</small></span></label>'; };
     return '<div class="cb-seg" data-ns="' + ns + '">' + r('CBO', 'CBO — Campaign Budget Optimization', 'Meta distributes budget') + r('ABO', 'ABO — Ad Set Budget Optimization', 'I set budget per ad set') + '</div>';
@@ -92,14 +92,15 @@
     var abo = m.budget_type === 'ABO', h = '<div id="cbAS-' + ns + '" data-ns="' + ns + '">';
     m.ad_sets.forEach(function (a, i) {
       var rd = function (field, v, label) { return '<label class="' + (a[field] === v ? 'on' : '') + '"><input type="radio" name="' + field + '-' + ns + '-' + i + '" data-asf="' + field + '" data-i="' + i + '" value="' + v + '" ' + (a[field] === v ? 'checked' : '') + '><span>' + label + '</span></label>'; };
-      h += '<div class="cb-as"><div class="cb-ash"><b>AD SET ' + (i + 1) + '</b>' + (m.ad_sets.length > 1 ? '<button type="button" data-asrm="' + i + '" aria-label="Remove ad set ' + (i + 1) + '">🗑️ Remove</button>' : '') + '</div>' +
+      h += '<div class="cb-as"><div class="cb-ash"><b>AD SET ' + (i + 1) + '</b>' + (ns === 'f' && m.ad_sets.length > 1 ? '<button type="button" data-asrm="' + i + '" aria-label="Remove ad set ' + (i + 1) + '">🗑️ Remove</button>' : '') + '</div>' +
         '<label class="cb-lbl">Name</label><input type="text" data-asf="name" data-i="' + i + '" maxlength="60" value="' + esc(a.name) + '">' +
         '<label class="cb-lbl">Location</label><div class="cb-seg">' + rd('location_type', 'PAKISTAN', LOC_LABEL.PAKISTAN) + rd('location_type', 'MAJOR_CITIES', LOC_LABEL.MAJOR_CITIES) + '</div>' +
         '<label class="cb-lbl">Targeting</label><div class="cb-seg">' + rd('targeting_type', 'BROAD', '📊 Broad Targeting') + rd('targeting_type', 'INTEREST', '🎯 Interest Targeting') + '</div>' +
         (a.targeting_type === 'INTEREST' ? '<label class="cb-lbl">Suggested interest</label><input type="text" data-asf="interest" data-i="' + i + '" maxlength="80" value="' + esc(a.interest) + '" placeholder="AI picks the most relevant one — or type your own"><div class="cb-hint">Only 1 interest — the AI picks the most relevant one to the product. You can edit it.</div>' : '') +
+        (ns === 'f' ? '<label class="cb-lbl">Number of ads</label><div class="cb-ads">' + [1, 2, 3].map(function (n) { return '<button type="button" data-ads="' + n + '" data-i="' + i + '" class="' + ((+a.ads || 1) === n ? 'on' : '') + '" aria-pressed="' + ((+a.ads || 1) === n) + '">' + n + '</button>'; }).join('') + '</div><div class="cb-hint">Each ad gets its own unique ad copy.</div>' : '') +
         (abo ? '<label class="cb-lbl">Daily budget</label><div class="cb-money"><span>₨</span><input type="number" data-asf="budget" data-i="' + i + '" min="1" step="1" inputmode="numeric" value="' + esc(a.budget) + '"><span>/ day</span></div>' : '') + '</div>';
     });
-    return h + '<button type="button" class="cb-addas" data-asadd>＋ Add Ad Set</button></div>';
+    return h + (ns === 'f' ? '<button type="button" class="cb-addas" data-asadd>＋ Add Ad Set</button>' : '<div class="cb-hint">To change the number of ad sets or ads, edit the brief and regenerate.</div>') + '</div>';
   }
   function placementsHtml(m, ns) {
     var adv = m.placements_type !== 'MANUAL', r = function (v, label, on) { return '<label class="' + (on ? 'on' : '') + '"><input type="radio" name="pt-' + ns + '" data-pt value="' + v + '" ' + (on ? 'checked' : '') + '><span>' + label + '</span></label>'; };
@@ -111,8 +112,9 @@
   function bindAdvanced(scope, model, redraw) {
     scope.querySelectorAll('[data-ns]').forEach(function (box) {
       box.addEventListener('click', function (e) {
-        var b = e.target.closest('[data-asadd],[data-asrm]'); if (!b || !box.contains(b)) return; var m = model();
-        if (b.hasAttribute('data-asadd')) m.ad_sets.push(newAdSet(m)); else if (m.ad_sets.length > 1) m.ad_sets.splice(+b.dataset.asrm, 1);
+        var b = e.target.closest('[data-asadd],[data-asrm],[data-ads]'); if (!b || !box.contains(b)) return; var m = model();
+        if (b.hasAttribute('data-ads')) m.ad_sets[+b.dataset.i].ads = +b.dataset.ads;
+        else if (b.hasAttribute('data-asadd')) m.ad_sets.push(newAdSet(m)); else if (m.ad_sets.length > 1) m.ad_sets.splice(+b.dataset.asrm, 1);
         redraw();
       });
       box.addEventListener('input', function (e) { var n = e.target.closest('[data-asf]'); if (n && n.type !== 'radio') model().ad_sets[+n.dataset.i][n.dataset.asf] = n.value; });
@@ -172,7 +174,7 @@
   function useIdea(i) { readForm(); var I = S.ideas; if (!I || !I.list[i]) return; I.sel = i; S.form.description = I.list[i].brief; paint(); var d = $q('#cbDesc'); if (d) { d.focus({ preventScroll: true }); d.setSelectionRange(d.value.length, d.value.length); } }
 
   function loadHtml() {
-    var msgs = ['Reading your product page…', 'Designing the audience and placements…', 'Writing three ad copy angles…', 'Polishing headlines…'];
+    var msgs = ['Reading your product page…', 'Designing the audience and placements…', 'Writing your ad copies…', 'Polishing headlines…'];
     return '<div class="card cb-load cb-page"><div class="sp"></div><b>Building your campaign…</b><span id="cbLoadMsg">' + msgs[S.loadMsg % msgs.length] + '</span><div class="cb-hint" style="margin-top:14px">One Claude call writes the settings and all 3 ad copies — usually 10–20 seconds.</div></div>';
   }
 
@@ -202,34 +204,48 @@
     }
     return h + '</div></details>';
   }
-  function varHtml(c, i) {
-    var sel = S.run.selected === i, ed = S.editCopy === i;
-    var h = '<div class="cb-var ' + (sel ? 'sel' : '') + '" data-i="' + i + '"><div class="cb-vh"><span class="cb-pick">✓</span><b>Variation ' + (i + 1) + ' — ' + esc(c.angle) + '</b>' + (sel ? '<span class="cb-badge ang">Selected</span>' : '') + '</div>';
+  var setOf = function (c) { return +c.set || 0; };
+  function varHtml(c, i, n) {
+    var sel = S.run.sel[setOf(c)] === i, ed = S.editCopy === i;
+    var h = '<div class="cb-var ' + (sel ? 'sel' : '') + '" data-i="' + i + '"><div class="cb-vh"><span class="cb-pick">✓</span><b>Ad ' + n + ' — ' + esc(c.angle) + '</b>' + (sel ? '<span class="cb-badge ang">Selected</span>' : '') + '</div>';
     if (ed) {
-      h += '<div class="cb-f"><small>Headline</small><input type="text" data-cf="headline" maxlength="120" value="' + esc(c.headline) + '"></div><div class="cb-f"><small>Primary text</small><textarea data-cf="primary_text" rows="7">' + esc(c.primary_text) + '</textarea></div><div class="cb-f"><small>Description</small><input type="text" data-cf="description" maxlength="150" value="' + esc(c.description) + '"></div>' +
+      h += '<div class="cb-f"><small>Headline</small><input type="text" data-cf="headline" maxlength="120" value="' + esc(c.headline) + '"></div><div class="cb-f"><small>Primary text</small><textarea data-cf="primary_text" rows="9">' + esc(c.primary_text) + '</textarea></div><div class="cb-f"><small>Description</small><input type="text" data-cf="description" maxlength="150" value="' + esc(c.description) + '"></div>' +
         '<div class="cb-vb"><button type="button" data-a="cancel-copy">Cancel</button><button type="button" class="use" data-a="done-copy">✓ Save changes</button></div></div>';
       return h;
     }
-    h += '<div class="cb-f"><small>Headline</small><div class="hl"' + rtl(c.headline) + '>“' + esc(c.headline) + '”</div></div><div class="cb-f"><small>Primary text</small><div class="tx"' + rtl(c.primary_text) + '>' + esc(c.primary_text) + '</div></div><div class="cb-f"><small>Description</small><div' + rtl(c.description) + '>“' + esc(c.description) + '”</div></div>' +
+    h += '<div class="cb-f"><small>Headline</small><div class="hl"' + rtl(c.headline) + '>“' + esc(c.headline) + '”</div></div><div class="cb-f"><small>Primary text</small><div class="tx" style="white-space:pre-wrap"' + rtl(c.primary_text) + '>' + esc(c.primary_text) + '</div></div><div class="cb-f"><small>Description</small><div' + rtl(c.description) + '>“' + esc(c.description) + '”</div></div>' +
       '<div class="cb-vb"><button type="button" class="use" data-a="pick">' + (sel ? '✓ Selected' : 'Select this one') + '</button><button type="button" data-a="copy">📋 Copy</button><button type="button" data-a="edit-copy">✏️ Edit</button></div></div>';
     return h;
   }
+  /** ads grouped by ad set; one pick per ad set */
+  function copiesHtml() {
+    var r = S.run, c = r.campaign;
+    return c.ad_sets.map(function (a, si) {
+      var mine = []; r.copies.forEach(function (x, i) { if (setOf(x) === si) mine.push(i); });
+      var tgt = (a.targeting_type === 'INTEREST' ? 'Interest' + (a.interest ? ' (' + a.interest + ')' : '') : 'Broad') + ' | ' + (LOC_SHORT[a.location_type] || a.location_type).replace(/^\S+\s/, '');
+      var h = '<div class="cb-sh" dir="auto">AD SET ' + (si + 1) + ' — ' + esc(tgt) + '</div><div class="cb-rule"></div>';
+      if (!mine.length) return h + '<div class="cb-hint">This ad set uses the ad you pick in Ad Set 1.</div>';
+      return h + mine.map(function (i, n) { return varHtml(r.copies[i], i, n + 1); }).join('');
+    }).join('');
+  }
+  var needsPick = function (r) { return r.campaign.ad_sets.some(function (a, si) { return r.copies.some(function (x) { return setOf(x) === si; }) && r.sel[si] === null; }); };
+  var adFor = function (r, si) { var i = r.sel[si]; if (i === null || i === undefined) i = r.sel[0]; return r.copies[i]; };
   function reviewHtml() {
     var r = S.run, h = (S.err ? '<div class="cb-err">' + esc(S.err) + '</div>' : '') + (r.page_note ? '<div class="cb-note">' + esc(r.page_note) + ' — the copy is based on your description.</div>' : '');
     h += '<div class="cb-page">' + settingsHtml();
-    h += '<div class="cb-lbl" style="margin-top:6px">✍️ Select your ad copy</div>' + learnChip() + r.copies.map(varHtml).join('');
+    h += '<div class="cb-lbl" style="margin-top:6px">✍️ Select one ad for each ad set</div>' + learnChip() + copiesHtml();
     if (r.insights.length) h += '<div class="cb-ins"><h4>💡 INSIGHTS</h4><ul>' + r.insights.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>';
-    h += '<div class="cb-act"><button type="button" id="cbRegen">🔄 Regenerate</button><button type="button" id="cbSave">💾 ' + (S.id && !S.dirty ? 'Saved ✓' : 'Save Draft') + '</button><button type="button" class="go" id="cbLaunch" ' + (r.selected === null ? 'disabled title="Select one ad copy variation first"' : '') + '>🚀 Launch in Meta</button></div>';
-    if (r.selected === null) h += '<div class="cb-hint" style="text-align:center">Select one ad copy variation to enable Launch.</div>';
+    h += '<div class="cb-act"><button type="button" id="cbRegen">🔄 Regenerate</button><button type="button" id="cbSave">💾 ' + (S.id && !S.dirty ? 'Saved ✓' : 'Save Draft') + '</button><button type="button" class="go" id="cbLaunch" ' + (needsPick(r) ? 'disabled title="Select one ad for every ad set first"' : '') + '>🚀 Launch in Meta</button></div>';
+    if (needsPick(r)) h += '<div class="cb-hint" style="text-align:center">Select one ad in every ad set to enable Launch.</div>';
     return h + '<div style="text-align:center;margin-top:10px"><button type="button" id="cbBack" style="background:none;border:0;color:var(--cbmut);text-decoration:underline;cursor:pointer;min-height:44px">← Edit the brief</button></div></div>';
   }
   function learnChip() { var l = S.learning; if (!l) return ''; var n = l.approved + l.rejected; return '<p class="cb-learn">🧠 ' + (l.active ? 'Personalised from your past picks (' + n + ' saved choices)' : 'Pick the copy you like — after ' + l.needed + ' choices the builder starts learning your taste (' + n + '/' + l.needed + ')') + '</p>'; }
 
   /* ============================================================ meta brief + step 4 */
-  function metaPrompt(c, copy) {
+  function metaPrompt(c, adOf) {
     var abo = c.budget_type === 'ABO', daily = dailyTotal(c);
     var sets = c.ad_sets.map(function (a, i) {
-      return (i + 1) + '. "' + a.name + '"\n   - Locations: ' + (a.location_type === 'PAKISTAN' ? 'Pakistan (whole country)' : MAJOR_CITIES.join(', ') + ' (Pakistan)') + '\n   - Targeting: ' + (a.targeting_type === 'INTEREST' ? 'Interest targeting — exactly ONE detailed-targeting interest: ' + (a.interest || '(none given)') : 'Broad targeting (no detailed targeting)') + (abo ? '\n   - Ad set daily budget: PKR ' + Math.round(a.budget) : '');
+      return (i + 1) + '. "' + a.name + '"\n   - Locations: ' + (a.location_type === 'PAKISTAN' ? 'Pakistan (whole country)' : MAJOR_CITIES.join(', ') + ' (Pakistan)') + '\n   - Targeting: ' + (a.targeting_type === 'INTEREST' ? 'Interest targeting — exactly ONE detailed-targeting interest: ' + (a.interest || '(none given)') : 'Broad targeting (no detailed targeting)') + (abo ? '\n   - Ad set daily budget: PKR ' + Math.round(a.budget) : '') + '\n   - Ad (' + (adOf(i).angle || 'selected ad') + '):\n     Headline: ' + adOf(i).headline + '\n     Primary text:\n' + adOf(i).primary_text.replace(/^/gm, '       ') + '\n     Description: ' + adOf(i).description;
     }).join('\n');
     return 'You are helping me set up a Meta (Facebook/Instagram) ad campaign in Ads Manager (https://adsmanager.facebook.com/). Fill in the campaign below, and STOP at the final Review step. Do NOT click Publish or Confirm — I will review and publish it myself.\n\nIf the ad account currency is not PKR, or something below cannot be set exactly, stop and tell me instead of guessing.\n\n' +
       'CAMPAIGN\n- Campaign name: ' + c.campaign_name + '\n- Objective: ' + META_OBJ[c.objective] + ' (' + (OBJ[c.objective] || c.objective) + ')\n- Budget type: ' + (abo ? 'ABO — Ad Set Budget Optimization. Turn Advantage+ campaign budget OFF and set a budget on each ad set.' : 'CBO — Campaign Budget Optimization. Turn Advantage+ campaign budget ON and set it once on the campaign.') + '\n' +
@@ -238,7 +254,8 @@
       'AD SETS (' + c.ad_sets.length + ' — create exactly these)\n' + sets + '\n\nAUDIENCE (applies to every ad set)\n- Age: ' + c.audience_age_min + ' to ' + c.audience_age_max + '\n- Gender: ' + (GEN[c.audience_gender] || c.audience_gender) + '\n- Behaviors: ' + ((c.audience_behaviors || []).join(', ') || '(none)') + '\n\n' +
       'PLACEMENTS\n- ' + (c.placements_type === 'MANUAL' ? 'Manual placements: ' + c.placements.join(', ') : 'Advantage+ placements (leave Meta\'s automatic placements selected — do not pick placements manually)') + '\n\n' +
       'ADVANTAGE+ CREATIVE\n- ' + (c.advantage_creative ? 'ON — I chose to enable Meta\'s AI creative enhancements.' : 'OFF — make sure ALL Advantage+ creative enhancements are turned OFF / unticked for the ad. Do not accept Meta\'s suggested enhancements.') + '\n\n' +
-      'AD (' + (copy.angle || 'selected variation') + ') — use the same ad in every ad set\n- Format: ' + (FMT[c.ad_format] || c.ad_format) + '\n- Headline: ' + copy.headline + '\n- Primary text:\n' + copy.primary_text + '\n- Description: ' + copy.description + '\n- Language of copy: ' + (LANGS[c.language] || c.language) + '\n\nWhen everything is filled in, leave the Review screen open and tell me it is ready.';
+      'AD FORMAT AND LANGUAGE\n- Format: ' + (FMT[c.ad_format] || c.ad_format) + '\n- Language of copy: ' + (LANGS[c.language] || c.language) + '\n- Each ad set has its own ad (listed under the ad set above) — create exactly one ad per ad set with that copy.' +
+      '\n\nWhen everything is filled in, leave the Review screen open and tell me it is ready.';
   }
   function launchHtml() {
     return '<div class="cb-page"><div class="cb-launch"><h3>🚀 Meta Ads Manager opened and brief copied to clipboard</h3>Paste it into Claude chat (Claude in Chrome on the Ads Manager tab) to auto-fill everything. It fills in the campaign and <b>stops at the Review screen</b> — nothing is published until you press Publish yourself.' +
@@ -301,24 +318,23 @@
     var avoid = regen && S.run ? S.run.copies.map(function (c) { return '- ' + c.headline; }).join('\n') : '';
     S.busy = true; S.launched = false; S.loadMsg = 0; paint(); clearInterval(loadTimer); loadTimer = setInterval(function () { S.loadMsg++; var m = $q('#cbLoadMsg'); if (m) m.textContent = ['Reading your product page…', 'Designing the audience and placements…', 'Writing three ad copy angles…', 'Polishing headlines…'][S.loadMsg % 4]; }, 3500);
     MB.api('/api/ai/campaign/generate', { method: 'POST', body: { url: f.url, description: f.description, budget_type: f.budget_type, budget_daily: f.budget, ad_sets: f.ad_sets, placements_type: f.placements_type, placements: f.placements, advantage_creative: !!f.advantage_creative, goal: f.goal, language: f.language, style: f.style, client_id: f.client_id, avoid: avoid } }).then(function (r) {
-      clearInterval(loadTimer); S.busy = false; S.run = { generation_id: r.generation_id, campaign: r.campaign, copies: r.ad_copies, insights: r.insights, selected: null, page_note: r.page_note, product_url: r.product_url, brief: f.description, style: f.style }; S.learning = r.learning || S.learning; S.dirty = true; S.editSet = null; S.editCopy = null; paint(); window.scrollTo(0, 0);
+      clearInterval(loadTimer); S.busy = false; S.run = { generation_id: r.generation_id, campaign: r.campaign, copies: r.ad_copies, insights: r.insights, sel: r.campaign.ad_sets.map(function () { return null; }), page_note: r.page_note, product_url: r.product_url, brief: f.description, style: f.style }; S.learning = r.learning || S.learning; S.dirty = true; S.editSet = null; S.editCopy = null; paint(); window.scrollTo(0, 0);
     }).catch(function (e) { clearInterval(loadTimer); S.busy = false; S.err = e.message; paint(); });
   }
   function pick(i) {
-    var r = S.run; if (r.selected === i) return; r.selected = i; S.dirty = true; paint();
+    var r = S.run, si = setOf(r.copies[i]); if (r.sel[si] === i) return; r.sel[si] = i; S.dirty = true; paint();
     if (r.generation_id) MB.api('/api/ai/campaign/select', { method: 'POST', body: { generation_id: r.generation_id, index: i } }).then(function (x) { if (x.learning) { S.learning = x.learning; var n = $q('.cb-learn'); if (n) { n.outerHTML = learnChip(); } } }).catch(function () {});
   }
   function save(quiet) {
     var r = S.run;
-    return MB.api('/api/ai/campaign/save', { method: 'POST', body: { id: S.id, client_id: S.form.client_id, campaign: r.campaign, ad_copies: r.copies, selected_copy_index: r.selected, insights: r.insights, product_url: r.product_url || S.form.url, brief: r.brief || S.form.description, ad_style: r.style || S.form.style, generation_id: r.generation_id } }).then(function (x) {
+    return MB.api('/api/ai/campaign/save', { method: 'POST', body: { id: S.id, client_id: S.form.client_id, campaign: Object.assign({}, r.campaign, { ad_sets: r.campaign.ad_sets.map(function (a, si) { return Object.assign({}, a, { selected: r.sel[si] }); }) }), ad_copies: r.copies, insights: r.insights, product_url: r.product_url || S.form.url, brief: r.brief || S.form.description, ad_style: r.style || S.form.style, generation_id: r.generation_id } }).then(function (x) {
       S.id = x.id; S.status = x.campaign.status; S.dirty = false; if (!quiet) toast('Draft saved'); S.saved.list = null; S.lib.list = null; paint(); return x;
     }).catch(function (e) { toast(e.message); throw e; });
   }
   function launch() {
-    var r = S.run; if (r.selected === null) return toast('Select one ad copy variation first');
-    var copy = r.copies[r.selected];
+    var r = S.run; if (needsPick(r)) return toast('Select one ad for every ad set first');
     var w = window.open('https://adsmanager.facebook.com/', '_blank', 'noopener');
-    copyText(metaPrompt(r.campaign, copy));
+    copyText(metaPrompt(r.campaign, function (si) { return adFor(r, si); }));
     (S.id && !S.dirty ? Promise.resolve() : save(true)).then(function () { return MB.api('/api/ai/campaign/' + encodeURIComponent(S.id) + '/launch', { method: 'POST' }); }).then(function () {
       S.status = 'launched'; S.launched = true; S.saved.list = null; paint(); window.scrollTo(0, 0); toast(w ? '✓ Brief copied — paste it into Claude' : 'Pop-up blocked — use “Open Ads Manager”');
     }).catch(function (e) { toast(e.message || 'Could not launch'); });
@@ -327,8 +343,9 @@
     return MB.api('/api/ai/campaign/' + encodeURIComponent(id) + '?full=1').then(function (x) {
       var c = x.campaign, copies = c.ad_copies && c.ad_copies.length ? c.ad_copies : [{ angle: 'Saved copy', headline: c.ad_headline, primary_text: c.ad_primary_text, description: c.ad_description }];
       var camp = {}; ['campaign_name', 'objective', 'budget_daily', 'duration_days', 'start_date', 'audience_age_min', 'audience_age_max', 'audience_gender', 'audience_locations', 'audience_interests', 'audience_behaviors', 'ad_format', 'placements', 'language', 'budget_type', 'ad_sets', 'placements_type', 'advantage_creative'].forEach(function (k) { camp[k] = c[k]; });
-      var sel = c.selected_copy_index; if (sel === null || sel === undefined) sel = null; else if (!copies[sel]) sel = null;
-      S.run = { generation_id: c.generation_id, campaign: camp, copies: copies, insights: c.insights || [], selected: sel, page_note: '', product_url: c.product_url || '', brief: c.brief || '', style: c.ad_style || 'market' };
+      var sel = c.ad_sets.map(function (a, si) { var v = a.selected; return v !== null && v !== undefined && copies[v] && setOf(copies[v]) === si ? v : null; });
+      if (sel.every(function (v) { return v === null; }) && c.selected_copy_index !== null && c.selected_copy_index !== undefined && copies[c.selected_copy_index]) sel[setOf(copies[c.selected_copy_index])] = c.selected_copy_index;   // saved before ads were chosen per ad set
+      S.run = { generation_id: c.generation_id, campaign: camp, copies: copies, insights: c.insights || [], sel: sel, page_note: '', product_url: c.product_url || '', brief: c.brief || '', style: c.ad_style || 'market' };
       S.ideas = null; S.id = c.id; S.status = c.status; S.dirty = false; S.launched = false; S.err = ''; S.editCopy = null; S.editSet = edit ? JSON.parse(JSON.stringify(camp)) : null;
       S.form = { url: c.product_url || '', description: c.brief || '', budget: String(c.budget_type === 'CBO' ? c.budget_daily : 500), goal: c.objective, language: c.language, style: c.ad_style || 'market', client_id: c.client_id || '', budget_type: c.budget_type || 'CBO', ad_sets: JSON.parse(JSON.stringify(c.ad_sets)), placements_type: c.placements_type || 'ADVANTAGE', placements: (c.placements && c.placements.length ? c.placements.slice() : ['Facebook Feed', 'Instagram Feed']), advantage_creative: false };   // the creative toggle always starts unticked on a new brief
       S.tab = 'build'; ls.set('mb_ads_tab', 'build'); paint(); window.scrollTo(0, 0);
@@ -397,11 +414,11 @@
           else if (a === 'cancel-copy') { S.editCopy = null; paint(); }
           else if (a === 'done-copy') { card.querySelectorAll('[data-cf]').forEach(function (n) { c[n.dataset.cf] = n.value.trim(); }); S.editCopy = null; S.dirty = true; paint(); toast('Copy updated'); } }; });
       });
-      var rg = $q('#cbRegen'); if (rg) rg.onclick = function () { if (S.dirty && S.run && (S.run.selected !== null || S.editSet) && !confirm('Regenerate everything? Unsaved edits and your selection will be replaced.')) return; build(true); };
+      var rg = $q('#cbRegen'); if (rg) rg.onclick = function () { if (S.dirty && S.run && (S.run.sel.some(function (v) { return v !== null; }) || S.editSet) && !confirm('Regenerate everything? Unsaved edits and your selection will be replaced.')) return; build(true); };
       var sv = $q('#cbSave'); if (sv) sv.onclick = function () { if (S.id && !S.dirty) return toast('Already saved'); save(false); };
       var lg = $q('#cbLaunch'); if (lg) lg.onclick = launch;
       var bk = $q('#cbBack'); if (bk) bk.onclick = function () { S.run = null; S.id = null; S.status = 'draft'; S.dirty = false; S.err = ''; paint(); };
-      var ca = $q('#cbCopyAgain'); if (ca) ca.onclick = function () { copyText(metaPrompt(S.run.campaign, S.run.copies[S.run.selected])).then(function () { toast('✓ Copied'); }); };
+      var ca = $q('#cbCopyAgain'); if (ca) ca.onclick = function () { copyText(metaPrompt(S.run.campaign, function (si) { return adFor(S.run, si); })).then(function () { toast('✓ Copied'); }); };
       var om = $q('#cbOpenMeta'); if (om) om.onclick = function () { window.open('https://adsmanager.facebook.com/', '_blank', 'noopener'); };
       var rv = $q('#cbReview'); if (rv) rv.onclick = function () { S.launched = false; paint(); };
       var nw = $q('#cbNew'); if (nw) nw.onclick = function () { S.run = null; S.id = null; S.status = 'draft'; S.dirty = false; S.launched = false; S.err = ''; S.form.url = ''; S.form.description = ''; S.urlNote = ''; S.ideas = null; paint(); window.scrollTo(0, 0); };
