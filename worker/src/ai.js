@@ -75,6 +75,12 @@ async function putSetting(env, key, value, now) {
 }
 /** Worker secret CLAUDE_API_KEY wins; otherwise the key an admin saved in Settings */
 function keyOf(env, s) { return env.CLAUDE_API_KEY ? { key: env.CLAUDE_API_KEY, source: 'secret' } : s.claude_api_key ? { key: s.claude_api_key, source: 'settings' } : { key: null, source: null }; }
+/** THE one place the Claude key + model are resolved — Ad Copy, Campaign Builder and the connection test all go through here */
+async function claudeSetup(env, h) {
+  const settings = await getSettings(env), k = keyOf(env, settings);
+  if (!k.key) throw new h.HttpError(412, 'No Claude API key yet — an admin needs to add it in Settings → AI Settings.');
+  return { key: k.key, source: k.source, hint: maskKey(k.key), model: MODELS.includes(settings.model) ? settings.model : DEFAULT_MODEL, settings };
+}
 const maskKey = k => (k ? k.slice(0, 7) + '…' + k.slice(-4) : '');
 
 /* ------------------------------------------------------------ URL fetching */
@@ -187,10 +193,12 @@ function parseResults(text) {
   return out;
 }
 /** one place that talks to Claude: specific, secret-free errors (and a structured log line for `wrangler tail`) */
-function explainClaudeError(e, model, h) {
+function explainClaudeError(e, setup, h) {
+  const model = setup.model, via = `key ${setup.hint} from ${setup.source === 'secret' ? 'the Worker secret' : 'Settings'}`;
   const status = e && e.status, type = (e && e.error && e.error.error && e.error.error.type) || (e && e.name) || '', detail = String((e && e.error && e.error.error && e.error.error.message) || (e && e.message) || '').replace(/sk-ant-[A-Za-z0-9_\-]+/g, 'sk-ant-…').slice(0, 220);
-  console.error('claude error', JSON.stringify({ status, type, message: detail, model, request_id: (e && e.requestID) || null }));
-  if (status === 401 || status === 403) return new h.HttpError(502, 'Claude rejected the API key — check it in Settings → AI Settings.');
+  console.error('claude error', JSON.stringify({ status, type, message: detail, model, key: setup.hint, source: setup.source, request_id: (e && e.requestID) || null }));
+  if (status === 401) return new h.HttpError(502, `Claude rejected the API key (HTTP 401${detail ? ': ' + detail : ''}) — using ${via}. Check it in Settings → AI Settings.`);
+  if (status === 403) return new h.HttpError(502, `Claude refused this request (HTTP 403${detail ? ': ' + detail : ''}) — using ${via}, model ${model}. The key may not have access to that model — try another in Settings → AI Settings.`);
   if (status === 404) return new h.HttpError(502, `Claude says the model “${model}” isn't available for this API key — pick another model in Settings → AI Settings.`);
   if (status === 400 && /credit|billing/i.test(detail)) return new h.HttpError(502, 'The Claude account has no credit left — add credit in the Anthropic console.');
   if (status === 400) return new h.HttpError(502, `Claude rejected the request: ${detail || 'invalid request'}`);
@@ -201,22 +209,19 @@ function explainClaudeError(e, model, h) {
   if (/Connection/i.test(type)) return new h.HttpError(502, 'Could not reach Claude from the server — please try again.');
   return new h.HttpError(502, `Claude returned an unexpected error${status ? ' (HTTP ' + status + ')' : ''}${detail ? ': ' + detail : ''}`);
 }
-async function callClaude(env, key, model, system, content, h, maxTokens = 16000) {
+async function callClaude(env, setup, system, content, h, maxTokens = 16000) {
   try {
-    return await new Anthropic({ apiKey: key, maxRetries: 2, timeout: 100000, ...(env.CLAUDE_API_BASE ? { baseURL: env.CLAUDE_API_BASE } : {}) }).messages.create({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content }] });
-  } catch (e) { throw explainClaudeError(e, model, h); }
+    return await new Anthropic({ apiKey: setup.key, maxRetries: 2, timeout: 100000, ...(env.CLAUDE_API_BASE ? { baseURL: env.CLAUDE_API_BASE } : {}) }).messages.create({ model: setup.model, max_tokens: maxTokens, system, messages: [{ role: 'user', content }] });
+  } catch (e) { throw explainClaudeError(e, setup, h); }
 }
 /** admin "Test connection": one tiny real call that reports exactly what Claude answered */
 async function testClaude(env, h) {
-  const s = await getSettings(env), k = keyOf(env, s);
-  if (!k.key) throw new h.HttpError(412, 'No Claude API key saved yet.');
-  const model = MODELS.includes(s.model) ? s.model : DEFAULT_MODEL, t0 = Date.now();
-  const msg = await callClaude(env, k.key, model, 'Reply with the single word OK.', 'ping', h, 2000);
-  return { ok: true, model: msg.model || model, key_source: k.source, ms: Date.now() - t0, stop_reason: msg.stop_reason };
+  const setup = await claudeSetup(env, h), t0 = Date.now();
+  const msg = await callClaude(env, setup, 'Reply with the single word OK.', 'ping', h, 2000);
+  return { ok: true, model: msg.model || setup.model, key_source: setup.source, key_hint: setup.hint, ms: Date.now() - t0, stop_reason: msg.stop_reason };
 }
 async function generate(req, env, user, h) {
-  const b = await h.readBody(req), s = await getSettings(env), { key } = keyOf(env, s);
-  if (!key) throw new h.HttpError(412, 'No Claude API key yet — an admin needs to add it in Settings → AI Settings.');
+  const b = await h.readBody(req), setup = await claudeSetup(env, h), s = setup.settings;
   const brief = String(b.brief || '').trim().slice(0, 3000), language = LANGUAGES.includes(b.language) ? b.language : (s.default_language || 'English'), style = STYLES.includes(b.style) ? b.style : (s.default_style || 'market');
   if (!String(b.url || '').trim()) throw h.bad('Paste the product or service link');
   if (brief.length < 10) throw h.bad('Add a short brief: product, offer, audience and key benefit');
@@ -237,8 +242,8 @@ async function generate(req, env, user, h) {
     'Write the ad copy now. Return only the JSON.',
   ].filter(Boolean).join('\n\n');
 
-  const model = MODELS.includes(s.model) ? s.model : DEFAULT_MODEL;
-  const msg = await callClaude(env, key, model, system, content, h);
+  const model = setup.model;
+  const msg = await callClaude(env, setup, system, content, h);
   if (msg.stop_reason === 'refusal') throw new h.HttpError(422, 'Claude declined this request. Try rewording the brief.');
   const text = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n');
   const results = parseResults(text);
@@ -346,8 +351,7 @@ function parseCampaign(text) {
   try { const j = JSON.parse(s.slice(a, b + 1)); return j && typeof j === 'object' ? j : null; } catch { return null; }
 }
 async function buildCampaign(req, env, user, h) {
-  const b = await h.readBody(req), s = await getSettings(env), { key } = keyOf(env, s);
-  if (!key) throw new h.HttpError(412, 'No Claude API key yet — an admin needs to add it in Settings → AI Settings.');
+  const b = await h.readBody(req), setup = await claudeSetup(env, h);
   const instruction = String(b.instruction || '').trim().slice(0, 2000);
   if (instruction.length < 3) throw h.bad('Tell me about the campaign — product, audience, budget, duration…');
   const since = new Date(Date.now() - 3600e3).toISOString().replace('T', ' ').slice(0, 19);
@@ -356,8 +360,8 @@ async function buildCampaign(req, env, user, h) {
   await env.DB.prepare("INSERT INTO ai_usage (user_id,kind) VALUES (?,'campaign')").bind(user.id).run();
   const current = b.campaign && typeof b.campaign === 'object' ? normalizeCampaign(b.campaign) : null;
   const content = [`Today's date (Pakistan): ${todayPk()}`, current ? `CURRENT CAMPAIGN (JSON):\n${JSON.stringify({ ...current, summary: String(b.campaign.summary || '').slice(0, 400) })}` : '', `${current ? 'FOLLOW-UP INSTRUCTION' : 'INSTRUCTION'} (${b.mode === 'voice' ? 'spoken, so the transcript may contain recognition mistakes' : 'typed'}):\n${instruction}`, 'Return only the JSON.'].filter(Boolean).join('\n\n');
-  const model = MODELS.includes(s.model) ? s.model : DEFAULT_MODEL;
-  const msg = await callClaude(env, key, model, CAMPAIGN_PROMPT + (current ? FOLLOWUP_NOTE : ''), content, h);
+  const model = setup.model;
+  const msg = await callClaude(env, setup, CAMPAIGN_PROMPT + (current ? FOLLOWUP_NOTE : ''), content, h);
   if (msg.stop_reason === 'refusal') throw new h.HttpError(422, 'Claude declined this request. Try rewording it.');
   const raw = parseCampaign((msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n'));
   if (!raw) throw new h.HttpError(502, msg.stop_reason === 'max_tokens' ? 'The answer was cut off — please try again.' : 'Claude returned an unexpected answer — please try again.');
