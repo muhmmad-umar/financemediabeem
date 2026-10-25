@@ -16,7 +16,7 @@
   var ls = { get: function (k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
   var $q = function (s, r) { return (r || root).querySelector(s); };
 
-  var S = { setOpen: null, tab: ls.get('mb_ads_tab', 'build'), step: 1, form: { url: '', description: '', budget: '500', goal: 'CONVERSIONS', language: '', style: '', client_id: '', budget_type: 'CBO', ad_sets: [{ name: 'Ad Set 1', location_type: 'PAKISTAN', targeting_type: 'BROAD', interest: '', budget: 500 }], placements_type: 'ADVANTAGE', placements: ['Facebook Feed', 'Instagram Feed', 'Instagram Reels'], advantage_creative: false }, urlNote: '', err: '', busy: false,
+  var S = { ideas: null, setOpen: null, tab: ls.get('mb_ads_tab', 'build'), step: 1, form: { url: '', description: '', budget: '500', goal: 'CONVERSIONS', language: '', style: '', client_id: '', budget_type: 'CBO', ad_sets: [{ name: 'Ad Set 1', location_type: 'PAKISTAN', targeting_type: 'BROAD', interest: '', budget: 500 }], placements_type: 'ADVANTAGE', placements: ['Facebook Feed', 'Instagram Feed', 'Instagram Reels'], advantage_creative: false }, urlNote: '', err: '', busy: false,
     run: null, id: null, status: 'draft', dirty: false, editSet: null, editCopy: null, launched: false, learning: null, loadMsg: 0,
     saved: { list: null, client_id: '', status: '', from: '', to: '', all: false }, lib: { list: null, angles: [], client_id: '', language: '', style: '', angle: '', from: '', to: '', q: '', all: false } };
   if (['build', 'saved', 'library'].indexOf(S.tab) < 0) S.tab = 'build';
@@ -29,6 +29,8 @@
  '.cb-as{border:1px solid var(--cbline);border-radius:14px;padding:14px;margin-bottom:12px;background:rgba(255,255,255,.02)}.cb-ash{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--cbline);padding-bottom:10px;margin-bottom:4px}.cb-ash b{letter-spacing:.06em;font-size:13px}.cb-ash button{border:1px solid var(--cbline);background:none;color:var(--red,#ef4444);border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;min-height:40px}.cb-addas{width:100%;border:2px dashed var(--cbline);background:none;color:var(--cbacc);border-radius:12px;padding:14px;font-weight:800;font-size:15px;cursor:pointer;min-height:50px}.cb-addas:hover{border-color:var(--cbacc)}' +
     '.cb-money{display:flex;align-items:center;gap:8px}.cb-money input{flex:1}.cb-money span{color:var(--cbmut);font-weight:700;flex:none}.cb-pl{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.cb-pl label{display:flex;gap:6px;align-items:center;border:1px solid var(--cbline);border-radius:99px;padding:8px 14px;font-size:13px;cursor:pointer;min-height:40px}.cb-pl input{width:auto!important}' +
     '.cb .cb-chk{display:flex!important;gap:12px;align-items:flex-start;border:1px solid var(--cbline);border-radius:10px;padding:12px;cursor:pointer;font-size:14px;font-weight:500;color:var(--cbtx);margin:0}.cb .cb-chk input{width:20px!important;height:20px!important;min-height:0!important;margin:1px 0 0!important;accent-color:var(--cbacc);flex:none}.cb .cb-chk small{display:block;color:var(--cbmut);font-size:12px;font-weight:400;margin-top:2px}.cb-asum{font-size:14px;line-height:1.7}.cb-tot{margin-top:8px;padding-top:8px;border-top:1px solid var(--cbline)}' +
+ '.cb-ideabtn{margin-top:10px;width:100%;border:1px solid var(--cbacc);background:rgba(124,58,237,.1);color:var(--cbtx);border-radius:10px;padding:13px;font-weight:700;font-size:14px;cursor:pointer;min-height:48px}.cb-ideabtn:disabled{opacity:.7;cursor:wait}.cb-sp2{display:inline-block;width:14px;height:14px;border:2px solid var(--cbline);border-top-color:var(--cbacc);border-radius:50%;animation:cb-sp .8s linear infinite;vertical-align:-2px;margin-right:8px}' +
+    '.cb-ideas{margin-top:14px;border-top:2px solid var(--cbline);padding-top:12px}.cb-ih{font-weight:800;letter-spacing:.05em;font-size:13px;margin-bottom:10px}.cb-idea{border:2px solid var(--cbline);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;background:var(--cbbg);transition:border-color .15s}.cb-idea:hover{border-color:rgba(124,58,237,.6)}.cb-idea.sel{border-color:var(--cbacc);background:rgba(124,58,237,.12);box-shadow:0 0 0 3px rgba(124,58,237,.22)}.cb-idea.sel .cb-pick{background:var(--cbacc);border-color:var(--cbacc);color:#fff}.cb-itx{font-size:14.5px;line-height:1.6;margin:4px 0 6px;white-space:pre-wrap}.cb-itg{font-size:12.5px;color:var(--cbmut)}' +
     '.cb-steps{display:flex;gap:6px;margin-bottom:16px;font-size:12.5px;font-weight:700;color:var(--cbmut)}.cb-steps span{flex:1;text-align:center;padding:8px 4px;border-bottom:3px solid var(--cbline);white-space:nowrap}.cb-steps span.on{color:var(--cbtx);border-color:var(--cbacc)}.cb-steps span.done{color:var(--green,#22c55e);border-color:var(--green,#22c55e)}' +
     '.cb-lbl{display:block;font-size:11.5px;font-weight:700;letter-spacing:.07em;color:var(--cbmut);text-transform:uppercase;margin:18px 0 6px}.cb-lbl:first-child{margin-top:0}.cb-lbl em{color:var(--red,#ef4444);font-style:normal}.cb-hint{font-size:12.5px;color:var(--cbmut);margin-top:6px}.cb-hint.ok{color:var(--green,#22c55e)}.cb-hint.bad{color:var(--amber,#f59e0b)}' +
     '.cb-seg{display:flex;gap:8px;flex-wrap:wrap}.cb .cb-seg label{flex:1 1 130px;display:flex!important;gap:10px;align-items:center;text-align:left;border:1px solid var(--cbline);border-radius:10px;padding:12px;cursor:pointer;font-size:14px;font-weight:500;color:var(--cbtx);margin:0}.cb .cb-seg label small{display:block;color:var(--cbmut);font-size:12px;font-weight:400}.cb .cb-seg input{width:18px!important;height:18px!important;min-height:0!important;padding:0!important;margin:0!important;accent-color:var(--cbacc);flex:none}.cb .cb-seg label.on{border-color:var(--cbacc);background:rgba(124,58,237,.12)}' +
@@ -138,7 +140,7 @@
     return '<form id="cbForm" class="card cb-page" novalidate>' +
       '<label class="cb-lbl">Budget optimization</label>' + budgetTypeHtml(f, 'f') +
       '<label class="cb-lbl" for="cbUrl">Product / service link <em>*</em></label><input type="url" id="cbUrl" inputmode="url" placeholder="https://..." value="' + esc(f.url) + '" autocomplete="off"><div class="cb-hint ' + (S.urlNote.indexOf('✓') === 0 ? 'ok' : S.urlNote ? 'bad' : '') + '" id="cbUrlNote">' + esc(S.urlNote || 'We read the page automatically so the copy uses your real offer.') + '</div>' +
-      '<label class="cb-lbl" for="cbDesc">Short description <em>*</em></label><textarea id="cbDesc" rows="4" placeholder="e.g. Teeth whitening powder, removes stains in 7 days, PKR 1,200">' + esc(f.description) + '</textarea>' +
+      '<label class="cb-lbl" for="cbDesc">Short description <em>*</em></label><textarea id="cbDesc" rows="4" placeholder="e.g. Teeth whitening powder, removes stains in 7 days, PKR 1,200">' + esc(f.description) + '</textarea>' + ideasHtml() +
       (f.budget_type === 'CBO' ? '<label class="cb-lbl" for="cbBud">Campaign budget</label><div class="cb-money"><span>₨</span><input type="number" id="cbBud" min="1" step="1" inputmode="numeric" value="' + esc(f.budget) + '"><span>/ day</span></div><div class="cb-hint">Meta distributes this across your ad sets.</div>' : '<div class="cb-hint" style="margin-top:14px">ABO: there is no campaign budget — set a daily budget on each ad set below.</div>') +
       '<label class="cb-lbl">Campaign goal</label><div class="cb-seg">' + Object.keys(GOALS).map(function (k) { return radio('goal', k, GOALS[k], f.goal); }).join('') + '</div>' +
       '<label class="cb-lbl">Language</label><div class="cb-seg">' + Object.keys(LANGS).map(function (k) { return radio('language', k, LANGS[k], f.language); }).join('') + '</div>' +
@@ -150,6 +152,24 @@
       (S.err ? '<div class="cb-err">' + esc(S.err) + '</div>' : '') +
       '<button class="cb-go" id="cbBuild" type="submit" ' + (cfg && !cfg.has_key ? 'disabled' : '') + '>✨ Build Campaign + Ad Copies</button></form>';
   }
+  function ideasHtml() {
+    var I = S.ideas || {}, h = '<button type="button" class="cb-ideabtn" id="cbIdeas" ' + (I.busy || (cfg && !cfg.has_key) ? 'disabled' : '') + '>' + (I.busy ? '<span class="cb-sp2"></span>✨ Analysing your product and finding the best angles...' : '✨ Generate Brief Ideas') + '</button>' + (I.err ? '<div class="cb-err" style="margin:10px 0 0">' + esc(I.err) + '</div>' : '');
+    if (I.list && I.list.length) {
+      h += '<div class="cb-ideas"><div class="cb-ih">💡 BRIEF IDEAS — pick one or edit your own</div>' + I.list.map(function (x, i) {
+        return '<div class="cb-idea ' + (I.sel === i ? 'sel' : '') + '" data-idea="' + i + '" role="button" tabindex="0"><div class="cb-vh"><span class="cb-pick">✓</span><b>Angle ' + (i + 1) + ' — ' + esc(x.angle) + '</b></div><div class="cb-itx" dir="auto">' + esc(x.brief) + '</div>' + (x.target ? '<div class="cb-itg">For: ' + esc(x.target) + '</div>' : '') + '</div>';
+      }).join('') + '</div>';
+    }
+    return h;
+  }
+  function getIdeas() {
+    readForm(); var f = S.form, I = S.ideas = Object.assign({ list: null, sel: null }, S.ideas || {}); I.err = '';
+    if (!f.url || !/^https?:\/\//i.test(f.url)) { I.err = 'Please enter your product link first'; return paint(); }
+    I.busy = true; paint();
+    MB.api('/api/ai/campaign/brief-ideas', { method: 'POST', body: { url: f.url } }).then(function (r) { S.ideas = { list: r.briefs, sel: null, busy: false, err: '', url: f.url }; paint(); var n = $q('.cb-ideas'); if (n) n.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); })
+      .catch(function (e) { S.ideas = Object.assign(S.ideas || {}, { busy: false, err: e.message }); paint(); });
+  }
+  function useIdea(i) { readForm(); var I = S.ideas; if (!I || !I.list[i]) return; I.sel = i; S.form.description = I.list[i].brief; paint(); var d = $q('#cbDesc'); if (d) { d.focus({ preventScroll: true }); d.setSelectionRange(d.value.length, d.value.length); } }
+
   function loadHtml() {
     var msgs = ['Reading your product page…', 'Designing the audience and placements…', 'Writing three ad copy angles…', 'Polishing headlines…'];
     return '<div class="card cb-load cb-page"><div class="sp"></div><b>Building your campaign…</b><span id="cbLoadMsg">' + msgs[S.loadMsg % msgs.length] + '</span><div class="cb-hint" style="margin-top:14px">One Claude call writes the settings and all 3 ad copies — usually 10–20 seconds.</div></div>';
@@ -308,7 +328,7 @@
       var camp = {}; ['campaign_name', 'objective', 'budget_daily', 'duration_days', 'start_date', 'audience_age_min', 'audience_age_max', 'audience_gender', 'audience_locations', 'audience_interests', 'audience_behaviors', 'ad_format', 'placements', 'language', 'budget_type', 'ad_sets', 'placements_type', 'advantage_creative'].forEach(function (k) { camp[k] = c[k]; });
       var sel = c.selected_copy_index; if (sel === null || sel === undefined) sel = null; else if (!copies[sel]) sel = null;
       S.run = { generation_id: c.generation_id, campaign: camp, copies: copies, insights: c.insights || [], selected: sel, page_note: '', product_url: c.product_url || '', brief: c.brief || '', style: c.ad_style || 'market' };
-      S.id = c.id; S.status = c.status; S.dirty = false; S.launched = false; S.err = ''; S.editCopy = null; S.editSet = edit ? JSON.parse(JSON.stringify(camp)) : null;
+      S.ideas = null; S.id = c.id; S.status = c.status; S.dirty = false; S.launched = false; S.err = ''; S.editCopy = null; S.editSet = edit ? JSON.parse(JSON.stringify(camp)) : null;
       S.form = { url: c.product_url || '', description: c.brief || '', budget: String(c.budget_type === 'CBO' ? c.budget_daily : 500), goal: c.objective, language: c.language, style: c.ad_style || 'market', client_id: c.client_id || '', budget_type: c.budget_type || 'CBO', ad_sets: JSON.parse(JSON.stringify(c.ad_sets)), placements_type: c.placements_type || 'ADVANTAGE', placements: (c.placements && c.placements.length ? c.placements.slice() : ['Facebook Feed', 'Instagram Feed']), advantage_creative: false };   // the creative toggle always starts unticked on a new brief
       S.tab = 'build'; ls.set('mb_ads_tab', 'build'); paint(); window.scrollTo(0, 0);
     }).catch(function (e) { toast(e.message); });
@@ -355,6 +375,8 @@
         $q('#cbUrl').onchange = checkUrl; $q('#cbUrl').oninput = function () { S.form.url = this.value.trim(); }; $q('#cbDesc').oninput = function () { S.form.description = this.value; }; var bud = $q('#cbBud'); if (bud) bud.oninput = function () { S.form.budget = this.value; };
         form.querySelectorAll('.cb-seg input').forEach(function (i) { i.onchange = function () { readForm(); form.querySelectorAll('.cb-seg label').forEach(function (l) { l.classList.toggle('on', l.querySelector('input').checked); }); }; });
         $q('#cbClient').onchange = readForm;
+        var ib = $q('#cbIdeas'); if (ib) ib.onclick = getIdeas;
+        form.querySelectorAll('[data-idea]').forEach(function (n) { n.onclick = function () { useIdea(+n.dataset.idea); }; n.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); useIdea(+n.dataset.idea); } }; });
         bindAdvanced(form, function () { return S.form; }, function () { readForm(); paint(); });
       }
       var sd = $q('#cbSettings'); if (sd) { sd.open = S.editSet ? true : (S.setOpen === null ? !MQ.matches : S.setOpen); sd.ontoggle = function () { if (!S.editSet) S.setOpen = sd.open; }; }
@@ -381,7 +403,7 @@
       var ca = $q('#cbCopyAgain'); if (ca) ca.onclick = function () { copyText(metaPrompt(S.run.campaign, S.run.copies[S.run.selected])).then(function () { toast('✓ Copied'); }); };
       var om = $q('#cbOpenMeta'); if (om) om.onclick = function () { window.open('https://adsmanager.facebook.com/', '_blank', 'noopener'); };
       var rv = $q('#cbReview'); if (rv) rv.onclick = function () { S.launched = false; paint(); };
-      var nw = $q('#cbNew'); if (nw) nw.onclick = function () { S.run = null; S.id = null; S.status = 'draft'; S.dirty = false; S.launched = false; S.err = ''; S.form.url = ''; S.form.description = ''; S.urlNote = ''; paint(); window.scrollTo(0, 0); };
+      var nw = $q('#cbNew'); if (nw) nw.onclick = function () { S.run = null; S.id = null; S.status = 'draft'; S.dirty = false; S.launched = false; S.err = ''; S.form.url = ''; S.form.description = ''; S.urlNote = ''; S.ideas = null; paint(); window.scrollTo(0, 0); };
     } else if (S.tab === 'saved') {
       [['fsCl', 'client_id'], ['fsSt', 'status'], ['fsFrom', 'from'], ['fsTo', 'to']].forEach(function (p) { var n = $q('#' + p[0]); if (n) n.onchange = function () { S.saved[p[1]] = n.value; loadSaved(); }; });
       var fa = $q('#fsAll'); if (fa) fa.onchange = function () { S.saved.all = fa.checked; loadSaved(); };
