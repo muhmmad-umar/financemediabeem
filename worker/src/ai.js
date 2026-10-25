@@ -186,17 +186,33 @@ function parseResults(text) {
   for (const t of TYPES) { const arr = (j[RESULT_KEYS[t]] || []).map(x => String(x ?? '').trim()).filter(Boolean).slice(0, 3); if (!arr.length) return null; out[RESULT_KEYS[t]] = arr; }
   return out;
 }
-/** one place that talks to Claude: friendly errors, no secrets in logs */
-async function callClaude(env, key, model, system, content, h) {
+/** one place that talks to Claude: specific, secret-free errors (and a structured log line for `wrangler tail`) */
+function explainClaudeError(e, model, h) {
+  const status = e && e.status, type = (e && e.error && e.error.error && e.error.error.type) || (e && e.name) || '', detail = String((e && e.error && e.error.error && e.error.error.message) || (e && e.message) || '').replace(/sk-ant-[A-Za-z0-9_\-]+/g, 'sk-ant-…').slice(0, 220);
+  console.error('claude error', JSON.stringify({ status, type, message: detail, model, request_id: (e && e.requestID) || null }));
+  if (status === 401 || status === 403) return new h.HttpError(502, 'Claude rejected the API key — check it in Settings → AI Settings.');
+  if (status === 404) return new h.HttpError(502, `Claude says the model “${model}” isn't available for this API key — pick another model in Settings → AI Settings.`);
+  if (status === 400 && /credit|billing/i.test(detail)) return new h.HttpError(502, 'The Claude account has no credit left — add credit in the Anthropic console.');
+  if (status === 400) return new h.HttpError(502, `Claude rejected the request: ${detail || 'invalid request'}`);
+  if (status === 413) return new h.HttpError(502, 'That request was too large for Claude — shorten it and try again.');
+  if (status === 429) return new h.HttpError(503, 'Claude is rate-limiting this API key (or it is out of quota) — try again in a minute.');
+  if (status >= 500) return new h.HttpError(503, `Claude is temporarily unavailable (HTTP ${status}${type ? ', ' + type : ''}) — please try again in a moment.`);
+  if (/Timeout/i.test(type)) return new h.HttpError(504, 'Claude took too long to respond — please try again.');
+  if (/Connection/i.test(type)) return new h.HttpError(502, 'Could not reach Claude from the server — please try again.');
+  return new h.HttpError(502, `Claude returned an unexpected error${status ? ' (HTTP ' + status + ')' : ''}${detail ? ': ' + detail : ''}`);
+}
+async function callClaude(env, key, model, system, content, h, maxTokens = 16000) {
   try {
-    return await new Anthropic({ apiKey: key, maxRetries: 1, timeout: 120000, ...(env.CLAUDE_API_BASE ? { baseURL: env.CLAUDE_API_BASE } : {}) }).messages.create({ model, max_tokens: 16000, system, messages: [{ role: 'user', content }] });
-  } catch (e) {
-    if (e && e.status === 401) throw new h.HttpError(502, 'Claude rejected the API key — check it in Settings → AI Settings.');
-    if (e && e.status === 429) throw new h.HttpError(503, 'Claude is busy or the API key is out of quota — try again in a minute.');
-    if (e && e.status === 400 && /credit|billing/i.test(String(e.message))) throw new h.HttpError(502, 'The Claude account has no credit left — add credit in the Anthropic console.');
-    console.error('claude error', e && (e.status || e.message));
-    throw new h.HttpError(502, 'Claude could not answer right now — please try again.');
-  }
+    return await new Anthropic({ apiKey: key, maxRetries: 2, timeout: 100000, ...(env.CLAUDE_API_BASE ? { baseURL: env.CLAUDE_API_BASE } : {}) }).messages.create({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content }] });
+  } catch (e) { throw explainClaudeError(e, model, h); }
+}
+/** admin "Test connection": one tiny real call that reports exactly what Claude answered */
+async function testClaude(env, h) {
+  const s = await getSettings(env), k = keyOf(env, s);
+  if (!k.key) throw new h.HttpError(412, 'No Claude API key saved yet.');
+  const model = MODELS.includes(s.model) ? s.model : DEFAULT_MODEL, t0 = Date.now();
+  const msg = await callClaude(env, k.key, model, 'Reply with the single word OK.', 'ping', h, 2000);
+  return { ok: true, model: msg.model || model, key_source: k.source, ms: Date.now() - t0, stop_reason: msg.stop_reason };
 }
 async function generate(req, env, user, h) {
   const b = await h.readBody(req), s = await getSettings(env), { key } = keyOf(env, s);
@@ -447,7 +463,8 @@ export async function handleAi(req, env, user, seg, url, h) {
     const rs = await env.DB.prepare(`SELECT id,client_id,product_url,page_title,brief,language,style,created_at FROM ad_generations ${all ? '' : 'WHERE user_id=?'} ORDER BY created_at DESC LIMIT 20`).bind(...(all ? [] : [user.id])).all();
     return { history: rs.results };
   }
-  if (r === 'campaign/build' && m === 'POST') return buildCampaign(req, env, user, h);
+  if ((r === 'campaign/build' || r === 'generate-campaign') && m === 'POST') return buildCampaign(req, env, user, h);
+  if (r === 'test' && m === 'POST') { if (user.role !== 'admin') throw h.forbidden('Only an admin can run the connection test'); return testClaude(env, h); }
   if (r === 'campaign' && m === 'POST') return saveCampaign(req, env, user, h);
   if (r === 'campaigns' && m === 'GET') return listCampaigns(env, user, url);
   if (seg[2] === 'campaign' && seg[3] && seg.length === 4 && m === 'GET') return { campaign: campJson(await ownCampaign(env, user, seg[3], h)) };
