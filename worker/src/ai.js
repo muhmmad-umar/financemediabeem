@@ -296,7 +296,6 @@ Extract and build a complete Meta Ads campaign with these fields:
 - ad_headline: max 6 words, USP-focused, friction-reducing
 - ad_primary_text: 4-8 lines, hook → benefits → CTA, Pakistani market style
 - ad_description: 1 line, max 10 words
-- ad_format: SINGLE_IMAGE | VIDEO | CAROUSEL | REELS
 - placements: array from [Facebook Feed, Instagram Feed, Instagram Reels, Facebook Reels, Stories]
 - language: ENGLISH | URDU | HINGLISH
 
@@ -321,7 +320,7 @@ const CAMP_LABEL = { campaign_name: 'Name', objective: 'Objective', budget_daily
 const nowPk = () => new Date(Date.now() + 5 * 3600e3).toISOString().slice(11, 16);
 const todayPk = () => new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);   // Pakistan time
 const strList = (v, max = 12) => (Array.isArray(v) ? v : typeof v === 'string' ? v.split(/[,;\n]/) : []).map(x => String(x ?? '').trim().slice(0, 80)).filter(Boolean).filter((x, i, a) => a.indexOf(x) === i).slice(0, max);
-const pickEnum = (v, list, d) => { const k = String(v ?? '').trim().toUpperCase().replace(/[\s-]+/g, '_'); return list.includes(k) ? k : d; };
+const pickEnum = (v, list, d) => { let k = String(v ?? '').trim().toUpperCase().replace(/[\s-]+/g, '_'); if (k === 'IMAGE') k = 'SINGLE_IMAGE'; return list.includes(k) ? k : d; };
 /** whatever Claude (or the edit form) sends, store only clean, bounded values */
 export function normalizeCampaign(c, base = {}) {
   const num = (v, d, lo, hi) => { const n = Math.round(+String(v ?? '').replace(/[, ]/g, '')); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
@@ -423,7 +422,6 @@ CAMPAIGN SETTINGS:
 - audience_gender: ALL | MALE | FEMALE
 - audience_locations: Pakistani cities array
 - audience_interests: relevant interests array
-- ad_format: SINGLE_IMAGE | VIDEO | CAROUSEL | REELS
 - placements: array
 
 COPYWRITING:
@@ -559,7 +557,6 @@ const UNIFIED_NOTES = `
 FIELD FORMAT (the app validates these exactly):
 - objective: CONVERSIONS | TRAFFIC | ENGAGEMENT | LEAD_GENERATION | AWARENESS
 - audience_gender: ALL | MALE | FEMALE
-- ad_format: SINGLE_IMAGE | VIDEO | CAROUSEL | REELS
 - budget_daily is a number. Do not return duration_days or an end date; the campaign has only a start date and time. Age is set by the user (see AGE in the message) — still fill audience_age_min and audience_age_max with sensible numbers.
 - The campaign's audience_locations and audience_interests are derived by the app from ad_sets, so leave them empty arrays; audience_behaviors must be an empty array (never use behaviors). Placements are chosen by the user, so you may leave placements empty.
 - Write every ad copy in the requested LANGUAGE: English = clean, modern, confident; Urdu = natural conversational Urdu (not translated English) in proper Urdu script; Hinglish = the natural Roman-script mix Pakistanis actually speak. Each ad within an ad set must use a clearly different angle.
@@ -582,6 +579,7 @@ Return the ad_sets array with each ad set containing:
 (name = the same ad set name given in the message; ads = its ad copies as described above) where location_type is "PAKISTAN" (whole country) or "MAJOR_CITIES" (the 8 cities above), targeting_type is "BROAD" or "INTEREST", interest is a single interest (empty for BROAD), and budget is the PKR/day for that ad set only when the budget type is ABO. "ad_sets" sits next to "campaign" and "insights" in the JSON.`;
 const GOALS = { CONVERSIONS: 'CONVERSIONS', TRAFFIC: 'TRAFFIC', ENGAGEMENT: 'ENGAGEMENT', LEADS: 'LEAD_GENERATION', LEAD_GENERATION: 'LEAD_GENERATION', AWARENESS: 'AWARENESS' };
 const clip = (v, n) => String(v ?? '').trim().slice(0, n);
+const AD_FORMATS = ['SINGLE_IMAGE', 'VIDEO', 'CAROUSEL'];
 const ANGLES = ['Social Proof', 'Problem/Pain', 'Identity', 'Urgency', 'Curiosity'], MAX_ADS_PER_SET = 20, MAX_ADS_TOTAL = 30;   // generous caps so one answer always fits
 const setIdx = v => { const n = Math.round(+v); return n >= 0 && n < 100 ? n : 0; };
 /** flat list of ad copies; every copy carries `set` = the index of its ad set (copies saved before ad sets had several ads count as set 0) */
@@ -591,7 +589,7 @@ function cleanCopies(arr, forSet = null, max = 300) {
     const set = forSet === null ? setIdx(c && c.set) : forSet, headline = clip(c && c.headline, 120), primary_text = clip(c && c.primary_text, 2500);
     if (!headline || !primary_text || out.length >= max) continue;
     const k = per[set] = (per[set] || 0) + 1;
-    out.push({ set, angle: clip(c && c.angle, 40) || ANGLES[(k - 1) % ANGLES.length], headline, primary_text, description: clip(c && c.description, 150) });
+    out.push({ set, format: pickEnum(c && c.format, AD_FORMATS, 'SINGLE_IMAGE'), angle: clip(c && c.angle, 40) || ANGLES[(k - 1) % ANGLES.length], headline, primary_text, description: clip(c && c.description, 150) });
   }
   return out;
 }
@@ -607,14 +605,17 @@ export function normalizeAdSets(arr, budgetType, ai = []) {
     const mine = (ai && ai[i]) || {}, targeting = pickEnum(a.targeting_type ?? mine.targeting_type, TARGETS, 'BROAD');
     const given = oneInterest(a.interest), interest = targeting === 'INTEREST' ? (given || oneInterest(mine.interest)) : '';
     const bud = Math.round(+String(a.budget ?? '').replace(/[, ]/g, ''));
-    const ads = Math.min(MAX_ADS_PER_SET, Math.max(1, Math.round(+a.ads) || 1)), sel = a.selected === null || a.selected === undefined || a.selected === '' ? null : Math.round(+a.selected);
-    return { name: clip(a.name, 60) || `Ad Set ${i + 1}`, location_type: pickEnum(a.location_type, LOCS, 'PAKISTAN'), targeting_type: targeting, interest, ads, selected: sel !== null && sel >= 0 ? sel : null, budget: abo ? (bud >= 1 && bud <= 100000000 ? bud : 500) : null };
+    const ads = Math.min(MAX_ADS_PER_SET, Math.max(1, Math.round(+a.ads) || 1)), selList = (Array.isArray(a.selected) ? a.selected : a.selected === null || a.selected === undefined || a.selected === '' ? [] : [a.selected]).map(x => Math.round(+x)).filter((x, k, arr) => x >= 0 && arr.indexOf(x) === k);
+    const sd = String(a.start_date ?? '').trim(), stt = String(a.start_time ?? '').trim();
+    return { name: clip(a.name, 60) || `Ad Set ${i + 1}`, location_type: pickEnum(a.location_type, LOCS, 'PAKISTAN'), targeting_type: targeting, interest, ads, selected: selList, start_date: /^\d{4}-\d{2}-\d{2}$/.test(sd) && !Number.isNaN(Date.parse(sd)) ? sd : todayPk(), start_time: /^([01]\d|2[0-3]):[0-5]\d$/.test(stt) ? stt : nowPk(), budget: abo ? (bud >= 1 && bud <= 100000000 ? bud : 500) : null };
   });
 }
 const adSetsLocations = sets => (sets.some(a => a.location_type === 'PAKISTAN') ? ['Pakistan'] : []).concat(sets.some(a => a.location_type === 'MAJOR_CITIES') ? MAJOR_CITIES : []);
 const adSetsInterests = sets => [...new Set(sets.map(a => a.interest).filter(Boolean))];
 /** keep the legacy audience / budget columns consistent with the ad sets */
 function applyAdSets(c, sets, budgetType) {
+  const first = [...sets].sort((x, y) => (x.start_date + x.start_time).localeCompare(y.start_date + y.start_time))[0];
+  if (first) { c.start_date = first.start_date; c.start_time = first.start_time; }   // the campaign-level columns only summarise the earliest ad set
   c.budget_type = budgetType; c.ad_sets = sets; c.audience_locations = adSetsLocations(sets); c.audience_interests = adSetsInterests(sets);
   if (budgetType === 'ABO') c.budget_daily = sets.reduce((t, a) => t + (a.budget || 0), 0) || c.budget_daily;
   return c;
@@ -628,6 +629,7 @@ async function generateUnified(req, env, user, h) {
   if (!goal) throw h.bad('Pick a campaign goal');
   const budgetType = b.budget_type === 'ABO' ? 'ABO' : 'CBO';
   const inSets = normalizeAdSets(b.ad_sets, budgetType);
+  inSets.forEach(a => { if (a.start_date < todayPk()) a.start_date = todayPk(); });   // a new campaign cannot start in the past
   const total = inSets.reduce((t, a) => t + a.ads, 0);
   if (total > MAX_ADS_TOTAL) throw h.bad(`That is ${total} ads in one go — please keep it to ${MAX_ADS_TOTAL} ads or fewer per campaign and generate more in a second round.`);
   const ageMode = b.age_mode === 'CUSTOM' ? 'CUSTOM' : 'DEFAULT';
@@ -681,9 +683,11 @@ async function generateUnified(req, env, user, h) {
   if (!raw || !raw.campaign || !copies.length) throw new h.HttpError(502, msg.stop_reason === 'max_tokens' ? 'The answer was cut off — please try again.' : 'Claude returned an unexpected answer — please try again.');
   if (short.length) throw new h.HttpError(502, 'Claude returned fewer ads than requested — try again');
   const campaign = normalizeCampaign({ ...raw.campaign, audience_locations: [], audience_interests: [], placements: manual, ad_headline: '', ad_primary_text: '', ad_description: '' });
-  Object.assign(campaign, { objective: goal, budget_daily: budget, language, age_mode: ageMode, start_date: todayPk(), start_time: nowPk(), ...(ageMode === 'CUSTOM' ? { audience_age_min: ageMin, audience_age_max: ageMax } : { audience_age_min: 18, audience_age_max: 65 }), placements_type: placementsType, advantage_creative: b.advantage_creative === true });   // what the user chose is authoritative
+  Object.assign(campaign, { objective: goal, budget_daily: budget, language, age_mode: ageMode, ...(ageMode === 'CUSTOM' ? { audience_age_min: ageMin, audience_age_max: ageMax } : { audience_age_min: 18, audience_age_max: 65 }), placements_type: placementsType, advantage_creative: b.advantage_creative === true });   // what the user chose is authoritative
   if (placementsType === 'MANUAL') campaign.placements = manual;
-  applyAdSets(campaign, normalizeAdSets(b.ad_sets, budgetType, Array.isArray(raw.ad_sets) ? raw.ad_sets : []), budgetType);
+  const finalSets = normalizeAdSets(b.ad_sets, budgetType, Array.isArray(raw.ad_sets) ? raw.ad_sets : []);
+  finalSets.forEach((a, i) => { a.start_date = inSets[i].start_date; });
+  applyAdSets(campaign, finalSets, budgetType);
   const insights = strList(raw.insights, 5).map(x => x.slice(0, 220));
   const genId = h.uid(), now = h.nowIso();
   await env.DB.prepare('INSERT INTO ad_generations (id,user_id,client_id,product_url,page_title,brief,language,style,results_json,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
@@ -698,8 +702,8 @@ async function selectCopy(req, env, user, h) {
   const copies = cleanCopies((JSON.parse(g.results_json || '{}')).ad_copies), idx = Math.round(+b.index), c = copies[idx];
   if (!c) throw h.bad('That variation does not exist');
   const gid = String(b.generation_id), now = h.nowIso();
-  const stmts = copies.map((x, j) => x.set === c.set ? env.DB.prepare('DELETE FROM ad_preferences WHERE user_id=? AND copy_id LIKE ?').bind(user.id, `${gid}:${j}:%`) : null).filter(Boolean);
-  for (const [type, content] of [['headline', c.headline], ['primary_text', c.primary_text], ['description', c.description]]) if (content) stmts.push(env.DB.prepare("INSERT INTO ad_preferences (id,user_id,copy_id,type,content,preference,created_at) VALUES (?,?,?,?,?,'approved',?)").bind(h.uid(), user.id, `${gid}:${idx}:${type}`, type, content, now));
+  const stmts = [env.DB.prepare('DELETE FROM ad_preferences WHERE user_id=? AND copy_id LIKE ?').bind(user.id, `${gid}:${idx}:%`)];   // each ad is picked or un-picked on its own
+  if (b.selected !== false) for (const [type, content] of [['headline', c.headline], ['primary_text', c.primary_text], ['description', c.description]]) if (content) stmts.push(env.DB.prepare("INSERT INTO ad_preferences (id,user_id,copy_id,type,content,preference,created_at) VALUES (?,?,?,?,?,'approved',?)").bind(h.uid(), user.id, `${gid}:${idx}:${type}`, type, content, now));
   await env.DB.batch(stmts);
   return { ok: true, learning: learningOf(await recentPrefs(env, user.id)) };
 }
@@ -712,10 +716,10 @@ async function saveUnified(req, env, user, h) {
   const b = await h.readBody(req), now = h.nowIso();
   const copies = cleanCopies(b.ad_copies), bc = b.campaign || {}, budgetType = bc.budget_type === 'ABO' ? 'ABO' : 'CBO', placementsType = bc.placements_type === 'MANUAL' ? 'MANUAL' : 'ADVANTAGE';
   const sets = normalizeAdSets(bc.ad_sets, budgetType);
-  sets.forEach((a, i) => { a.selected = a.selected !== null && copies[a.selected] && copies[a.selected].set === i ? a.selected : null; });   // one pick per ad set, and it must be one of that set's own ads
-  const chosen = new Set(sets.map(a => a.selected).filter(x => x !== null)), sel = sets.map(a => a.selected).find(x => x !== null) ?? null;
+  sets.forEach((a, i) => { a.selected = a.selected.filter(x => copies[x] && copies[x].set === i); });   // any number of picks per ad set, each one of that set's own ads
+  const chosen = new Set(sets.flatMap(a => a.selected)), sel = sets.flatMap(a => a.selected)[0] ?? null;
   const pick = sel !== null ? copies[sel] : { headline: '', primary_text: '', description: '' };
-  const c = normalizeCampaign({ ...bc, ad_headline: pick.headline, ad_primary_text: pick.primary_text, ad_description: pick.description });
+  const c = normalizeCampaign({ ...bc, ad_format: (sel !== null ? copies[sel] : copies[0] || {}).format === 'VIDEO' ? 'VIDEO' : (sel !== null ? copies[sel] : copies[0] || {}).format === 'CAROUSEL' ? 'CAROUSEL' : 'SINGLE_IMAGE', ad_headline: pick.headline, ad_primary_text: pick.primary_text, ad_description: pick.description });
   applyAdSets(c, sets, budgetType);
   if (placementsType === 'MANUAL' && !strList(bc.placements, 8).length) throw h.bad('Pick at least one placement, or use Advantage+ placements');
   let clientId = clip(b.client_id, 60) || null;
@@ -909,7 +913,7 @@ export async function handleAi(req, env, user, seg, url, h) {
   if (seg[2] === 'campaign' && seg[3] && seg[4] === 'launch' && m === 'POST') {
     const c = await ownCampaign(env, user, seg[3], h), now = h.nowIso();
     const copies = cleanCopies(safeArr(c.ad_copies_json)), sets = normalizeAdSets(safeArr(c.ad_sets_json), c.budget_type === 'ABO' ? 'ABO' : 'CBO');
-    if (copies.length && sets.some((a, i) => copies.some(x => x.set === i) && !(a.selected !== null && copies[a.selected] && copies[a.selected].set === i) && !(i === 0 && c.selected_copy_index !== null && c.selected_copy_index !== undefined))) throw h.bad('Select one ad for every ad set before launching');
+    if (copies.length && sets.some((a, i) => copies.some(x => x.set === i) && !a.selected.some(x => copies[x] && copies[x].set === i) && !(i === 0 && c.selected_copy_index !== null && c.selected_copy_index !== undefined))) throw h.bad('Select at least one ad in every ad set before launching');
     await env.DB.prepare("UPDATE campaigns SET status='launched', launched_at=?, updated_at=? WHERE id=?").bind(now, now, c.id).run();
     return { ok: true, status: 'launched', launched_at: now };
   }
