@@ -699,7 +699,7 @@ tfoot td{border-top:1px solid #2a2a2a}
 <div class="toast" id="toast"></div>
 
 <script src="config.js?v=20261024a"></script>
-<script src="portal.js?v=20261024a"></script>
+<script src="portal.js?v=20261028a"></script>
 <script src="chat.js?v=20261024a"></script>
 <script>
 /* ========= Cloud storage shim =========
@@ -752,6 +752,13 @@ const store = (() => {
     mem, snap, flush: flushNow,
     hydrate(state){
       SYNC_KEYS.forEach(k => { const arr = (state.data && state.data[k]) || []; mem[k] = JSON.stringify(arr); snap[k] = new Map(arr.map(it => [syncId(k, it), JSON.stringify(it)])); });
+      SETTING_KEYS.forEach(k => { const v = state.settings && state.settings[k]; if (v !== undefined && v !== null) mem[k] = v; });
+    },
+    /** true when nothing is waiting to be written to the server */
+    idle(){ return !dirty.size && !timer && !Object.keys(pendingSettings).length; },
+    /** replace just these collections (and the credit settings) with what the server now holds */
+    hydrateKeys(state, keys){
+      keys.forEach(k => { const arr = (state.data && state.data[k]) || []; mem[k] = JSON.stringify(arr); snap[k] = new Map(arr.map(it => [syncId(k, it), JSON.stringify(it)])); });
       SETTING_KEYS.forEach(k => { const v = state.settings && state.settings[k]; if (v !== undefined && v !== null) mem[k] = v; });
     },
     getItem(k){ return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null; },
@@ -1221,8 +1228,11 @@ const meta = {
   reports:['Reports',"Monthly breakdown, cumulative Allah's Share and top clients"],
 };
 
+let lastRenderedView = null;
 function render(){
   destroyCharts();
+  if (view !== lastRenderedView && FIN_VIEWS.includes(view)) setTimeout(() => refreshFinance(), 0);   // opening a money screen always pulls fresh numbers
+  lastRenderedView = view;
   const t = totals();
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   const nb = document.querySelector('#nav button[data-view="dashboard"]'), nDue = recDue().length;
@@ -1840,10 +1850,10 @@ function saveCharity(e){
   let sp = null;
   if (type === 'voluntary') { sp = allahSplit(rec.amount); rec.obligated_part = sp.applied; rec.credit_added = sp.credit; }   // obligation first, the rest becomes credit
   charity.push(rec);
-  save(); closeModal(); render();
+  save(); closeModal(); render(); finAfterChange();
   toast(sp ? `${fmt(sp.applied)} applied to obligation, ${fmt(sp.credit)} added to credit balance ✨ — may Allah accept it` : "Allah's Share payment recorded — may Allah accept it 🤲");
 }
-function delCharity(id){ const c = charity.find(x => x.id === id); if (!c || c.type === 'credit') return; if (confirm("Delete this Allah's Share payment?" + (credAdded(c) > 0 ? ' The credit it created is removed too.' : ''))) { charity = charity.filter(c => c.id !== id); save(); render(); } }
+function delCharity(id){ const c = charity.find(x => x.id === id); if (!c || c.type === 'credit') return; if (confirm("Delete this Allah's Share payment?" + (credAdded(c) > 0 ? ' The credit it created is removed too.' : ''))) { charity = charity.filter(c => c.id !== id); save(); render(); finAfterChange(); } }
 
 /* ----- Reports ----- */
 function monthRows(){
@@ -3561,6 +3571,42 @@ function rtOnTick(what){
   const nb = document.querySelector('#nav button[data-view="tasks"]'), n = MB.rt.unread.total || 0; if (nb) nb.innerHTML = '✅ Tasks' + (n ? `<span class="nbadge" title="${n} unread message${n > 1 ? 's' : ''}">${n > 99 ? '99+' : n}</span>` : '');
   const ae = document.activeElement; if (view === 'tasks' && !(ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName)) && !$('overlay').classList.contains('open')) render();   // refresh sidebar badges / dots
 }
+
+/* ========= Fresh money data =========
+   Everything the dashboard shows (Cash in Hand, My Share, Allah's Share…) is computed from the collections below. They are
+   loaded once at sign-in, so a payment recorded in another tab / device (or straight in the database) never reached this screen.
+   refreshFinance() re-reads them from the API (never cached), recomputes the Allah's Share credit and repaints. */
+const FIN_VIEWS = ['dashboard', 'allah', 'personal', 'income', 'expenses', 'invoices', 'reports'];
+const FIN_KEYS = ['income_entries', 'invoices', 'charity_expenses', 'expenses', 'personal_expenses', 'personal_income', 'personal_withdrawals', 'recurring_alerts', 'employees', 'salary_payments', 'employee_leaves'];
+let finBusy = false;
+const finSig = () => FIN_KEYS.map(k => store.mem[k] || '').join('|') + '|' + ['allah_share_credit', 'allah_share_credit_manual', 'allah_share_credit_manual_at'].map(k => store.mem[k] || '').join('|');
+async function refreshFinance(force){
+  if (finBusy) return false; finBusy = true;
+  try {
+    if (!store.idle()) await store.flush();   // never overwrite edits that have not reached the server yet
+    if (!store.idle()) return false;
+    const before = finSig(), state = await MB.api('/api/admin/state?_=' + Date.now());
+    if (!store.idle()) return false;   // the user changed something while we were fetching — keep their version
+    store.hydrateKeys(state, FIN_KEYS);
+    income = load(K.inc); invoices = load(K.inv); charity = load(K.ch); expenses = load(K.exp);
+    [income, invoices, charity, expenses] = [income, invoices, charity, expenses].map(a => Array.isArray(a) ? a : []);
+    charity.forEach(c => { if (c.type !== 'voluntary' && c.type !== 'credit') c.type = 'obligated'; });
+    [personalExp, personalInc, personalWd] = [load(K.pe), load(K.pi), load(K.pw)].map(a => Array.isArray(a) ? a : []);
+    [employees, salaryPay, empLeaves] = [load(K.emp), load(K.sp), load(K.el)].map(a => Array.isArray(a) ? a : []);
+    const ra = load(K.ra); if (Array.isArray(ra)) recurring = ra;
+    loadCreditSettings(); syncIncome(); reconcileCredit(); persistCredit();
+    const changed = finSig() !== before;
+    const ae = document.activeElement, typing = ae && (/INPUT|TEXTAREA|SELECT/.test(ae.tagName) || ae.isContentEditable);
+    if ((changed || force) && FIN_VIEWS.includes(view) && !$('overlay').classList.contains('open') && !typing) render();
+    return changed;
+  } catch (e) { return false; }   // offline — the next trigger tries again
+  finally { finBusy = false; }
+}
+/** after the Allah's Share section changes: totals were already recomputed locally — now confirm them against the server */
+async function finAfterChange(){ try { await store.flush(); } catch (e) {} refreshFinance(true); }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshFinance(); });
+window.addEventListener('focus', () => refreshFinance());
+setInterval(() => { if (!document.hidden && FIN_VIEWS.includes(view)) refreshFinance(); }, 20000);
 
 /* ========= Boot ========= */
 (async function boot(){

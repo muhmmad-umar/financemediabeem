@@ -36,7 +36,7 @@
       const headers = { 'Content-Type': 'application/json' };
       const t = MB.token(); if (t) headers.Authorization = 'Bearer ' + t;
       let res;
-      try { res = await fetch(base + path, { method: opts.method || 'GET', headers, body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined }); }
+      try { res = await fetch(base + path, { method: opts.method || 'GET', cache: 'no-store', headers, body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined }); }
       catch (e) { const err = new Error('Cannot reach the server — check your connection'); err.offline = true; throw err; }
       let data = {}; try { data = await res.json(); } catch (e) {}
       if (res.status === 401 && !opts.noRedirect && path !== '/api/auth/login') { MB.clear(); MB.go('/login'); throw new Error('Session expired'); }
