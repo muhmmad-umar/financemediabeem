@@ -18,6 +18,11 @@ migrations_dir = "migrations"
 # JWT_SECRET is a secret, not a var:  npx wrangler secret put JWT_SECRET
 # (for local dev put JWT_SECRET=... in .dev.vars)
 
+# Optional secrets (secrets are not declared in this file; set them with wrangler):
+#   npx wrangler secret put CLAUDE_API_KEY -c worker/wrangler.toml    # else the key saved in Admin → Settings → AI Settings is used
+#   npx wrangler secret put APIFY_API_TOKEN -c worker/wrangler.toml    # Instagram Reel transcription; else the token saved in Admin → Settings → Apify Settings is used
+# (for local dev: APIFY_API_TOKEN=... in .dev.vars; APIFY_API_BASE / CLAUDE_API_BASE can point at a mock server)
+
 # ---- real-time chat: one Durable Object per channel / DM pair / task --------------------------------
 [[durable_objects.bindings]]
 name = "CHAT_ROOM"

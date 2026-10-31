@@ -22,5 +22,18 @@
       var cl = box.querySelector('#aiClear'); if (cl) cl.onclick = function () { if (confirm('Remove the saved API key? Ad Copy Studio will stop working until a new one is added.')) MB.api('/api/ai/settings', { method: 'PUT', body: { claude_api_key: '' } }).then(function () { S.cfg = null; settingsCard(box, onDone); toast('Key removed'); }); };
     }).catch(function (e) { box.innerHTML = '<div class="muted">' + esc(e.message) + '</div>'; });
   }
-  MB.adStudio = { settingsCard: settingsCard, reset: function () { S.cfg = null; if (MB.ads && MB.ads.reset) MB.ads.reset(); } };
+  /** Admin → Settings → Apify Settings: the token used to transcribe Instagram Reels */
+  function apifyCard(box, onDone) {
+    box.innerHTML = '<div class="muted">Loading…</div>';
+    MB.api('/api/ai/config').then(function (c) {
+      box.innerHTML = '<div class="field"><label>Apify API Token</label><input id="apKey" type="password" autocomplete="off" placeholder="' + (c.apify_has_key ? 'Saved (' + esc(c.apify_key_hint || '') + ') — paste a new token to replace' : 'apify_api_…') + '"><div class="muted" style="font-size:12px;margin-top:6px">' + (c.apify_key_source === 'secret' ? '✓ A Worker secret <code>APIFY_API_TOKEN</code> is set and is used first.' : c.apify_has_key ? '✓ Token saved. Reel transcription is on for you and your employees.' : 'Not set — reel URL fields still show in Campaign Builder, but auto-transcription stays off.') + ' You can also set it as a Worker secret: <code>npx wrangler secret put APIFY_API_TOKEN</code>.</div></div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="apSave">Save Apify token</button>' + (c.apify_key_source === 'settings' ? '<button class="btn ghost" id="apClear">Remove saved token</button>' : '') + '</div>';
+      box.querySelector('#apSave').onclick = function () {
+        var k = box.querySelector('#apKey').value.trim(); if (!k) return toast('Paste your Apify API token first');
+        MB.api('/api/ai/settings', { method: 'PUT', body: { apify_api_token: k } }).then(function () { S.cfg = null; if (MB.ads && MB.ads.reset) MB.ads.reset(); toast('Apify token saved'); apifyCard(box, onDone); if (onDone) onDone(); }).catch(function (e) { toast(e.message); });
+      };
+      var cl = box.querySelector('#apClear'); if (cl) cl.onclick = function () { if (confirm('Remove the saved Apify token? Reel transcription will stop working until a new one is added.')) MB.api('/api/ai/settings', { method: 'PUT', body: { apify_api_token: '' } }).then(function () { if (MB.ads && MB.ads.reset) MB.ads.reset(); apifyCard(box, onDone); toast('Token removed'); }); };
+    }).catch(function (e) { box.innerHTML = '<div class="muted">' + esc(e.message) + '</div>'; });
+  }
+  MB.adStudio = { apifyCard: apifyCard, settingsCard: settingsCard, reset: function () { S.cfg = null; if (MB.ads && MB.ads.reset) MB.ads.reset(); } };
 })();

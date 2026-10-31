@@ -92,6 +92,15 @@
     var r = function (v, label, sub) { return '<label class="' + (m.budget_type === v ? 'on' : '') + '"><input type="radio" name="bt-' + ns + '" data-bt value="' + v + '" ' + (m.budget_type === v ? 'checked' : '') + '><span>' + label + '<small>' + sub + '</small></span></label>'; };
     return '<div class="cb-seg" data-ns="' + ns + '">' + r('CBO', 'CBO — Campaign Budget Optimization', 'Meta distributes budget') + r('ABO', 'ABO — Ad Set Budget Optimization', 'I set budget per ad set') + '</div>';
   }
+  var REEL_RE = /instagram\.com\/(reel|reels|p)\//i;
+  /** one optional reel URL per ad — the list follows the "Number of ads" box */
+  function reelsHtml(a, i) {
+    var n = Math.min(30, Math.max(1, Math.round(+a.ads) || 1)); a.reels = a.reels || [];
+    var h = '<div class="cb-hint" style="margin-top:12px">🎬 Paste a reel URL and Claude will write copy based on that reel’s content</div>';
+    if (cfg && !cfg.apify_has_key) h += '<div class="cb-note" style="margin:6px 0">Add Apify API key in Settings to enable auto-transcription</div>';
+    for (var k = 0; k < n; k++) h += '<label class="cb-lbl" style="margin-top:10px">Ad ' + (k + 1) + ' — Instagram Reel URL (optional)</label><input type="url" inputmode="url" data-reel data-i="' + i + '" data-k="' + k + '" placeholder="paste reel URL for this ad..." value="' + esc(a.reels[k] || '') + '" autocomplete="off">';
+    return h;
+  }
   function adSetsHtml(m, ns) {
     var abo = m.budget_type === 'ABO', h = '<div id="cbAS-' + ns + '" data-ns="' + ns + '">';
     m.ad_sets.forEach(function (a, i) {
@@ -101,7 +110,7 @@
         '<label class="cb-lbl">Location</label><div class="cb-seg">' + rd('location_type', 'PAKISTAN', LOC_LABEL.PAKISTAN) + rd('location_type', 'MAJOR_CITIES', LOC_LABEL.MAJOR_CITIES) + '</div>' +
         '<label class="cb-lbl">Targeting</label><div class="cb-seg">' + rd('targeting_type', 'BROAD', '📊 Broad Targeting') + rd('targeting_type', 'INTEREST', '🎯 Interest Targeting') + '</div>' +
         (a.targeting_type === 'INTEREST' ? '<label class="cb-lbl">Suggested interest</label><input type="text" data-asf="interest" data-i="' + i + '" maxlength="80" value="' + esc(a.interest) + '" placeholder="AI picks the most relevant one — or type your own"><div class="cb-hint">Only 1 interest — the AI picks the most relevant one to the product. You can edit it.</div>' : '') +
-        (ns === 'f' ? '<label class="cb-lbl">Number of ads</label><input type="number" data-asf="ads" data-i="' + i + '" min="1" step="1" inputmode="numeric" value="' + esc(a.ads === undefined ? 1 : a.ads) + '"><div class="cb-hint">Each ad gets its own unique ad copy.</div>' : '') +
+        (ns === 'f' ? '<label class="cb-lbl">Number of ads</label><input type="number" data-asf="ads" data-i="' + i + '" min="1" step="1" inputmode="numeric" value="' + esc(a.ads === undefined ? 1 : a.ads) + '"><div class="cb-hint">Each ad gets its own unique ad copy.</div><div class="cb-reels" data-i="' + i + '">' + reelsHtml(a, i) + '</div>' : '') +
         (abo ? '<label class="cb-lbl">Daily budget</label><div class="cb-money"><span>₨</span><input type="number" data-asf="budget" data-i="' + i + '" min="1" step="1" inputmode="numeric" value="' + esc(a.budget) + '"><span>/ day</span></div>' : '') + '<div class="cb-agr"><div><small>Start date</small><input type="date" data-asf="start_date" data-i="' + i + '" min="' + today() + '" value="' + esc(a.start_date || today()) + '"></div><div><small>Start time (PKT)</small><input type="time" data-asf="start_time" data-i="' + i + '" value="' + esc(a.start_time || nowTime()) + '"></div></div></div>';
     });
     return h + (ns === 'f' ? '<button type="button" class="cb-addas" data-asadd>＋ Add Ad Set</button>' : '<div class="cb-hint">To change the number of ad sets or ads, edit the brief and regenerate.</div>') + '</div>';
@@ -125,7 +134,11 @@
         if (b.hasAttribute('data-asadd')) m.ad_sets.push(newAdSet(m)); else if (m.ad_sets.length > 1) m.ad_sets.splice(+b.dataset.asrm, 1);
         redraw();
       });
-      box.addEventListener('input', function (e) { var af = e.target.closest('[data-agef]'); if (af) model()[af.dataset.agef] = af.value; var n = e.target.closest('[data-asf]'); if (n && n.type !== 'radio') model().ad_sets[+n.dataset.i][n.dataset.asf] = n.value; });
+      box.addEventListener('input', function (e) {
+        var af = e.target.closest('[data-agef]'); if (af) model()[af.dataset.agef] = af.value;
+        var rl = e.target.closest('[data-reel]'); if (rl) { var a0 = model().ad_sets[+rl.dataset.i]; a0.reels = a0.reels || []; a0.reels[+rl.dataset.k] = rl.value; return; }
+        var n = e.target.closest('[data-asf]'); if (n && n.type !== 'radio') { var a1 = model().ad_sets[+n.dataset.i]; a1[n.dataset.asf] = n.value; if (n.dataset.asf === 'ads') { var rb = box.querySelector('.cb-reels[data-i="' + n.dataset.i + '"]'); if (rb) rb.innerHTML = reelsHtml(a1, +n.dataset.i); } }
+      });
       box.addEventListener('change', function (e) {
         var t = e.target, m = model();
         if (t.matches('[data-asf][type=radio]') && t.checked) { m.ad_sets[+t.dataset.i][t.dataset.asf] = t.value; redraw(); }
@@ -185,7 +198,7 @@
 
   function loadHtml() {
     var msgs = ['Reading your product page…', 'Designing the audience and placements…', 'Writing your ad copies…', 'Polishing headlines…'];
-    return '<div class="card cb-load cb-page"><div class="sp"></div><b>Building your campaign…</b><span id="cbLoadMsg">' + msgs[S.loadMsg % msgs.length] + '</span><div class="cb-hint" style="margin-top:14px">One Claude call writes the settings and all 3 ad copies — usually 10–20 seconds.</div></div>';
+    return '<div class="card cb-load cb-page"><div class="sp"></div><b>Building your campaign…</b><span id="cbLoadMsg">' + (S.loadFixed || msgs[S.loadMsg % msgs.length]) + '</span><div class="cb-hint" style="margin-top:14px">One Claude call writes the settings and all your ad copies — usually 10–20 seconds.</div></div>';
   }
 
   /* ============================================================ step 3 — review */
@@ -239,13 +252,23 @@
       return h + mine.map(function (i, n) { return varHtml(r.copies[i], i, n + 1); }).join('');
     }).join('');
   }
+  function reelInsightsHtml() {
+    var r = S.run, items = [];
+    r.copies.forEach(function (c) { if (!c.reel_analysis) return; var si = setOf(c), n = r.copies.filter(function (x) { return setOf(x) === si; }).indexOf(c) + 1; items.push({ si: si, n: n, a: c.reel_analysis, url: c.reel_url }); });
+    if (!items.length) return '';
+    var multi = r.campaign.ad_sets.length > 1, li = function (k, v) { return v ? '<li><b>' + k + ':</b> ' + esc(v) + '</li>' : ''; };
+    return '<div class="cb-ins cb-reelins"><h4>🎬 REEL INSIGHTS</h4>' + items.map(function (x) {
+      return '<div style="margin:8px 0 12px"><b>' + (multi ? 'Ad Set ' + (x.si + 1) + ' · ' : '') + 'Ad ' + x.n + ' reel analysis:</b>' + (x.url ? ' <a href="' + esc(x.url) + '" target="_blank" rel="noopener" style="font-size:12px">open reel ↗</a>' : '') + '<ul>' + li('Hook style', x.a.hook_style) + li('Core emotion', x.a.core_emotion) + li('Language', x.a.language) + li('Why it works', x.a.why_it_works) + li('Applied to copy', x.a.applied_to_copy) + '</ul></div>';
+    }).join('') + '</div>';
+  }
   var needsPick = function (r) { return r.campaign.ad_sets.some(function (a, si) { return r.copies.some(function (x) { return setOf(x) === si; }) && !(r.sel[si] || []).length; }); };
   /** the ads that go to Meta for an ad set (an ad set without its own ads — saved before this feature — reuses Ad Set 1's) */
   var adsFor = function (r, si) { var l = r.sel[si] || []; if (!l.length && !r.copies.some(function (x) { return setOf(x) === si; })) l = r.sel[0] || []; return l.slice().sort(function (x, y) { return x - y; }).map(function (i) { return r.copies[i]; }); };
   function reviewHtml() {
-    var r = S.run, h = (S.err ? '<div class="cb-err">' + esc(S.err) + '</div>' : '') + (r.page_note ? '<div class="cb-note">' + esc(r.page_note) + ' — the copy is based on your description.</div>' : '');
+    var r = S.run, h = (S.err ? '<div class="cb-err">' + esc(S.err) + '</div>' : '') + (r.page_note ? '<div class="cb-note">' + esc(r.page_note) + ' — the copy is based on your description.</div>' : '') + (r.reelWarnings || []).map(function (w) { return '<div class="cb-note">⚠ ' + esc(w) + '</div>'; }).join('');
     h += '<div class="cb-page">' + settingsHtml();
     h += '<div class="cb-lbl" style="margin-top:6px">✍️ Choose the ads to launch — one or more per ad set</div>' + learnChip() + copiesHtml();
+    h += reelInsightsHtml();
     if (r.insights.length) h += '<div class="cb-ins"><h4>💡 INSIGHTS</h4><ul>' + r.insights.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>';
     h += '<div class="cb-act"><button type="button" id="cbRegen">🔄 Regenerate</button><button type="button" id="cbSave">💾 ' + (S.id && !S.dirty ? 'Saved ✓' : 'Save Draft') + '</button><button type="button" class="go" id="cbLaunch" ' + (needsPick(r) ? 'disabled title="Select at least one ad in every ad set first"' : '') + '>🚀 Launch in Meta</button></div>';
     if (needsPick(r)) h += '<div class="cb-hint" style="text-align:center">Select at least one ad in every ad set to enable Launch.</div>';
@@ -335,13 +358,40 @@
     if (bad > -1) { S.err = 'Ad set ' + (bad + 1) + ': enter a whole number of ads, 1 or more.'; return paint(); }
     f.ad_sets.forEach(function (a) { a.ads = Math.round(+a.ads); if (!/^\d{4}-\d{2}-\d{2}$/.test(a.start_date || '')) a.start_date = today(); if (a.start_date < today()) a.start_date = today(); if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(a.start_time || '')) a.start_time = nowTime(); });
     if (f.age_mode === 'CUSTOM') { var lo = Math.round(+f.audience_age_min), hi = Math.round(+f.audience_age_max); if (!(lo >= 13 && lo <= 65 && hi >= 13 && hi <= 65)) { S.err = 'Enter a minimum and maximum age between 13 and 65.'; return paint(); } }
+    var badReel = null; f.ad_sets.forEach(function (a, si) { for (var k = 0; k < a.ads; k++) { var u = String((a.reels || [])[k] || '').trim(); if (u && !REEL_RE.test(u) && !badReel) badReel = 'Ad Set ' + (si + 1) + ', Ad ' + (k + 1) + ': the reel URL must contain instagram.com/reel/ or instagram.com/p/'; } });
+    if (badReel) { S.err = badReel; return paint(); }
     if (f.budget_type === 'ABO' && f.ad_sets.some(function (a) { return !(+a.budget >= 1); })) { S.err = 'Enter a daily budget for every ad set.'; return paint(); }
     if (f.placements_type === 'MANUAL' && !f.placements.length) { S.err = 'Pick at least one placement, or use Advantage+ placements.'; return paint(); }
     var avoid = regen && S.run ? S.run.copies.map(function (c) { return '- ' + c.headline; }).join('\n') : '';
-    S.busy = true; S.launched = false; S.loadMsg = 0; paint(); clearInterval(loadTimer); loadTimer = setInterval(function () { S.loadMsg++; var m = $q('#cbLoadMsg'); if (m) m.textContent = ['Reading your product page…', 'Designing the audience and placements…', 'Writing three ad copy angles…', 'Polishing headlines…'][S.loadMsg % 4]; }, 3500);
-    MB.api('/api/ai/campaign/generate', { method: 'POST', body: { url: f.url, description: f.description, budget_type: f.budget_type, budget_daily: f.budget, ad_sets: f.ad_sets, age_mode: f.age_mode, age_min: f.audience_age_min, age_max: f.audience_age_max, placements_type: f.placements_type, placements: f.placements, advantage_creative: !!f.advantage_creative, goal: f.goal, language: f.language, style: f.style, client_id: f.client_id, avoid: avoid } }).then(function (r) {
-      clearInterval(loadTimer); S.busy = false; S.run = { generation_id: r.generation_id, campaign: r.campaign, copies: r.ad_copies, insights: r.insights, sel: r.campaign.ad_sets.map(function () { return []; }), page_note: r.page_note, product_url: r.product_url, brief: f.description, style: f.style }; S.learning = r.learning || S.learning; S.dirty = true; S.editSet = null; S.editCopy = null; paint(); window.scrollTo(0, 0);
-    }).catch(function (e) { clearInterval(loadTimer); S.busy = false; S.err = e.message; paint(); });
+    S.busy = true; S.launched = false; S.loadMsg = 0; S.loadFixed = ''; paint(); clearInterval(loadTimer); loadTimer = setInterval(function () { S.loadMsg++; var m = $q('#cbLoadMsg'); if (m) m.textContent = S.loadFixed || ['Reading your product page…', 'Designing the audience and placements…', 'Writing your ad copies…', 'Polishing headlines…'][S.loadMsg % 4]; }, 3500);
+    transcribeReels(f).then(function (rr) {
+      var payload = { url: f.url, description: f.description, budget_type: f.budget_type, budget_daily: f.budget, ad_sets: f.ad_sets.map(function (a) { var o = Object.assign({}, a); delete o.reels; return o; }), reels: rr.reels, age_mode: f.age_mode, age_min: f.audience_age_min, age_max: f.audience_age_max, placements_type: f.placements_type, placements: f.placements, advantage_creative: !!f.advantage_creative, goal: f.goal, language: f.language, style: f.style, client_id: f.client_id, avoid: avoid };
+      return MB.api('/api/ai/campaign/generate', { method: 'POST', body: payload }).then(function (r) { return { r: r, warnings: rr.warnings }; });
+    }).then(function (x) {
+      var r = x.r; clearInterval(loadTimer); S.loadFixed = ''; S.busy = false; S.run = { generation_id: r.generation_id, campaign: r.campaign, copies: r.ad_copies, insights: r.insights, sel: r.campaign.ad_sets.map(function () { return []; }), page_note: r.page_note, reelWarnings: x.warnings, product_url: r.product_url, brief: f.description, style: f.style }; S.learning = r.learning || S.learning; S.dirty = true; S.editSet = null; S.editCopy = null; paint(); window.scrollTo(0, 0);
+    }).catch(function (e) { clearInterval(loadTimer); S.loadFixed = ''; S.busy = false; S.err = e.message; paint(); });
+  }
+  /** Instagram reels → transcripts (one Apify run per ad that has a URL). A reel that fails just falls back to the brief. */
+  function transcribeReels(f) {
+    var jobs = [], reels = f.ad_sets.map(function () { return []; }), warnings = [];
+    f.ad_sets.forEach(function (a, si) { for (var k = 0; k < a.ads; k++) { var u = String((a.reels || [])[k] || '').trim(); if (u) jobs.push({ si: si, k: k, url: u }); } });
+    if (!jobs.length) return Promise.resolve({ reels: reels, warnings: warnings });
+    if (cfg && !cfg.apify_has_key) { warnings.push('Reel URLs were ignored — add the Apify API key in Settings to enable auto-transcription. Copy is written from the brief only.'); return Promise.resolve({ reels: reels, warnings: warnings }); }
+    S.reelCache = S.reelCache || {};
+    var label = function (j) { return (f.ad_sets.length > 1 ? 'Ad Set ' + (j.si + 1) + ' · ' : '') + 'Ad ' + (j.k + 1); };
+    var setMsg = function (t) { S.loadFixed = t; var m = $q('#cbLoadMsg'); if (m) m.textContent = t; };
+    var done = 0;
+    return jobs.reduce(function (p, j) {
+      return p.then(function () {
+        var hit = S.reelCache[j.url];
+        if (hit) { reels[j.si][j.k] = Object.assign({ url: j.url }, hit); done++; return; }
+        setMsg('🎬 Transcribing ' + label(j) + ' reel… (this takes ~15-30 seconds)');
+        return MB.api('/api/ai/transcribe-reel', { method: 'POST', body: { reel_url: j.url } }).then(function (t) { S.reelCache[j.url] = t; reels[j.si][j.k] = Object.assign({ url: j.url }, t); done++; })
+          .catch(function (e) { warnings.push(label(j) + ' reel: ' + e.message + ' — that ad is written from the brief only.'); });
+      });
+    }, Promise.resolve()).then(function () {
+      if (done) { setMsg('✅ Transcriptions complete'); return new Promise(function (r) { setTimeout(r, 700); }); }
+    }).then(function () { setMsg('✨ Writing ad copies…'); return { reels: reels, warnings: warnings }; });
   }
   function pick(i) {
     var r = S.run, si = setOf(r.copies[i]), l = r.sel[si] = r.sel[si] || [], at = l.indexOf(i), on = at < 0;

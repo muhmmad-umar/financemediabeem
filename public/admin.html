@@ -3318,7 +3318,8 @@ async function onbApprove(id){
 /* ----- Settings: employment agreement template ----- */
 async function onbTplLoad(){ try { onbTpl = (await MB.api('/api/admin/onboarding/template')).template; if (view === 'settings') render(); } catch (e) { toast(e.message); } }
 const aiSettingsCard = () => `<div class="card"><h3 style="margin:0 0 4px">🤖 AI Settings</h3><div class="muted" style="margin-bottom:12px">Powers ✍️ Ad Copy Studio for you and your employees. The Claude API key is never shown to employees.</div><div id="aiBox"></div></div>`;
-function afterSettings(){ const b = $('aiBox'); if (b && window.MB && MB.adStudio) MB.adStudio.settingsCard(b); }
+const apifySettingsCard = () => `<div class="card"><h3 style="margin:0 0 4px">🎬 Apify Settings</h3><div class="muted" style="margin-bottom:12px">Lets Campaign Builder transcribe Instagram Reels so Claude can write ad copy from them. The token is never shown to employees.</div><div id="apifyBox"></div></div>`;
+function afterSettings(){ const b = $('aiBox'); if (b && window.MB && MB.adStudio) MB.adStudio.settingsCard(b); const a = $('apifyBox'); if (a && window.MB && MB.adStudio) MB.adStudio.apifyCard(a); }
 function vAds(){ return '<div id="adMount"></div>'; }
 function afterAds(){ MB.ads.mount($('adMount'), {isAdmin:true, onSettings:() => { view = 'settings'; render(); }}); }
 /* campaigns linked to a client, shown on the client's profile */
@@ -3331,9 +3332,9 @@ function afterClients(){
 }
 const openCampaign = id => { MB.ads.openCampaign(id); view = 'ads'; render(); };
 function vSettings(){
-  if (!onbTpl) { onbTplLoad(); return aiSettingsCard() + '<div class="card empty">Loading…</div>'; }
+  if (!onbTpl) { onbTplLoad(); return aiSettingsCard() + apifySettingsCard() + '<div class="card empty">Loading…</div>'; }
   const chips = [['employee_name', 'Employee name'], ['designation', 'Designation'], ['salary', 'Salary'], ['start_date', 'Start date'], ['probation_period', 'Probation']];
-  return aiSettingsCard() + `<div class="card"><h3 style="margin:0 0 4px">📄 Employment Agreement Template</h3>
+  return aiSettingsCard() + apifySettingsCard() + `<div class="card"><h3 style="margin:0 0 4px">📄 Employment Agreement Template</h3>
     <div class="muted" style="margin-bottom:12px">This text is shown to new hires on their onboarding page. Changes apply to <b>future links only</b> — links already sent and forms already signed keep the version they were issued with (currently v${onbTpl.version}${onbTpl.updated_at ? ', saved ' + fdate(String(onbTpl.updated_at).slice(0, 10)) : ''}).</div>
     <div class="rtbar">${[['bold', '<b>B</b>'], ['italic', '<i>I</i>'], ['underline', '<u>U</u>'], ['insertUnorderedList', '• List'], ['insertOrderedList', '1. List']].map(([c, n]) => `<button type="button" onmousedown="event.preventDefault();document.execCommand('${c}')">${n}</button>`).join('')}
       <button type="button" onmousedown="event.preventDefault();document.execCommand('formatBlock',false,'h3')">Heading</button><button type="button" onmousedown="event.preventDefault();document.execCommand('formatBlock',false,'p')">Paragraph</button></div>
@@ -3628,8 +3629,8 @@ setInterval(() => { if (!document.hidden && FIN_VIEWS.includes(view)) refreshFin
 })();
 
 </script>
-<script src="adstudio.js?v=20261028a"></script>
-<script src="campaigns.js?v=20261030d"></script>
+<script src="adstudio.js?v=20261031a"></script>
+<script src="campaigns.js?v=20261031a"></script>
 <script src="mobile.js?v=20261025b" defer></script>
 </body>
 </html>
